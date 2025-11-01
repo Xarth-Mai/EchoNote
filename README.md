@@ -31,18 +31,18 @@
   Today I learned something new about myself...
   ```
 
-🖥️ Cross-Platform UI
+- **🖥️ Cross-Platform UI**
 	•	Built with Tauri + HTML/JS
 	•	Adaptive layouts for desktop, tablet, and mobile
 	•	Minimal transitions, focus on clean writing experience
 
-🧱 Tech Stack
+- **🧱 Tech Stack**
 	•	Tauri￼ — native desktop wrapper
 	•	Vanilla HTML / JS / CSS
 	•	Markdown + YAML frontmatter
 	•	Local storage + custom cloud sync
 
-🚧 Roadmap
+- **🚧 Roadmap**
 	•	AI-driven editing suggestions
 	•	Improved merge conflict UI
 	•	Optional end-to-end encryption
