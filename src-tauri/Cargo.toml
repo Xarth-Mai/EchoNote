@@ -1,25 +1,69 @@
 [package]
 name = "echonote"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A minimal intelligent bilingual diary & writing app powered by LLM"
+authors = ["Xarth-Mai"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Xarth-Mai/EchoNote"
+homepage = "https://github.com/Xarth-Mai/EchoNote"
+documentation = "https://github.com/Xarth-Mai/EchoNote"
+keywords = ["diary", "markdown", "tauri", "writing", "ai"]
+categories = ["text-editors", "productivity"]
+rust-version = "1.70"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+# to ensure the lib name is unique and does not conflict with the bin name.
+# This is primarily a Windows issue, see: https://github.com/rust-lang/cargo/issues/8519
 name = "echonote_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+# Performance optimization: build configuration
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+incremental = true
+overflow-checks = true
+lto = false
+
+[profile.release]
+opt-level = "z"        # Optimize for binary size (good for desktop apps)
+lto = "thin"           # Link Time Optimization for better runtime performance
+codegen-units = 1      # Better optimization at the cost of slightly increased build time
+strip = true           # Remove debug symbols to reduce binary size
+panic = "abort"        # Smaller binary size (but panics can’t be caught)
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true           # Retain debug info for profiling
+
+# Code quality: lint configuration
+[lints.rust]
+# Performance
+unsafe_code = "warn"
+unused_must_use = "warn"
+# Code quality
+missing_docs = "warn"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+# Performance recommendations
+perf = "warn"
+# Allow some overly strict rules
+too_many_lines = "allow"
+cognitive_complexity = "allow"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Tauri core dependencies
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
+# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
