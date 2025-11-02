@@ -1,50 +1,73 @@
-# EchoNote 🪞  
-*A minimal intelligent bilingual writing & journaling app powered by LLM.*
+# EchoNote 🪞
+
+*EchoNote（回声记）— A minimal intelligent bilingual diary & writing app powered by LLM.*
+
+English | [中文](./README_CN.md)
+
+---
+
+EchoNote provides an elegant, distraction-free writing experience. It combines AI assistance for expression, reflection, and summarization while maintaining full offline capabilities.
+
+---
 
 ## ✨ Features
-- **📝 Smart Markdown Editor**  
-  - Real-time saving & syntax highlighting  
-  - AI-assisted writing (grammar, phrasing, and tab-style completions)  
-  - Dual-language writing support  
 
-- **📅 Mood Calendar & Timeline**  
-  - Each date has an emoji-based mood marker  
-  - Timeline view for recent entries  
+### 📝 Smart Markdown Editor (Core)
 
-- **🤖 AI Companion**  
-  - Generates summaries, reflections, or emotional feedback after writing  
-  - Optional interactive dialog about your day or writing style  
+- **Rich Markdown Support**
+  - Real-time syntax highlighting & inline formatting
+  - Auto-save functionality
+  - Support for headings, lists, code blocks, quotes, etc.
 
-- **☁️ Local-First Sync**  
-  - User-defined cloud backends (WebDAV / SMB / any personal cloud)  
-  - Conflict detection & merge logic inspired by Git  
-  - Offline-first design  
+- **AI-Assisted Writing**
+  - Real-time spelling & grammar error detection with lightweight hints
+  - Tab key to accept suggestions
+  - Auto-completion & semantic prompts (sentence-level)
+  - Optional translation hints when selecting text
 
-- **💾 Data Format**  
-  Each entry is a single `.md` file with inline metadata:  
-  ```markdown
-  ---
-  date: 2025-10-31
-  mood: 😊
-  tags: [reflection, english]
-  ---
-  Today I learned something new about myself...
-  ```
+- **AI Summary & Analysis**
+  - Automatic analysis after writing completion
+  - Grammar & logic corrections (when necessary)
+  - Generates: writing summary, emotion analysis, keyword extraction
+  - Saves to front matter's `ai_summary` field
 
-- **🖥️ Cross-Platform UI**
-	•	Built with Tauri + HTML/JS
-	•	Adaptive layouts for desktop, tablet, and mobile
-	•	Minimal transitions, focus on clean writing experience
+### 📅 Mood Calendar & Timeline View
 
-- **🧱 Tech Stack**
-	•	Tauri — native desktop wrapper
-	•	Vanilla HTML / JS / CSS
-	•	Markdown + YAML frontmatter
-	•	Local storage + custom cloud sync
+- **Calendar Interface**
+  - Visual calendar view showing daily moods and writing status
+  - Emoji-based mood markers for each date
+  - Click any date to open/edit the corresponding entry
+  - Manual mood editing (syncs with metadata)
 
-- **🚧 Roadmap**
-	•	AI-driven editing suggestions
-	•	Improved merge conflict UI
-	•	Optional end-to-end encryption
-	•	Mobile PWA support
+- **Timeline View**
+  - Displays recent entries with summaries
+  - Auto-loads older content on scroll
+  - Shows AI summaries and entry previews
+  - Responsive layout:
+    - **Portrait**: Calendar + timeline (compact, expandable)
+    - **Landscape**: Split view (calendar on left, editor on right with optional fullscreen)
 
+### 🖥️ Cross-Platform Support
+
+- **Desktop**: Windows, macOS, Linux
+- **Mobile**: Android, iOS, iPadOS
+
+---
+
+## 🧱 Tech Stack
+
+- **Frontend**: HTML + TypeScript + Tailwind CSS
+- **Backend**: Tauri + Rust
+
+## 🎯 Core Principles
+
+- **Minimal Writing**: Clean interface that doesn't distract from creativity
+- **AI Assistance**: Non-intrusive intelligent corrections and summaries
+- **Data Ownership**: All diaries are Markdown files that can be opened directly and backed up
+- **Consistent Cross-Platform Experience**: Same interface logic across desktop platforms
+
+---
+
+## 📄 License
+
+See [LICENSE](./LICENSE) for details.
