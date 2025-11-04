@@ -28,11 +28,6 @@ window.addEventListener("DOMContentLoaded", () => {
     updateLayout(newState.layoutMode, newState.viewMode, newState.editorFullscreen);
     updateToggleButton(newState.calendarExpanded);
 
-    // 主题变化时重新渲染日历（更新主题图标）
-    if (newState.theme) {
-      calendar.update();
-    }
-
     // 更新组件
     if (newState.viewMode === 'editor') {
       editor.update();

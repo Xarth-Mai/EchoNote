@@ -1,13 +1,14 @@
 // 日历组件
 
 import { getMonthDates, formatDate, isToday, isSameMonth } from '../utils/date';
-import { setCurrentDate, setViewMode, getEntry, state, toggleTheme } from '../utils/state';
+import { setState, getEntry, state, toggleTheme } from '../utils/state';
 import { UI } from '../utils/ui';
 
 export class Calendar {
   private container: HTMLElement;
   private year: number;
   private month: number;
+  private lastExpanded: boolean = state.calendarExpanded;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -92,7 +93,28 @@ export class Calendar {
     `;
 
     this.attachEventListeners();
-    this.applySectionHeights(isExpanded);
+
+    // 每次渲染后都根据当前状态校正高度；仅在状态变化时执行过渡动画
+    const top = this.container.querySelector('#calendar-top') as HTMLElement | null;
+    const bottom = this.container.querySelector('#calendar-bottom') as HTMLElement | null;
+    if (top && bottom) {
+      top.style.overflow = 'hidden';
+      bottom.style.overflow = 'hidden';
+
+      if (this.lastExpanded !== isExpanded) {
+        this.applySectionHeights(isExpanded);
+        this.lastExpanded = isExpanded;
+      } else {
+        // 状态未变：直接设置目标高度，避免误展示
+        if (!isExpanded) {
+          top.style.maxHeight = '0px';
+          bottom.style.maxHeight = '0px';
+        } else {
+          top.style.maxHeight = 'none';
+          bottom.style.maxHeight = 'none';
+        }
+      }
+    }
   }
 
   /** 渲染单个日期单元格 */
@@ -169,17 +191,13 @@ export class Calendar {
           const clickedMonth = d.getMonth();
           const clickedYear = d.getFullYear();
           const monthChanged = clickedMonth !== this.month || clickedYear !== this.year;
-          setCurrentDate(dateStr);
-          setViewMode('editor');
           if (monthChanged) {
-            // 切换到点击的月份
+            // 切换到点击的月份（先更新内部月份，再批量更新状态）
             this.month = clickedMonth;
             this.year = clickedYear;
-            this.render();
-          } else {
-            // 同月份：整块重渲染，三段容器过渡
-            this.render();
           }
+          // 合并状态更新，减少订阅触发次数；渲染交由订阅方统一调度
+          setState({ currentDate: dateStr, viewMode: 'editor' });
         }
       }
     });
