@@ -27,10 +27,8 @@ export class Editor {
       // 横屏模式：全屏/分屏切换按钮
       backButtonHtml = `
         <button id="toggle-fullscreen-btn"
-          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-200"
-          style="color: var(--color-primary);"
-          onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-          onmouseout="this.style.backgroundColor='transparent'">
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-200 text-(--color-primary) hover:bg-(--color-primary-hover)"
+        >
           ${isFullscreen ? '⊟ 分屏' : '⊡ 全屏'}
         </button>
       `;
@@ -38,11 +36,10 @@ export class Editor {
       // 竖屏模式：返回主页按钮
       backButtonHtml = `
         <button id="back-btn"
-          class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-200"
-          style="color: var(--color-primary);"
-          onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-          onmouseout="this.style.backgroundColor='transparent'">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-200 text-(--color-primary) hover:bg-(--color-primary-hover)"
+          aria-label="返回主页"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
           </svg>
           <span>主页</span>
@@ -53,12 +50,11 @@ export class Editor {
     this.container.innerHTML = `
       <div class="editor h-full flex flex-col">
         <!-- 工具栏 -->
-        <div class="flex items-center justify-between px-5 py-3 border-b backdrop-blur-md"
-          style="border-color: var(--color-border-primary); background-color: var(--color-bg-tertiary);">
+        <div class="flex items-center justify-between px-5 py-3 border-b backdrop-blur-md border-(--color-border-primary) bg-(--color-bg-tertiary)">
           ${backButtonHtml}
-          <h2 class="text-base font-semibold tracking-tight" style="color: var(--color-text-primary);">${currentDate}</h2>
-          <div class="flex items-center gap-2 text-xs" style="color: var(--color-text-secondary);">
-            <div class="w-2 h-2 rounded-full animate-pulse" style="background-color: var(--color-success);"></div>
+          <h2 class="text-base font-semibold tracking-tight text-(--color-text-primary)">${currentDate}</h2>
+          <div class="flex items-center gap-2 text-xs text-(--color-text-secondary)">
+            <div class="w-2 h-2 rounded-full animate-pulse bg-(--color-success)"></div>
             <span>已保存</span>
           </div>
         </div>
@@ -66,9 +62,8 @@ export class Editor {
         <!-- 编辑区域 -->
         <textarea
           id="editor-textarea"
-          class="flex-1 px-6 py-5 resize-none outline-none bg-transparent text-base leading-relaxed"
+          class="flex-1 px-6 py-5 resize-none outline-none bg-transparent text-base leading-relaxed text-(--color-text-primary)"
           placeholder="开始写作..."
-          style="color: var(--color-text-primary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;"
         >${content}</textarea>
       </div>
     `;

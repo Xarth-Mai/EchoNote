@@ -35,31 +35,22 @@ export class Calendar {
         <!-- 月份导航和主题切换 -->
         <div class="flex items-center justify-between mb-4">
           <button id="prev-month"
-            class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200"
-            style="color: var(--color-primary); background-color: transparent;"
-            onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-            onmouseout="this.style.backgroundColor='transparent'">
+            class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
           </button>
-          <h2 class="text-base font-semibold tracking-tight" style="color: var(--color-text-primary);">
+          <h2 class="text-base font-semibold tracking-tight text-(--color-text-primary)">
             ${this.year}年${this.month + 1}月
           </h2>
           <div class="flex items-center gap-2">
             <button id="theme-toggle"
-              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-base"
-              style="color: var(--color-primary); background-color: transparent;"
-              onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-              onmouseout="this.style.backgroundColor='transparent'"
+              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-base text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)"
               title="切换主题 (当前: ${themeText})">
               ${themeIcon}
             </button>
             <button id="next-month"
-              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200"
-              style="color: var(--color-primary); background-color: transparent;"
-              onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-              onmouseout="this.style.backgroundColor='transparent'">
+              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
               </svg>
@@ -70,7 +61,7 @@ export class Calendar {
         <!-- 星期标题 -->
         <div class="grid grid-cols-7 gap-1 mb-2">
           ${['日', '一', '二', '三', '四', '五', '六']
-        .map(day => `<div class="text-center text-xs font-medium py-2" style="color: var(--color-text-secondary);">${day}</div>`)
+        .map(day => `<div class=\"text-center text-xs font-medium py-2 text-(--color-text-secondary)\">${day}</div>`)
         .join('')}
         </div>
 
@@ -101,42 +92,25 @@ export class Calendar {
     const entry = getEntry(dateStr);
     const hasEntry = entry && entry.content.trim().length > 0;
 
-    const baseClasses = 'date-cell aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-200 relative';
+    const baseClasses = 'date-cell aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-200 relative select-none';
+    const commonText = isCurrentMonth ? 'text-(--color-text-primary)' : 'text-(--color-text-tertiary)';
+    const hoverable = isTodayDate ? '' : 'hover:bg-(--color-bg-hover)';
 
-    // 根据状态设置样式（优先级：今日 > 选中 > 有日记 > 非当月 > 普通）
-    let inlineStyle = '';
-    let extraClasses = '';
+    const todayClasses = 'bg-(--color-primary) text-(--color-text-inverse) font-semibold shadow-sm';
+    const selectedClasses = `border-2 border-(--color-primary) text-(--color-text-primary) ${hasEntry ? 'bg-(--color-success-light)' : ''}`;
+    const hasEntryClasses = hasEntry && isCurrentMonth ? 'bg-(--color-success-light)' : '';
 
-    if (isTodayDate) {
-      // 今日高亮
-      inlineStyle = `background-color: var(--color-primary); color: var(--color-text-inverse);`;
-      extraClasses = 'font-semibold shadow-sm';
-    } else if (isSelected) {
-      // 选中状态：边框高亮
-      inlineStyle = `border: 2px solid var(--color-primary); color: var(--color-text-primary);`;
-      extraClasses = 'font-semibold';
-      if (hasEntry) {
-        inlineStyle += ` background-color: var(--color-success-light);`;
-      }
-    } else if (hasEntry && isCurrentMonth) {
-      // 有日记的日期
-      inlineStyle = `background-color: var(--color-success-light);`;
-    } else if (!isCurrentMonth) {
-      // 非当月日期
-      inlineStyle = `color: var(--color-text-tertiary);`;
-    } else {
-      // 普通日期
-      inlineStyle = `color: var(--color-text-primary);`;
-    }
-
-    const classes = `${baseClasses} ${extraClasses}`;
-    const hoverStyle = isTodayDate ? '' : 'onmouseover="this.style.backgroundColor=\'var(--color-bg-hover)\'" onmouseout="this.style.backgroundColor=\'\'"';
+    const extraClasses = isTodayDate
+      ? todayClasses
+      : isSelected
+      ? selectedClasses
+      : hasEntryClasses;
 
     return `
-      <div class="${classes}" style="${inlineStyle}" ${hoverStyle} data-date="${dateStr}">
+      <div class="${baseClasses} ${commonText} ${hoverable} ${extraClasses}" data-date="${dateStr}" ${isTodayDate ? 'aria-current="date"' : ''} ${isSelected ? 'aria-selected="true"' : ''} tabindex="0">
         <span class="text-sm font-medium">${day}</span>
         ${entry?.mood ? `<span class="text-xs mt-0.5">${entry.mood}</span>` : ''}
-        ${hasEntry && !isTodayDate && !isSelected ? '<div class="absolute bottom-1.5 w-1 h-1 rounded-full" style="background-color: var(--color-success);"></div>' : ''}
+        ${hasEntry && !isTodayDate && !isSelected ? '<div class="absolute bottom-1.5 w-1 h-1 rounded-full bg-(--color-success)"></div>' : ''}
       </div>
     `;
   }

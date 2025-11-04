@@ -38,30 +38,26 @@ export class Timeline {
     const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
 
     return `
-      <div class="entry-item mb-2 p-4 backdrop-blur-md rounded-xl border cursor-pointer transition-all duration-200"
-           style="background-color: var(--color-bg-primary); border-color: var(--color-border-primary);"
-           onmouseover="this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.1)'; this.style.borderColor='var(--color-primary)';"
-           onmouseout="this.style.boxShadow=''; this.style.borderColor='var(--color-border-primary)';"
+      <div class="entry-item mb-2 p-4 backdrop-blur-md rounded-xl border cursor-pointer transition-all duration-200 bg-(--color-bg-primary) border-(--color-border-primary) hover:shadow-md hover:border-(--color-primary)"
            data-date="${entry.date}">
         <!-- 日期和心情 -->
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold" style="color: var(--color-text-primary);">${dateStr}</span>
-            <span class="text-xs" style="color: var(--color-text-secondary);">${weekday}</span>
+            <span class="text-sm font-semibold text-(--color-text-primary)">${dateStr}</span>
+            <span class="text-xs text-(--color-text-secondary)">${weekday}</span>
           </div>
           ${entry.mood ? `<span class="text-xl">${entry.mood}</span>` : ''}
         </div>
 
         <!-- 内容预览 -->
-        <div class="text-sm leading-relaxed line-clamp-3" style="color: var(--color-text-primary); opacity: 0.8;">
+        <div class="text-sm leading-relaxed line-clamp-3 text-(--color-text-primary) opacity-80">
           ${preview}
         </div>
 
         <!-- AI 摘要 -->
         ${entry.aiSummary
-        ? `<div class="mt-3 px-3 py-2 rounded-lg text-xs leading-relaxed"
-                style="background-color: var(--color-primary-light); border: 1px solid var(--color-border-secondary); color: var(--color-text-primary); opacity: 0.7;">
-               <span style="color: var(--color-primary);">💡</span> ${entry.aiSummary}
+        ? `<div class=\"mt-3 px-3 py-2 rounded-lg text-xs leading-relaxed bg-(--color-primary-light) border border-(--color-border-secondary) text-(--color-text-primary) opacity-70\">
+               <span class=\"text-(--color-primary)\">💡</span> ${entry.aiSummary}
              </div>`
         : ''
       }

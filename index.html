@@ -9,21 +9,19 @@
   <script type="module" src="/src/main.ts" defer></script>
 </head>
 
-<body class="h-screen overflow-hidden note-paper-bg">
+<body class="h-screen overflow-hidden bg-(--color-bg-primary) text-(--color-text-primary)">
   <div id="app" class="h-full">
     <!-- 主页：日历 + 时间线 -->
     <div id="home-panel" class="h-full flex flex-col">
       <!-- 日历部分 -->
-      <div class="shrink-0 p-5 backdrop-blur-sm" style="background-color: var(--color-bg-secondary);">
+      <div class="shrink-0 p-5 backdrop-blur-sm bg-(--color-bg-secondary)">
         <div id="calendar-container"></div>
       </div>
       <!-- 展开/收起按钮 -->
-      <div class="shrink-0 flex justify-center py-3 border-y backdrop-blur-sm"
-        style="border-color: var(--color-border-primary); background-color: var(--color-bg-secondary);">
+      <div
+        class="shrink-0 flex justify-center py-3 border-y backdrop-blur-sm border-(--color-border-primary) bg-(--color-bg-secondary)">
         <button id="toggle-calendar-btn"
-          class="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200"
-          style="color: var(--color-primary);" onmouseover="this.style.backgroundColor='var(--color-primary-hover)'"
-          onmouseout="this.style.backgroundColor='transparent'">
+          class="flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 text-(--color-primary) hover:bg-(--color-primary-hover)">
           <span id="toggle-icon" class="text-xs">▼</span>
           <span id="toggle-text">展开日历</span>
         </button>
