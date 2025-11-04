@@ -1,6 +1,6 @@
 // 时间线组件
 
-import { getAllEntries, setCurrentDate, setViewMode } from '../utils/state';
+import { getAllEntries, setState } from '../utils/state';
 import { UI } from '../utils/ui';
 import type { DiaryEntry } from '../types';
 
@@ -91,8 +91,7 @@ export class Timeline {
       if (item && this.container.contains(item)) {
         const date = item.dataset.date;
         if (date) {
-          setCurrentDate(date);
-          setViewMode('editor');
+          setState({ currentDate: date, viewMode: 'editor' });
         }
       }
     });
