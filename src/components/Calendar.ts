@@ -2,6 +2,7 @@
 
 import { getMonthDates, formatDate, isToday, isSameMonth } from '../utils/date';
 import { setCurrentDate, setViewMode, getEntry, state, toggleTheme } from '../utils/state';
+import { UI } from '../utils/ui';
 
 export class Calendar {
   private container: HTMLElement;
@@ -35,22 +36,22 @@ export class Calendar {
         <!-- 月份导航和主题切换 -->
         <div class="flex items-center justify-between mb-4">
           <button id="prev-month"
-            class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)">
+            class="${UI.ICON_BTN}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
           </button>
-          <h2 class="text-base font-semibold tracking-tight text-(--color-text-primary)">
+          <h2 class="${UI.SECTION_HEADER}">
             ${this.year}年${this.month + 1}月
           </h2>
           <div class="flex items-center gap-2">
             <button id="theme-toggle"
-              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-base text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)"
+              class="${UI.ICON_BTN} text-base"
               title="切换主题 (当前: ${themeText})">
               ${themeIcon}
             </button>
             <button id="next-month"
-              class="w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-200 text-(--color-primary) bg-transparent hover:bg-(--color-primary-hover)">
+              class="${UI.ICON_BTN}">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
               </svg>
@@ -61,7 +62,7 @@ export class Calendar {
         <!-- 星期标题 -->
         <div class="grid grid-cols-7 gap-1 mb-2">
           ${['日', '一', '二', '三', '四', '五', '六']
-        .map(day => `<div class=\"text-center text-xs font-medium py-2 text-(--color-text-secondary)\">${day}</div>`)
+        .map(day => `<div class=\"text-center text-xs font-medium py-2 ${UI.MUTED}\">${day}</div>`)
         .join('')}
         </div>
 
@@ -92,7 +93,7 @@ export class Calendar {
     const entry = getEntry(dateStr);
     const hasEntry = entry && entry.content.trim().length > 0;
 
-    const baseClasses = 'date-cell aspect-square flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all duration-200 relative select-none';
+    const baseClasses = UI.DATE_CELL;
     const commonText = isCurrentMonth ? 'text-(--color-text-primary)' : 'text-(--color-text-tertiary)';
     const hoverable = isTodayDate ? '' : 'hover:bg-(--color-bg-hover)';
 
@@ -142,16 +143,17 @@ export class Calendar {
       this.render();
     });
 
-    // 日期点击
-    this.container.querySelectorAll('.date-cell').forEach(cell => {
-      cell.addEventListener('click', (e) => {
-        const target = e.currentTarget as HTMLElement;
-        const date = target.dataset.date;
+    // 日期点击（事件代理）
+    this.container.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const cell = target.closest('.date-cell') as HTMLElement | null;
+      if (cell && this.container.contains(cell)) {
+        const date = cell.dataset.date;
         if (date) {
           setCurrentDate(date);
           setViewMode('editor');
         }
-      });
+      }
     });
   }
 

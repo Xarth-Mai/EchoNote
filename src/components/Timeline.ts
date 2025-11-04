@@ -1,6 +1,7 @@
 // 时间线组件
 
 import { getAllEntries, setCurrentDate, setViewMode } from '../utils/state';
+import { UI } from '../utils/ui';
 import type { DiaryEntry } from '../types';
 
 export class Timeline {
@@ -18,10 +19,10 @@ export class Timeline {
     this.container.innerHTML = `
       <div class="timeline h-full flex flex-col">
         <!-- 条目列表 -->
-        <div class="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto px-3 py-2">
           ${entries.length > 0
         ? entries.map(entry => this.renderEntry(entry)).join('')
-        : '<div class="p-12 text-center" style="color: var(--color-text-secondary);">暂无日记</div>'
+        : '<div class="p-12 text-center text-(--color-text-secondary)">暂无日记</div>'
       }
         </div>
       </div>
@@ -38,26 +39,26 @@ export class Timeline {
     const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];
 
     return `
-      <div class="entry-item mb-2 p-4 backdrop-blur-md rounded-xl border cursor-pointer transition-all duration-200 bg-(--color-bg-primary) border-(--color-border-primary) hover:shadow-md hover:border-(--color-primary)"
+      <div class="entry-item mb-2 p-4 backdrop-blur-md cursor-pointer ${UI.CARD}"
            data-date="${entry.date}">
         <!-- 日期和心情 -->
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <span class="text-sm font-semibold text-(--color-text-primary)">${dateStr}</span>
-            <span class="text-xs text-(--color-text-secondary)">${weekday}</span>
+            <span class="text-xs ${UI.MUTED}">${weekday}</span>
           </div>
           ${entry.mood ? `<span class="text-xl">${entry.mood}</span>` : ''}
         </div>
 
         <!-- 内容预览 -->
-        <div class="text-sm leading-relaxed line-clamp-3 text-(--color-text-primary) opacity-80">
+        <div class="${UI.ENTRY_PREVIEW}">
           ${preview}
         </div>
 
         <!-- AI 摘要 -->
         ${entry.aiSummary
-        ? `<div class=\"mt-3 px-3 py-2 rounded-lg text-xs leading-relaxed bg-(--color-primary-light) border border-(--color-border-secondary) text-(--color-text-primary) opacity-70\">
-               <span class=\"text-(--color-primary)\">💡</span> ${entry.aiSummary}
+        ? `<div class="${UI.ENTRY_SUMMARY}">
+               <span class="${UI.ENTRY_SUMMARY_ICON}">💡</span> ${entry.aiSummary}
              </div>`
         : ''
       }
@@ -83,16 +84,17 @@ export class Timeline {
 
   /** 绑定事件监听器 */
   private attachEventListeners(): void {
-    // 条目点击
-    this.container.querySelectorAll('.entry-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        const target = e.currentTarget as HTMLElement;
-        const date = target.dataset.date;
+    // 条目点击（事件代理）
+    this.container.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const item = target.closest('.entry-item') as HTMLElement | null;
+      if (item && this.container.contains(item)) {
+        const date = item.dataset.date;
         if (date) {
           setCurrentDate(date);
           setViewMode('editor');
         }
-      });
+      }
     });
   }
 
