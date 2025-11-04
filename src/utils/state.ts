@@ -1,4 +1,4 @@
-// 简单的状态管理
+// 简单的状态管理（应用状态与通用操作）
 
 import type { AppState, DiaryEntry } from '../types';
 
@@ -14,8 +14,8 @@ function loadThemePreference(): 'light' | 'dark' | 'auto' {
 /** 全局应用状态 */
 export const state: AppState = {
   currentDate: new Date().toISOString().split('T')[0],
-  currentEntry: null,
-  entries: new Map(),
+  currentBody: null, // 当前日期对应的正文缓存（进入编辑器时按需加载）
+  summaries: new Map(), // 仅缓存当月的摘要（frontmatter）
   viewMode: 'home',
   layoutMode: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait',
   calendarExpanded: false, // 默认收起
@@ -47,9 +47,9 @@ export function setCurrentDate(date: string): void {
   setState({ currentDate: date });
 }
 
-/** 设置当前条目 */
-export function setCurrentEntry(entry: DiaryEntry | null): void {
-  setState({ currentEntry: entry });
+/** 设置当前正文（仅缓存当前日期对应的 body） */
+export function setCurrentBody(body: string | null): void {
+  setState({ currentBody: body });
 }
 
 /** 切换视图模式 */
@@ -62,21 +62,28 @@ export function setLayoutMode(mode: 'portrait' | 'landscape'): void {
   setState({ layoutMode: mode });
 }
 
-/** 添加或更新条目 */
-export function saveEntry(entry: DiaryEntry): void {
-  state.entries.set(entry.date, entry);
-  setState({ currentEntry: entry });
+/** 批量设置摘要（覆盖当月） */
+export function setSummaries(entries: DiaryEntry[]): void {
+  const map = new Map<string, DiaryEntry>();
+  for (const e of entries) map.set(e.date, e);
+  setState({ summaries: map });
 }
 
-/** 获取所有条目（按日期倒序） */
-export function getAllEntries(): DiaryEntry[] {
-  return Array.from(state.entries.values())
-    .sort((a, b) => b.date.localeCompare(a.date));
+/** 新增或更新单个摘要 */
+export function upsertSummary(entry: DiaryEntry): void {
+  state.summaries.set(entry.date, entry);
+  // 变更通知
+  setState({ summaries: state.summaries });
 }
 
-/** 获取指定日期的条目 */
-export function getEntry(date: string): DiaryEntry | null {
-  return state.entries.get(date) || null;
+/** 获取所有摘要（按日期倒序） */
+export function getAllSummaries(): DiaryEntry[] {
+  return Array.from(state.summaries.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** 获取指定日期的摘要 */
+export function getSummary(date: string): DiaryEntry | null {
+  return state.summaries.get(date) || null;
 }
 
 /** 切换日历展开/收起状态 */

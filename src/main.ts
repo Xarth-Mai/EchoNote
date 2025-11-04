@@ -3,7 +3,8 @@
 import { Calendar } from './components/Calendar';
 import { Editor } from './components/Editor';
 import { Timeline } from './components/Timeline';
-import { state, subscribe, initLayoutListener, setCalendarExpanded, initThemeListener } from './utils/state';
+import { state, subscribe, initLayoutListener, setCalendarExpanded, initThemeListener, setSummaries } from './utils/state';
+import { listEntriesByMonth } from './utils/backend';
 
 // 组件实例（单例，复用于横竖屏）
 let calendar: Calendar;
@@ -22,6 +23,19 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 初始化布局监听
   initLayoutListener();
+
+  // 启动时仅加载当月日记摘要（不含正文）
+  (async () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // 自然月 1-12
+    try {
+      const summaries = await listEntriesByMonth(year, month);
+      setSummaries(summaries);
+    } catch (e) {
+      console.error('加载当月日记摘要失败:', e);
+    }
+  })();
 
   // 订阅状态变更
   subscribe((newState) => {

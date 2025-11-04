@@ -1,7 +1,8 @@
 // Markdown 编辑器组件
 
-import { state, saveEntry, setViewMode, getEntry, toggleEditorFullscreen } from '../utils/state';
+import { state, setViewMode, toggleEditorFullscreen, setCurrentBody, getSummary, upsertSummary } from '../utils/state';
 import type { DiaryEntry } from '../types';
+import { getEntryBody, saveEntryByDate } from '../utils/backend';
 
 export class Editor {
   private container: HTMLElement;
@@ -17,8 +18,7 @@ export class Editor {
   /** 渲染编辑器 */
   private render(): void {
     const currentDate = state.currentDate;
-    const entry = getEntry(currentDate);
-    const content = entry?.content || '';
+    const content = state.currentBody || '';
     const isLandscape = state.layoutMode === 'landscape';
     const isFullscreen = state.editorFullscreen;
 
@@ -73,6 +73,9 @@ export class Editor {
     `;
 
     this.attachEventListeners();
+
+    // 进入编辑器或切换日期时按需加载正文
+    void this.ensureBodyLoaded(currentDate);
   }
 
   /** 绑定事件监听器 */
@@ -110,16 +113,17 @@ export class Editor {
     if (!this.textarea && contentOverride === undefined) return;
 
     const targetDate = dateOverride || state.currentDate;
-    const content = contentOverride !== undefined ? contentOverride : (this.textarea ? this.textarea.value : '');
+    const body = contentOverride !== undefined ? contentOverride : (this.textarea ? this.textarea.value : '');
 
-    const entry: DiaryEntry = {
-      date: targetDate,
-      content,
-    };
+    const existing = getSummary(targetDate) || { date: targetDate } as DiaryEntry;
+    const summary: DiaryEntry = { ...existing, updatedAt: Math.floor(Date.now() / 1000) };
 
-    saveEntry(entry);
-    console.log('已保存:', entry);
-    // TODO: 调用 Tauri API 保存到文件
+    // 更新本地缓存（正文与摘要）
+    setCurrentBody(body);
+    upsertSummary(summary);
+
+    // 持久化到后端
+    void saveEntryByDate(summary, body);
   }
 
   /** 更新编辑器内容 */
@@ -136,6 +140,16 @@ export class Editor {
     }
 
     this.render();
+  }
+
+  /** 确保当前日期的正文已加载（进入编辑器或切换日期时调用） */
+  private async ensureBodyLoaded(date: string): Promise<void> {
+    // 如果 lastRenderedDate 变化或当前正文为空，则拉取
+    if (this.lastRenderedDate !== date || state.currentBody === null) {
+      const body = await getEntryBody(date);
+      setCurrentBody(body ?? '');
+      // 不直接再次 render，订阅会驱动 update
+    }
   }
 }
 

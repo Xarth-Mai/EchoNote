@@ -1,6 +1,6 @@
 // 时间线组件
 
-import { getAllEntries, setState } from '../utils/state';
+import { getAllSummaries, setState } from '../utils/state';
 import { UI } from '../utils/ui';
 import type { DiaryEntry } from '../types';
 
@@ -14,7 +14,7 @@ export class Timeline {
 
   /** 渲染时间线 */
   private render(): void {
-    const entries = getAllEntries();
+    const entries = getAllSummaries();
 
     // 记录渲染前滚动位置（列表容器为第一个 overflow-y-auto 元素）
     const oldScroller = this.container.querySelector('.overflow-y-auto') as HTMLElement | null;
@@ -43,7 +43,7 @@ export class Timeline {
 
   /** 渲染单个条目 */
   private renderEntry(entry: DiaryEntry): string {
-    const preview = this.getPreview(entry.content);
+    const preview = this.getPreview(entry.aiSummary ?? '');
     const date = new Date(entry.date);
     const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`;
     const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()];

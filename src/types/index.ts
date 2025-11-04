@@ -3,16 +3,17 @@
 /** 日记条目 */
 export interface DiaryEntry {
   date: string; // YYYY-MM-DD 格式
-  content: string; // Markdown 内容
   mood?: string; // 心情 emoji
   aiSummary?: string; // AI 生成的摘要
+  language?: string; // 语言
+  updatedAt?: number; // 更新时间(秒)
 }
 
 /** 应用状态 */
 export interface AppState {
   currentDate: string; // 当前选中的日期
-  currentEntry: DiaryEntry | null; // 当前编辑的条目
-  entries: Map<string, DiaryEntry>; // 所有日记条目，key 为日期
+  currentBody: string | null; // 当前条目的正文缓存
+  summaries: Map<string, DiaryEntry>; // 缓存的所有日记条目，key 为日期
   viewMode: 'home' | 'editor'; // 当前视图模式：home=日历+时间线组合，editor=编辑器
   layoutMode: 'portrait' | 'landscape'; // 布局模式
   calendarExpanded: boolean; // 日历是否展开

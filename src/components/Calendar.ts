@@ -1,7 +1,8 @@
 // 日历组件
 
 import { getMonthDates, formatDate, isToday, isSameMonth } from '../utils/date';
-import { setState, getEntry, state, toggleTheme } from '../utils/state';
+import { setState, getSummary, state, toggleTheme, setSummaries } from '../utils/state';
+import { listEntriesByMonth } from '../utils/backend';
 import { UI } from '../utils/ui';
 
 export class Calendar {
@@ -9,6 +10,7 @@ export class Calendar {
   private year: number;
   private month: number;
   private lastExpanded: boolean = state.calendarExpanded;
+  private lastLoadedKey: string | null = null; // 防止同月重复加载
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -94,6 +96,9 @@ export class Calendar {
 
     this.attachEventListeners();
 
+    // 渲染后按需加载摘要（当月，若网格包含上月日期则同时拉取上月）
+    void this.ensureMonthSummariesLoaded(dates);
+
     // 每次渲染后都根据当前状态校正高度；仅在状态变化时执行过渡动画
     const top = this.container.querySelector('#calendar-top') as HTMLElement | null;
     const bottom = this.container.querySelector('#calendar-bottom') as HTMLElement | null;
@@ -117,6 +122,46 @@ export class Calendar {
     }
   }
 
+  /**
+   * 根据当前日历视图按需加载摘要
+   * - 始终加载当前月
+   * - 若网格包含上月日期，同时加载上月
+   */
+  private async ensureMonthSummariesLoaded(gridDates: Date[]): Promise<void> {
+    if (gridDates.length === 0) return;
+
+    const hasPrevMonthDates = gridDates[0].getMonth() !== this.month || gridDates[0].getFullYear() !== this.year;
+
+    const currentYear = this.year;
+    const currentMonth1Based = this.month + 1; // 后端使用 1-12
+
+    let prevYear = currentYear;
+    let prevMonth1Based = currentMonth1Based - 1;
+    if (prevMonth1Based === 0) {
+      prevMonth1Based = 12;
+      prevYear -= 1;
+    }
+
+    const loadKey = `${currentYear}-${currentMonth1Based}-${hasPrevMonthDates ? 'with-prev' : 'single'}`;
+    if (this.lastLoadedKey === loadKey) return; // 已加载，无需重复
+    this.lastLoadedKey = loadKey;
+
+    try {
+      if (hasPrevMonthDates) {
+        const [prevSummaries, currSummaries] = await Promise.all([
+          listEntriesByMonth(prevYear, prevMonth1Based),
+          listEntriesByMonth(currentYear, currentMonth1Based),
+        ]);
+        setSummaries([...prevSummaries, ...currSummaries]);
+      } else {
+        const currSummaries = await listEntriesByMonth(currentYear, currentMonth1Based);
+        setSummaries(currSummaries);
+      }
+    } catch (e) {
+      console.error('加载月度摘要失败:', e);
+    }
+  }
+
   /** 渲染单个日期单元格 */
   private renderDateCell(date: Date): string {
     const dateStr = formatDate(date);
@@ -124,8 +169,8 @@ export class Calendar {
     const isCurrentMonth = isSameMonth(date, this.year, this.month);
     const isTodayDate = isToday(date);
     const isSelected = dateStr === state.currentDate;
-    const entry = getEntry(dateStr);
-    const hasEntry = entry && entry.content.trim().length > 0;
+    const entry = getSummary(dateStr);
+    const hasEntry = !!entry; // 仅根据摘要是否存在标记
 
     const baseClasses = UI.DATE_CELL;
     const commonText = isCurrentMonth ? 'text-(--color-text-primary)' : 'text-(--color-text-tertiary)';
