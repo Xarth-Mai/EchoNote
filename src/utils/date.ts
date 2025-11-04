@@ -1,29 +1,33 @@
 // 日期工具函数
 
-/** 获取指定月份的所有日期 */
+/** 获取指定月份的所有日期（共42天，周一开始） */
 export function getMonthDates(year: number, month: number): Date[] {
   const dates: Date[] = [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  
-  // 添加上月末尾的日期（填充第一周）
-  const firstDayOfWeek = firstDay.getDay();
-  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-    const date = new Date(year, month, -i);
-    dates.push(date);
+
+  // JS: 周日=0..周六=6 -> 周一=0..周日=6
+  const firstDayOfWeekMonStart = (firstDay.getDay() + 6) % 7;
+
+  const daysInMonth = lastDay.getDate();
+  const totalCells = Math.ceil((firstDayOfWeekMonStart + daysInMonth) / 7) * 7; // 4-6周
+
+  // 填充上月尾部日期（使第一行从周一开始）
+  for (let i = firstDayOfWeekMonStart; i > 0; i--) {
+    dates.push(new Date(year, month, 1 - i));
   }
-  
-  // 添加当月所有日期
-  for (let day = 1; day <= lastDay.getDate(); day++) {
+
+  // 当月所有日期
+  for (let day = 1; day <= daysInMonth; day++) {
     dates.push(new Date(year, month, day));
   }
-  
-  // 添加下月开头的日期（填充最后一周）
-  const remainingDays = 42 - dates.length; // 6周 * 7天
-  for (let i = 1; i <= remainingDays; i++) {
+
+  // 填充下月日期，直到 totalCells
+  const remaining = totalCells - dates.length;
+  for (let i = 1; i <= remaining; i++) {
     dates.push(new Date(year, month + 1, i));
   }
-  
+
   return dates;
 }
 

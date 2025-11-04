@@ -22,10 +22,18 @@ export class Calendar {
     const dates = getMonthDates(this.year, this.month);
     const isExpanded = state.calendarExpanded;
 
-    // 获取第一周的日期（前7个）
-    const firstWeekDates = dates.slice(0, 7);
-    // 获取剩余的日期
-    const remainingDates = dates.slice(7);
+    // 分组为每周（7天一组）
+    const weeks: Date[][] = [];
+    for (let i = 0; i < dates.length; i += 7) {
+      weeks.push(dates.slice(i, i + 7));
+    }
+
+    // 查找 currentDate 所在周索引；若不在当前页，使用第一周作为“选中行”，上部分为空
+    const idxInDates = dates.findIndex(d => formatDate(d) === state.currentDate);
+    const selectedWeekIndex = idxInDates >= 0 ? Math.floor(idxInDates / 7) : 0;
+    const topWeeks = weeks.slice(0, selectedWeekIndex);
+    const selectedWeek = weeks[selectedWeekIndex] || weeks[0];
+    const bottomWeeks = weeks.slice(selectedWeekIndex + 1);
 
     // 主题图标
     const themeIcon = state.theme === 'dark' ? '☀️' : state.theme === 'light' ? '🌙' : '🔄';
@@ -61,26 +69,30 @@ export class Calendar {
 
         <!-- 星期标题 -->
         <div class="grid grid-cols-7 gap-1 mb-2">
-          ${['日', '一', '二', '三', '四', '五', '六']
+          ${['一', '二', '三', '四', '五', '六', '日']
         .map(day => `<div class=\"text-center text-xs font-medium py-2 ${UI.MUTED}\">${day}</div>`)
         .join('')}
         </div>
 
-        <!-- 第一周日期 -->
-        <div class="grid grid-cols-7 gap-1 mb-1">
-          ${firstWeekDates.map(date => this.renderDateCell(date)).join('')}
+        <!-- 上部分（选中行之上） -->
+        <div id="calendar-top" class="grid grid-cols-7 gap-1 mb-1 transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'opacity-100' : 'opacity-0'}">
+          ${topWeeks.map(week => week.map(date => this.renderDateCell(date)).join('')).join('')}
         </div>
 
-        <!-- 剩余日期（可折叠） -->
-        <div id="calendar-expandable" class="transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}">
-          <div class="grid grid-cols-7 gap-1">
-            ${remainingDates.map(date => this.renderDateCell(date)).join('')}
-          </div>
+        <!-- 选中行（始终可见） -->
+        <div id="calendar-selected" class="grid grid-cols-7 gap-1 mb-1 transition-all duration-300 ease-in-out">
+          ${selectedWeek.map(date => this.renderDateCell(date)).join('')}
+        </div>
+
+        <!-- 下部分（选中行之下） -->
+        <div id="calendar-bottom" class="grid grid-cols-7 gap-1 transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'opacity-100' : 'opacity-0'}">
+          ${bottomWeeks.map(week => week.map(date => this.renderDateCell(date)).join('')).join('')}
         </div>
       </div>
     `;
 
     this.attachEventListeners();
+    this.applySectionHeights(isExpanded);
   }
 
   /** 渲染单个日期单元格 */
@@ -101,11 +113,14 @@ export class Calendar {
     const selectedClasses = `border-2 border-(--color-primary) text-(--color-text-primary) ${hasEntry ? 'bg-(--color-success-light)' : ''}`;
     const hasEntryClasses = hasEntry && isCurrentMonth ? 'bg-(--color-success-light)' : '';
 
+    // 选中当前日期时增强对比度（白色 Ring）
+    const selectedTodayEnhance = isTodayDate && isSelected ? 'border-2 border-white' : '';
+
     const extraClasses = isTodayDate
-      ? todayClasses
+      ? `${todayClasses} ${selectedTodayEnhance}`
       : isSelected
-      ? selectedClasses
-      : hasEntryClasses;
+        ? selectedClasses
+        : hasEntryClasses;
 
     return `
       <div class="${baseClasses} ${commonText} ${hoverable} ${extraClasses}" data-date="${dateStr}" ${isTodayDate ? 'aria-current="date"' : ''} ${isSelected ? 'aria-selected="true"' : ''} tabindex="0">
@@ -148,10 +163,23 @@ export class Calendar {
       const target = e.target as HTMLElement;
       const cell = target.closest('.date-cell') as HTMLElement | null;
       if (cell && this.container.contains(cell)) {
-        const date = cell.dataset.date;
-        if (date) {
-          setCurrentDate(date);
+        const dateStr = cell.dataset.date;
+        if (dateStr) {
+          const d = new Date(dateStr);
+          const clickedMonth = d.getMonth();
+          const clickedYear = d.getFullYear();
+          const monthChanged = clickedMonth !== this.month || clickedYear !== this.year;
+          setCurrentDate(dateStr);
           setViewMode('editor');
+          if (monthChanged) {
+            // 切换到点击的月份
+            this.month = clickedMonth;
+            this.year = clickedYear;
+            this.render();
+          } else {
+            // 同月份：整块重渲染，三段容器过渡
+            this.render();
+          }
         }
       }
     });
@@ -159,7 +187,52 @@ export class Calendar {
 
   /** 更新日历 */
   public update(): void {
+    // 统一整块渲染，利用三段容器+动态高度实现平滑动画
     this.render();
   }
-}
 
+  /** 为上下两部分计算并设置动态高度，避免固定 max-height 带来的闪烁 */
+  private applySectionHeights(expanded: boolean): void {
+    const top = this.container.querySelector('#calendar-top') as HTMLElement | null;
+    const bottom = this.container.querySelector('#calendar-bottom') as HTMLElement | null;
+    if (!top || !bottom) return;
+
+    const sections = [top, bottom];
+    // 确保参与过渡的属性
+    sections.forEach((el) => {
+      el.style.overflow = 'hidden';
+    });
+
+    if (!expanded) {
+      // 折叠：从当前内容高度 -> 0
+      sections.forEach((el) => {
+        el.style.maxHeight = `${el.scrollHeight}px`;
+      });
+      // 强制回流以应用起始高度
+      sections.forEach((el) => void el.getBoundingClientRect());
+      // 再设为 0 触发过渡
+      sections.forEach((el) => {
+        el.style.maxHeight = '0px';
+      });
+      return;
+    }
+
+    // 展开：0 -> 内容高度，再在过渡结束后置为 none，避免后续内容变化被限制
+    sections.forEach((el) => {
+      el.style.maxHeight = '0px';
+    });
+    // 下一帧设置为内容高度
+    requestAnimationFrame(() => {
+      sections.forEach((el) => {
+        const targetHeight = `${el.scrollHeight}px`;
+        const onEnd = () => {
+          el.style.maxHeight = 'none';
+          el.removeEventListener('transitionend', onEnd);
+        };
+        el.addEventListener('transitionend', onEnd, { once: true });
+        el.style.maxHeight = targetHeight;
+      });
+    });
+  }
+
+}
