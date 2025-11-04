@@ -75,7 +75,7 @@ export class Calendar {
         </div>
 
         <!-- 上部分（选中行之上） -->
-        <div id="calendar-top" class="grid grid-cols-7 gap-1 mb-1 transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'opacity-100' : 'opacity-0'}">
+        <div id="calendar-top" class="grid grid-cols-7 gap-1 mb-1 transition-all duration-300 ease-in-out overflow-hidden">
           ${topWeeks.map(week => week.map(date => this.renderDateCell(date)).join('')).join('')}
         </div>
 
@@ -85,7 +85,7 @@ export class Calendar {
         </div>
 
         <!-- 下部分（选中行之下） -->
-        <div id="calendar-bottom" class="grid grid-cols-7 gap-1 transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'opacity-100' : 'opacity-0'}">
+        <div id="calendar-bottom" class="grid grid-cols-7 gap-1 transition-all duration-300 ease-in-out overflow-hidden">
           ${bottomWeeks.map(week => week.map(date => this.renderDateCell(date)).join('')).join('')}
         </div>
       </div>
