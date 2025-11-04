@@ -24,3 +24,6 @@ target
 
 # Documentation (do not upload to GitHub)
 docs/
+
+# Cursor rules
+.cursor
