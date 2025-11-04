@@ -16,6 +16,10 @@ export class Timeline {
   private render(): void {
     const entries = getAllEntries();
 
+    // 记录渲染前滚动位置（列表容器为第一个 overflow-y-auto 元素）
+    const oldScroller = this.container.querySelector('.overflow-y-auto') as HTMLElement | null;
+    const prevScrollTop = oldScroller?.scrollTop ?? 0;
+
     this.container.innerHTML = `
       <div class="timeline h-full flex flex-col">
         <!-- 条目列表 -->
@@ -29,6 +33,12 @@ export class Timeline {
     `;
 
     this.attachEventListeners();
+
+    // 恢复渲染后的滚动位置
+    const newScroller = this.container.querySelector('.overflow-y-auto') as HTMLElement | null;
+    if (newScroller) {
+      newScroller.scrollTop = prevScrollTop;
+    }
   }
 
   /** 渲染单个条目 */
