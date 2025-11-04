@@ -102,7 +102,7 @@ export class Editor {
 
     this.autoSaveTimer = window.setTimeout(() => {
       this.save();
-    }, 1000); // 1秒后保存
+    }, 10000); // 10秒后保存
   }
 
   /** 保存内容 */

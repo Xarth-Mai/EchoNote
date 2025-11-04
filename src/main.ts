@@ -28,19 +28,10 @@ window.addEventListener("DOMContentLoaded", () => {
     updateLayout(newState.layoutMode, newState.viewMode, newState.editorFullscreen);
     updateToggleButton(newState.calendarExpanded);
 
-    // 更新组件
-    if (newState.viewMode === 'editor') {
-      editor.update();
-      // 横屏模式下，即使在编辑器视图也要更新日历（因为日历在左侧可见）
-      if (newState.layoutMode === 'landscape' && !newState.editorFullscreen) {
-        calendar.update();
-        timeline.update();
-      }
-    } else {
-      // home 模式：更新日历和时间线
-      calendar.update();
-      timeline.update();
-    }
+    // 更新所有组件
+    calendar.update();
+    timeline.update();
+    editor.update();
   });
 
   // 初始化视图
