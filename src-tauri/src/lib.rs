@@ -2,6 +2,8 @@
 //!
 //! 提供 Tauri 应用的初始化和启动功能。
 
+mod commands;
+
 /// 启动 Tauri 应用
 ///
 /// 初始化并运行 Tauri 应用，配置必要的插件和命令处理器。
@@ -9,7 +11,11 @@
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![
+            commands::list_entries_by_month,
+            commands::get_entry_body_by_date,
+            commands::save_entry_by_date,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
