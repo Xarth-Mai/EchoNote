@@ -7,6 +7,7 @@ export class Editor {
   private container: HTMLElement;
   private textarea: HTMLTextAreaElement | null = null;
   private autoSaveTimer: number | null = null;
+  private lastRenderedDate: string | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -20,6 +21,9 @@ export class Editor {
     const content = entry?.content || '';
     const isLandscape = state.layoutMode === 'landscape';
     const isFullscreen = state.editorFullscreen;
+
+    // 记录当前渲染所对应的日期，用于在切换日期前冲刷未完成的自动保存
+    this.lastRenderedDate = currentDate;
 
     // 根据布局模式决定按钮
     let backButtonHtml = '';
@@ -55,7 +59,7 @@ export class Editor {
           <h2 class="text-base font-semibold tracking-tight text-(--color-text-primary)">${currentDate}</h2>
           <div class="flex items-center gap-2 text-xs text-(--color-text-secondary)">
             <div class="w-2 h-2 rounded-full animate-pulse bg-(--color-success)"></div>
-            <span>已保存</span>
+            <span>自动保存</span>
           </div>
         </div>
 
@@ -102,12 +106,15 @@ export class Editor {
   }
 
   /** 保存内容 */
-  private save(): void {
-    if (!this.textarea) return;
+  private save(dateOverride?: string, contentOverride?: string): void {
+    if (!this.textarea && contentOverride === undefined) return;
+
+    const targetDate = dateOverride || state.currentDate;
+    const content = contentOverride !== undefined ? contentOverride : (this.textarea ? this.textarea.value : '');
 
     const entry: DiaryEntry = {
-      date: state.currentDate,
-      content: this.textarea.value,
+      date: targetDate,
+      content,
     };
 
     saveEntry(entry);
@@ -117,6 +124,17 @@ export class Editor {
 
   /** 更新编辑器内容 */
   public update(): void {
+    // 在重渲染前，如存在待触发的自动保存，先将当前缓冲区内容保存到上一次渲染的日期，避免误保存到新日期并丢失内容
+    if (this.autoSaveTimer !== null) {
+      clearTimeout(this.autoSaveTimer);
+      this.autoSaveTimer = null;
+      if (this.textarea) {
+        const dateToFlush = this.lastRenderedDate || state.currentDate;
+        const contentToFlush = this.textarea.value;
+        this.save(dateToFlush, contentToFlush);
+      }
+    }
+
     this.render();
   }
 }
