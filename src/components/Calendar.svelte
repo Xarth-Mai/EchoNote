@@ -33,7 +33,7 @@
   );
   $: normalizedSelectedWeek = selectedWeekIndex === -1 ? 0 : selectedWeekIndex;
 
-  $: void ensureMonthSummariesLoaded();
+  $: void ensureMonthSummariesLoaded(dates, year, monthIndex);
 
   function toWeeks(allDates: Date[]): Date[][] {
     const grouped: Date[][] = [];
@@ -94,7 +94,11 @@
     return summaries.get(formatDate(date))?.mood;
   }
 
-  async function ensureMonthSummariesLoaded(): Promise<void> {
+  async function ensureMonthSummariesLoaded(
+    dates: Date[],
+    year: number,
+    monthIndex: number
+  ): Promise<void> {
     if (!dates.length) return;
 
     const hasPrevMonthDates = !isSameMonth(dates[0], year, monthIndex);
