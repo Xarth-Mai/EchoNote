@@ -1,0 +1,215 @@
+# GitHub Actions 工作流：负责编译多平台 Tauri 发行包
+name: Build Tauri Distributions
+
+env:
+  # Android NDK 版本，默认指向官方稳定渠道（可随仓库变量覆盖，集中维护），
+  # 保证本地开发与 CI 保持一致，更新时只需调整一个入口。
+  ANDROID_NDK_VERSION: ${{ vars.ANDROID_NDK_VERSION || '26.3.11579264' }}
+  # Android CMake 版本同理，默认值对应官方 SDK 提供的稳定发行。
+  ANDROID_CMAKE_VERSION: ${{ vars.ANDROID_CMAKE_VERSION || '3.30.3' }}
+  # Android 构建所需 JDK 版本亦集中在此设置，默认采用 Temurin 最新正式版，
+  # 若后续需要与特定插件兼容，可通过仓库变量覆盖为更低版本。
+  ANDROID_JAVA_VERSION: ${{ vars.ANDROID_JAVA_VERSION || '22' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      # 以下布尔开关用于手动触发时选择需要编译的平台，
+      # 开发阶段可按需勾选以节省 CI 时间。
+      linux:
+        description: Build Linux bundle
+        required: false
+        default: true
+        type: boolean
+      windows:
+        description: Build Windows bundle
+        required: false
+        default: true
+        type: boolean
+      android:
+        description: Build Android package
+        required: false
+        default: false
+        type: boolean
+      ios:
+        description: Build iOS package
+        required: false
+        default: false
+        type: boolean
+  release:
+    # 发布正式版本时自动触发，确保生成全套安装包。
+    types: [published]
+
+jobs:
+  select-matrix:
+    # 在单独的 Job 中确定需要编译的平台矩阵，保证后续编译任务只在必要的平台上执行。
+    name: Select build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.determine.outputs.matrix }}
+    steps:
+      - name: Determine platforms
+        id: determine
+        run: |
+          # 通过 Python 脚本读取事件类型和输入参数，生成最终的编译矩阵。
+          # 手动触发时尊重用户勾选的平台；发布触发时始终全量构建，确保发行包齐全。
+          python <<'PY'
+          import json
+          import os
+
+          configs = {
+              "linux": {
+                  "platform": "linux",
+                  "os": "ubuntu-latest",
+                  "rust_target": "x86_64-unknown-linux-gnu",
+                  "artifact_path": "src-tauri/target/x86_64-unknown-linux-gnu/release/bundle",
+                  "command": "pnpm tauri build --target x86_64-unknown-linux-gnu"
+              },
+              "windows": {
+                  "platform": "windows",
+                  "os": "windows-latest",
+                  "rust_target": "x86_64-pc-windows-msvc",
+                  "artifact_path": "src-tauri/target/x86_64-pc-windows-msvc/release/bundle",
+                  "command": "pnpm tauri build --target x86_64-pc-windows-msvc"
+              },
+              "android": {
+                  "platform": "android",
+                  "os": "macos-latest",
+                  "rust_target": "aarch64-linux-android",
+                  "artifact_path": "src-tauri/gen/android",
+                  "command": "pnpm tauri android build"
+              },
+              "ios": {
+                  "platform": "ios",
+                  "os": "macos-latest",
+                  "rust_target": "aarch64-apple-ios",
+                  "artifact_path": "src-tauri/gen/apple",
+                  "command": "pnpm tauri ios build"
+              }
+          }
+
+          event = os.environ.get("GITHUB_EVENT_NAME")
+          if event == "workflow_dispatch":
+              # workflow_dispatch 事件（手动触发）下读取每个平台的布尔输入，
+              # 未勾选的平台不会出现在矩阵中。
+              selected = [
+                  name for name in ("linux", "windows", "android", "ios")
+                  if os.environ.get(f"INPUT_{name.upper()}", "false").lower() == "true"
+              ]
+              if not selected:
+                  # 当手动触发时未勾选任何平台，为避免空矩阵导致 Job 跳过，
+                  # 默认回落到 Linux 构建，满足最基本的开发验证需求。
+                  selected = ["linux"]
+          else:
+              # release 事件触发表示正式发版，需要四个平台全部产出。
+              selected = ["linux", "windows", "android", "ios"]
+
+          matrix = [configs[name] for name in selected]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"matrix={json.dumps(matrix)}\n")
+          PY
+
+  build:
+    # 主体编译 Job，按矩阵依次执行各个平台的构建任务。
+    # 通过 needs 关联确保矩阵数据已生成，if 条件避免空矩阵浪费资源。
+    name: Build ${{ matrix.platform }}
+    needs: select-matrix
+    if: ${{ needs.select-matrix.outputs.matrix != '[]' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # fail-fast 关闭可避免单个平台失败导致其它平台被跳过，方便一次性收集所有错误。
+      fail-fast: false
+      matrix: ${{ fromJson(needs.select-matrix.outputs.matrix) }}
+    env:
+      # 跳过 Tauri 默认的签名流程，避免 iOS/Windows 构建卡在证书配置；
+      # 发行阶段可在自有流水线重新签名。
+      TAURI_SKIP_SIGNING: "true"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        # 始终使用最新正式版 Node.js，并开启 pnpm 缓存以提升安装速度。
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup pnpm
+        # 安装最新稳定版 pnpm，但不立即执行 install，统一在后续步骤运行。
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        # 安装前端依赖并使用 --frozen-lockfile 强制遵循 pnpm-lock.yaml，
+        # 避免 CI 在锁文件未更新时隐式升级依赖。
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust toolchain
+        # 使用最新稳定版 Rust，并配置与平台匹配的目标三元组，确保构建兼容。
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install Linux dependencies
+        # Linux 平台额外依赖 GTK/WebKit 等系统库，否则 Tauri 打包会因缺少 GUI 组件失败。
+        if: ${{ matrix.platform == 'linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Android prerequisites
+        # Android 编译依赖最新正式版 Temurin JDK，保持与前端/后端工具链一致的升级节奏；
+        # 如果仓库变量覆盖为其他版本，此处也会自动匹配。
+        if: ${{ matrix.platform == 'android' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.ANDROID_JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        # 安装与上方 env 保持一致的 Android SDK、NDK 与 CMake，
+        # 避免 CI 环境与开发环境不一致导致构建差异。
+        if: ${{ matrix.platform == 'android' }}
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          ndk: ${{ env.ANDROID_NDK_VERSION }}
+          cmake: ${{ env.ANDROID_CMAKE_VERSION }}
+
+      - name: Install cargo-ndk
+        # 安装最新 cargo-ndk，提供 Rust 到 Android 的交叉编译命令。
+        if: ${{ matrix.platform == 'android' }}
+        run: cargo install cargo-ndk
+
+      - name: Select Xcode
+        # iOS 构建指定最新稳定版 Xcode，确保工具链与 SDK 匹配。
+        if: ${{ matrix.platform == 'ios' }}
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "15.4"
+
+      - name: Trust default signing identity
+        # 创建临时钥匙串并设为默认，跳过签名校验，保留构建产物供测试与验证使用。
+        if: ${{ matrix.platform == 'ios' }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain "$(security list-keychains | tr -d '"')"
+          security unlock-keychain -p "" build.keychain
+
+      - name: Build
+        # 根据矩阵指定的命令执行 tauri build，保证不同平台使用正确子命令或 target。
+        run: ${{ matrix.command }}
+
+      - name: Upload artifacts
+        # 无论构建成功与否均上传产物，结合 if: always() 可以在失败时保留日志和中间文件。
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-${{ matrix.platform }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: warn
