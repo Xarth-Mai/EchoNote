@@ -18,6 +18,7 @@
   let year = new Date().getFullYear();
   let monthIndex = new Date().getMonth();
   let lastLoadedKey: string | null = null;
+  let pendingLoadKey: string | null = null;
   let isMonthLoading = false;
   let monthError: string | null = null;
 
@@ -106,12 +107,14 @@
     const currentMonth1Based = monthIndex + 1;
     const loadKey = `${currentYear}-${currentMonth1Based}-${hasPrevMonthDates ? 'with-prev' : 'single'}`;
 
-    if (lastLoadedKey === loadKey) return;
-    lastLoadedKey = loadKey;
+    if (lastLoadedKey === loadKey || pendingLoadKey === loadKey) return;
+    pendingLoadKey = loadKey;
 
     try {
       isMonthLoading = true;
-      const existingEntries = Array.from(get(appState).summaries.values());
+      const existingEntries = new Map(
+        Array.from(get(appState).summaries.values()).map((entry) => [entry.date, entry])
+      );
       if (hasPrevMonthDates) {
         const prevMonth = currentMonth1Based === 1 ? 12 : currentMonth1Based - 1;
         const prevYear = prevMonth === 12 ? currentYear - 1 : currentYear;
@@ -119,17 +122,26 @@
           listEntriesByMonth(prevYear, prevMonth),
           listEntriesByMonth(currentYear, currentMonth1Based),
         ]);
-        setSummaries([...existingEntries, ...prevSummaries, ...currSummaries]);
+        for (const entry of [...prevSummaries, ...currSummaries]) {
+          existingEntries.set(entry.date, entry);
+        }
       } else {
         const currSummaries = await listEntriesByMonth(currentYear, currentMonth1Based);
-        setSummaries([...existingEntries, ...currSummaries]);
+        for (const entry of currSummaries) {
+          existingEntries.set(entry.date, entry);
+        }
       }
+      setSummaries(Array.from(existingEntries.values()));
+      lastLoadedKey = loadKey;
       monthError = null;
     } catch (error) {
       console.error('加载月度日记摘要失败:', error);
       monthError = '同步月度日记失败';
     } finally {
       isMonthLoading = false;
+      if (pendingLoadKey === loadKey) {
+        pendingLoadKey = null;
+      }
     }
   }
 </script>
