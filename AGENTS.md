@@ -1,6 +1,7 @@
 # 通用开发约定
-
 - 编写或修改代码时，应在关键逻辑处添加详细的简体中文注释，确保阅读者能快速理解实现思路。
 - 代码以可读性为先，在保证清晰结构的前提下，再尽量考虑性能优化。
 - 项目属于非商业性质，无需过度关注长期稳定性、兼容性或安全防护，但也应避免显而易见的隐患。
+- git commit 信息需使用单行英文，风格示例：`feat: add command handlers for entry management in Tauri application`、`chore: initialize EchoNote project with Tauri + TypeScript`。
+- 引入或升级依赖时，应优先选择最新的正式版发布。
 - 除非上层有更具体的 AGENTS.md 指引，否则本文件约束整个仓库。
