@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-opener": "^2",
+    "svelte": "^5.43.4"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
     "@tailwindcss/vite": "^4.1.16",
     "@tauri-apps/cli": "^2",
+    "@tsconfig/svelte": "^5.0.5",
+    "svelte-check": "^4.3.3",
     "tailwindcss": "^4.1.16",
     "typescript": "~5.6.2",
     "vite": "^6.0.3"

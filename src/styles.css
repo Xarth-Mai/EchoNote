@@ -1,64 +1,122 @@
 /* EchoNote 样式文件 */
 @import "tailwindcss";
 
-/* CSS 变量定义 - 浅色模式 */
 :root {
-    /* 主色调 */
-    --color-primary: #007aff;
-    --color-primary-hover: rgba(0, 122, 255, 0.1);
-    --color-primary-light: rgba(0, 122, 255, 0.05);
+  --color-primary: #007aff;
+  --color-primary-hover: rgba(0, 122, 255, 0.1);
+  --color-primary-light: rgba(0, 122, 255, 0.08);
 
-    /* 强调色 */
-    --color-success: #34c759;
-    --color-success-light: rgba(52, 199, 89, 0.1);
+  --color-success: #34c759;
+  --color-success-light: rgba(52, 199, 89, 0.1);
 
-    /* 文字颜色 */
-    --color-text-primary: #1d1d1f;
-    --color-text-secondary: #86868b;
-    --color-text-tertiary: rgba(134, 134, 139, 0.4);
-    --color-text-inverse: #ffffff;
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #86868b;
+  --color-text-tertiary: rgba(134, 134, 139, 0.4);
+  --color-text-inverse: #ffffff;
 
-    /* 背景颜色 */
-    --color-bg-primary: #ffffff;
-    --color-bg-secondary: rgba(255, 255, 255, 0.8);
-    --color-bg-tertiary: rgba(255, 255, 255, 0.5);
-    
-    --color-bg-hover: rgba(0, 0, 0, 0.05);
+  --color-bg-primary: #f9fafb;
+  --color-bg-secondary: rgba(255, 255, 255, 0.9);
+  --color-bg-tertiary: rgba(255, 255, 255, 0.7);
 
-    /* 边框颜色 */
-    --color-border-primary: rgba(0, 0, 0, 0.05);
-    --color-border-secondary: rgba(0, 0, 0, 0.1);
+  --color-bg-hover: rgba(0, 0, 0, 0.04);
 
-    
+  --color-border-primary: rgba(15, 23, 42, 0.08);
+  --color-border-secondary: rgba(15, 23, 42, 0.16);
 }
 
-/* CSS 变量定义 - 深色模式 */
 [data-theme="dark"] {
-    /* 主色调 */
-    --color-primary: #0a84ff;
-    --color-primary-hover: rgba(10, 132, 255, 0.2);
-    --color-primary-light: rgba(10, 132, 255, 0.1);
+  --color-primary: #4ba8ff;
+  --color-primary-hover: rgba(75, 168, 255, 0.24);
+  --color-primary-light: rgba(75, 168, 255, 0.12);
 
-    /* 强调色 */
-    --color-success: #30d158;
-    --color-success-light: rgba(48, 209, 88, 0.2);
+  --color-success: #30d158;
+  --color-success-light: rgba(48, 209, 88, 0.2);
 
-    /* 文字颜色 */
-    --color-text-primary: #f5f5f7;
-    --color-text-secondary: #98989d;
-    --color-text-tertiary: rgba(152, 152, 157, 0.4);
-    --color-text-inverse: #1d1d1f;
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #98989d;
+  --color-text-tertiary: rgba(152, 152, 157, 0.4);
+  --color-text-inverse: #1d1d1f;
 
-    /* 背景颜色 */
-    --color-bg-primary: #1c1c1e;
-    --color-bg-secondary: rgba(28, 28, 30, 0.9);
-    --color-bg-tertiary: rgba(28, 28, 30, 0.85);
-    
-    --color-bg-hover: rgba(255, 255, 255, 0.1);
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: rgba(17, 24, 39, 0.92);
+  --color-bg-tertiary: rgba(17, 24, 39, 0.85);
 
-    /* 边框颜色 */
-    --color-border-primary: rgba(255, 255, 255, 0.1);
-    --color-border-secondary: rgba(255, 255, 255, 0.15);
+  --color-bg-hover: rgba(255, 255, 255, 0.08);
 
-    
+  --color-border-primary: rgba(148, 163, 184, 0.15);
+  --color-border-secondary: rgba(148, 163, 184, 0.25);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Inter', 'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+  background: radial-gradient(circle at 10% -10%, rgba(59, 130, 246, 0.08), transparent 55%),
+    radial-gradient(circle at 90% 110%, rgba(168, 85, 247, 0.1), transparent 55%),
+    var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: background 0.4s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+button:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-primary) 45%, rgba(148, 163, 184, 0.4));
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes floaty {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.glow-card {
+  position: relative;
+  isolation: isolate;
+}
+
+.glow-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.18), transparent 60%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.glow-card:hover::after {
+  opacity: 1;
 }

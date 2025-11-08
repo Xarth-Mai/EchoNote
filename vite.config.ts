@@ -1,9 +1,10 @@
-import { defineConfig } from "vite";
-import tailwind from "@tailwindcss/vite";
+import { defineConfig } from 'vite';
+import { svelte } from '@sveltejs/vite-plugin-svelte';
+import tailwind from '@tailwindcss/vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [tailwind()],
+  plugins: [svelte(), tailwind()],
 
   // Prevent vite from obscuring rust errors
   clearScreen: false,
@@ -14,7 +15,7 @@ export default defineConfig({
     strictPort: true,
     watch: {
       // Tell vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      ignored: ['**/src-tauri/**'],
     },
   },
 });

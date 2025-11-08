@@ -1,127 +1,14 @@
-// EchoNote 前端入口文件
+import App from './App.svelte';
+import './styles.css';
 
-import { Calendar } from './components/Calendar';
-import { Editor } from './components/Editor';
-import { Timeline } from './components/Timeline';
-import { state, subscribe, initLayoutListener, setCalendarExpanded, initThemeListener, setSummaries } from './utils/state';
-import { listEntriesByMonth } from './utils/backend';
+const target = document.getElementById('app');
 
-// 组件实例（单例，复用于横竖屏）
-let calendar: Calendar;
-let editor: Editor;
-let timeline: Timeline;
+if (!target) {
+  throw new Error('无法找到应用挂载节点 #app');
+}
 
-window.addEventListener("DOMContentLoaded", () => {
-  // 目前仅支持中文，后续可增加多语言支持 // TODO: 支持多语言
-  document.documentElement.lang = 'zh-CN';
-
-  // 初始化主题
-  initThemeListener();
-
-  // 初始化组件
-  initComponents();
-
-  // 初始化布局监听
-  initLayoutListener();
-
-  // 启动时仅加载当月日记摘要（不含正文）
-  (async () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1; // 自然月 1-12
-    try {
-      const summaries = await listEntriesByMonth(year, month);
-      setSummaries(summaries);
-    } catch (e) {
-      console.error('加载当月日记摘要失败:', e);
-    }
-  })();
-
-  // 订阅状态变更
-  subscribe((newState) => {
-    updateLayout(newState.layoutMode, newState.viewMode, newState.editorFullscreen);
-    updateToggleButton(newState.calendarExpanded);
-
-    // 更新所有组件
-    calendar.update();
-    timeline.update();
-    editor.update();
-  });
-
-  // 初始化视图
-  updateLayout(state.layoutMode, state.viewMode, state.editorFullscreen);
-
-  // 初始化展开/收起按钮
-  initToggleButtons();
+const app = new App({
+  target,
 });
 
-/** 初始化组件 */
-function initComponents(): void {
-  const calendarContainer = document.getElementById('calendar-container');
-  const editorContainer = document.getElementById('editor-container');
-  const timelineContainer = document.getElementById('timeline-container');
-
-  if (calendarContainer && editorContainer && timelineContainer) {
-    calendar = new Calendar(calendarContainer);
-    editor = new Editor(editorContainer);
-    timeline = new Timeline(timelineContainer);
-  }
-}
-
-/** 更新布局 - 统一处理横竖屏和视图切换 */
-function updateLayout(
-  layoutMode: 'portrait' | 'landscape',
-  viewMode: 'home' | 'editor',
-  editorFullscreen: boolean
-): void {
-  const app = document.getElementById('app');
-  const homePanel = document.getElementById('home-panel');
-  const editorPanel = document.getElementById('editor-panel');
-
-  if (!app || !homePanel || !editorPanel) return;
-
-  // 重置布局类（保留基础类）
-  app.className = 'h-full';
-  homePanel.className = 'h-full flex flex-col';
-  editorPanel.className = 'h-full';
-
-  if (layoutMode === 'portrait') {
-    // 竖屏：单视图切换
-    if (viewMode === 'home') {
-      editorPanel.classList.add('hidden');
-    } else {
-      homePanel.classList.add('hidden');
-    }
-  } else {
-    // 横屏：分屏布局
-    app.classList.add('flex');
-
-    if (editorFullscreen) {
-      // 全屏模式：只显示编辑器，编辑器占满全宽
-      homePanel.classList.add('hidden');
-      editorPanel.classList.add('flex-1');
-    } else {
-      // 分屏模式：左侧主页 + 右侧编辑器
-      homePanel.classList.add('w-21/55', 'border-r');
-      editorPanel.classList.add('flex-1');
-    }
-  }
-}
-
-/** 初始化展开/收起按钮 */
-function initToggleButtons(): void {
-  const toggleBtn = document.getElementById('toggle-calendar-btn');
-  toggleBtn?.addEventListener('click', () => {
-    setCalendarExpanded(!state.calendarExpanded);
-  });
-}
-
-/** 更新展开/收起按钮状态 */
-function updateToggleButton(isExpanded: boolean): void {
-  const toggleIcon = document.getElementById('toggle-icon');
-  const toggleText = document.getElementById('toggle-text');
-  if (toggleIcon && toggleText) {
-    toggleIcon.textContent = isExpanded ? '▲' : '▼';
-    toggleText.textContent = isExpanded ? '收起日历' : '展开日历';
-  }
-}
+export default app;
