@@ -47,6 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.determine.outputs.matrix }}
+      has-matrix: ${{ steps.determine.outputs.has-matrix }}
     steps:
       - name: Determine platforms
         id: determine
@@ -104,9 +105,10 @@ jobs:
               # release 事件触发表示正式发版，需要四个平台全部产出。
               selected = ["linux", "windows", "android", "ios"]
 
-          matrix = [configs[name] for name in selected]
+          matrix = {"include": [configs[name] for name in selected]}
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               fh.write(f"matrix={json.dumps(matrix)}\n")
+              fh.write(f"has-matrix={'true' if selected else 'false'}\n")
           PY
 
   build:
@@ -114,7 +116,7 @@ jobs:
     # 通过 needs 关联确保矩阵数据已生成，if 条件避免空矩阵浪费资源。
     name: Build ${{ matrix.platform }}
     needs: select-matrix
-    if: ${{ needs.select-matrix.outputs.matrix != '[]' }}
+    if: ${{ needs.select-matrix.outputs.has-matrix == 'true' }}
     runs-on: ${{ matrix.os }}
     strategy:
       # fail-fast 关闭可避免单个平台失败导致其它平台被跳过，方便一次性收集所有错误。
