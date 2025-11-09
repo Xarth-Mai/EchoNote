@@ -56,8 +56,17 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 
 ## 🧱 Tech Stack
 
-- **Frontend**: HTML + TypeScript + Tailwind CSS
+- **Frontend**: Bun + SvelteKit + Vite + Tailwind CSS
 - **Backend**: Tauri + Rust
+
+## 🚀 Development
+
+```bash
+bun install
+bun run dev
+```
+
+Use `bun run check` for Svelte diagnostics and `bun run build` before packaging the Tauri app.
 
 ## 🎯 Core Principles
 

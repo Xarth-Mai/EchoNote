@@ -1,9 +1,12 @@
 // 简单的状态管理（应用状态与通用操作）
 
+import { browser } from '$app/environment';
+import { readable } from 'svelte/store';
 import type { AppState, DiaryEntry } from '../types';
 
-/** 从 localStorage 加载主题偏好 */
+/** 从 localStorage 加载主题偏好（SSR 期间强制 auto） */
 function loadThemePreference(): 'light' | 'dark' | 'auto' {
+  if (!browser) return 'auto';
   const saved = localStorage.getItem('echonote-theme');
   if (saved === 'light' || saved === 'dark' || saved === 'auto') {
     return saved;
@@ -12,12 +15,17 @@ function loadThemePreference(): 'light' | 'dark' | 'auto' {
 }
 
 /** 全局应用状态 */
+const initialLayoutMode =
+  browser && typeof window !== 'undefined' && window.innerWidth > window.innerHeight
+    ? 'landscape'
+    : 'portrait';
+
 export const state: AppState = {
   currentDate: new Date().toISOString().split('T')[0],
   currentBody: null, // 当前日期对应的正文缓存（进入编辑器时按需加载）
   summaries: new Map(), // 仅缓存当月的摘要（frontmatter）
   viewMode: 'home',
-  layoutMode: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait',
+  layoutMode: initialLayoutMode,
   calendarExpanded: false, // 默认收起
   editorFullscreen: false,
   theme: loadThemePreference(),
@@ -107,7 +115,10 @@ export function setEditorFullscreen(fullscreen: boolean): void {
 }
 
 /** 监听窗口大小变化 */
+let layoutListenerInitialized = false;
 export function initLayoutListener(): void {
+  if (!browser || layoutListenerInitialized) return;
+  layoutListenerInitialized = true;
   const updateLayout = () => {
     const newMode = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     if (newMode !== state.layoutMode) {
@@ -140,6 +151,7 @@ export function toggleTheme(): void {
 
 /** 应用主题到 DOM */
 function applyTheme(theme: 'light' | 'dark' | 'auto'): void {
+  if (!browser) return;
   const html = document.documentElement;
 
   if (theme === 'auto') {
@@ -152,7 +164,10 @@ function applyTheme(theme: 'light' | 'dark' | 'auto'): void {
 }
 
 /** 初始化主题监听器 */
+let themeListenerInitialized = false;
 export function initThemeListener(): void {
+  if (!browser || themeListenerInitialized) return;
+  themeListenerInitialized = true;
   // 应用初始主题
   applyTheme(state.theme);
 
@@ -173,3 +188,5 @@ export function initThemeListener(): void {
   }
 }
 
+/** 将内部状态暴露为 Svelte 可订阅的 store，用于模板响应式 */
+export const appStateStore = readable(state, (set) => subscribe(set));

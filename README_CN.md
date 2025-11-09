@@ -56,8 +56,17 @@ EchoNote 提供优雅、专注的写作体验。它将 AI 辅助的表达、反�
 
 ## 🧱 技术栈
 
-- **前端**：HTML + TypeScript + Tailwind CSS
+- **前端**：Bun + SvelteKit + Vite + Tailwind CSS
 - **后端**：Tauri + Rust
+
+## 🚀 开发方式
+
+```bash
+bun install
+bun run dev
+```
+
+运行 `bun run check` 可进行 Svelte 静态检查，打包 Tauri 之前执行 `bun run build`。
 
 ## 🎯 核心原则
 
