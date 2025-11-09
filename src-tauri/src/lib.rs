@@ -1,12 +1,8 @@
-//! EchoNote Tauri 应用核心库
-//!
-//! 提供 Tauri 应用的初始化和启动功能。
+//! EchoNote Tauri Core Lib
 
 mod commands;
 
-/// 启动 Tauri 应用
-///
-/// 初始化并运行 Tauri 应用，配置必要的插件和命令处理器。
+/// Init and Run Tauri App
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

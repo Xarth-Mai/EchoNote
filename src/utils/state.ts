@@ -1,7 +1,7 @@
 // 简单的状态管理（应用状态与通用操作）
 
 import { browser } from '$app/environment';
-import { readable } from 'svelte/store';
+import { writable, type Readable } from 'svelte/store';
 import type { AppState, DiaryEntry } from '../types';
 
 /** 从 localStorage 加载主题偏好（SSR 期间强制 auto） */
@@ -20,7 +20,7 @@ const initialLayoutMode =
     ? 'landscape'
     : 'portrait';
 
-export const state: AppState = {
+const initialState: AppState = {
   currentDate: new Date().toISOString().split('T')[0],
   currentBody: null, // 当前日期对应的正文缓存（进入编辑器时按需加载）
   summaries: new Map(), // 仅缓存当月的摘要（frontmatter）
@@ -31,23 +31,25 @@ export const state: AppState = {
   theme: loadThemePreference(),
 };
 
-/** 状态变更监听器 */
-type StateListener = (state: AppState) => void;
-const listeners: StateListener[] = [];
+const internalStore = writable<AppState>(initialState);
+let currentState = initialState;
 
-/** 订阅状态变更 */
-export function subscribe(listener: StateListener): () => void {
-  listeners.push(listener);
-  return () => {
-    const index = listeners.indexOf(listener);
-    if (index > -1) listeners.splice(index, 1);
-  };
+internalStore.subscribe((value) => {
+  currentState = value;
+});
+
+export const appStateStore: Readable<AppState> = {
+  subscribe: internalStore.subscribe,
+};
+
+/** 更新状态 */
+export function setState(updates: Partial<AppState>): void {
+  internalStore.update((prev) => ({ ...prev, ...updates }));
 }
 
-/** 更新状态并通知监听器 */
-export function setState(updates: Partial<AppState>): void {
-  Object.assign(state, updates);
-  listeners.forEach(listener => listener(state));
+/** 读取当前最新状态快照（仅在工具函数中使用） */
+export function getState(): AppState {
+  return currentState;
 }
 
 /** 设置当前日期 */
@@ -79,24 +81,24 @@ export function setSummaries(entries: DiaryEntry[]): void {
 
 /** 新增或更新单个摘要 */
 export function upsertSummary(entry: DiaryEntry): void {
-  state.summaries.set(entry.date, entry);
-  // 变更通知
-  setState({ summaries: state.summaries });
+  const updated = new Map(currentState.summaries);
+  updated.set(entry.date, entry);
+  setState({ summaries: updated });
 }
 
 /** 获取所有摘要（按日期倒序） */
 export function getAllSummaries(): DiaryEntry[] {
-  return Array.from(state.summaries.values()).sort((a, b) => b.date.localeCompare(a.date));
+  return Array.from(currentState.summaries.values()).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 /** 获取指定日期的摘要 */
 export function getSummary(date: string): DiaryEntry | null {
-  return state.summaries.get(date) || null;
+  return currentState.summaries.get(date) || null;
 }
 
 /** 切换日历展开/收起状态 */
 export function toggleCalendarExpanded(): void {
-  setState({ calendarExpanded: !state.calendarExpanded });
+  setState({ calendarExpanded: !currentState.calendarExpanded });
 }
 
 /** 设置日历展开状态 */
@@ -106,7 +108,7 @@ export function setCalendarExpanded(expanded: boolean): void {
 
 /** 切换编辑器全屏状态 */
 export function toggleEditorFullscreen(): void {
-  setState({ editorFullscreen: !state.editorFullscreen });
+  setState({ editorFullscreen: !currentState.editorFullscreen });
 }
 
 /** 设置编辑器全屏状态 */
@@ -121,7 +123,7 @@ export function initLayoutListener(): void {
   layoutListenerInitialized = true;
   const updateLayout = () => {
     const newMode = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-    if (newMode !== state.layoutMode) {
+    if (newMode !== currentState.layoutMode) {
       setLayoutMode(newMode);
       // 切换到竖屏时，重置全屏状态
       if (newMode === 'portrait') {
@@ -137,14 +139,16 @@ export function initLayoutListener(): void {
 /** 设置主题 */
 export function setTheme(theme: 'light' | 'dark' | 'auto'): void {
   setState({ theme });
-  localStorage.setItem('echonote-theme', theme);
+  if (browser) {
+    localStorage.setItem('echonote-theme', theme);
+  }
   applyTheme(theme);
 }
 
 /** 循环切换主题 */
 export function toggleTheme(): void {
   const themeOrder: Array<'light' | 'dark' | 'auto'> = ['auto', 'light', 'dark'];
-  const currentIndex = themeOrder.indexOf(state.theme);
+  const currentIndex = themeOrder.indexOf(currentState.theme);
   const nextIndex = (currentIndex + 1) % themeOrder.length;
   setTheme(themeOrder[nextIndex]);
 }
@@ -169,12 +173,12 @@ export function initThemeListener(): void {
   if (!browser || themeListenerInitialized) return;
   themeListenerInitialized = true;
   // 应用初始主题
-  applyTheme(state.theme);
+  applyTheme(currentState.theme);
 
   // 监听系统主题变化（仅在 auto 模式下生效）
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   const handleChange = () => {
-    if (state.theme === 'auto') {
+    if (currentState.theme === 'auto') {
       applyTheme('auto');
     }
   };
@@ -187,6 +191,3 @@ export function initThemeListener(): void {
     mediaQuery.addListener(handleChange);
   }
 }
-
-/** 将内部状态暴露为 Svelte 可订阅的 store，用于模板响应式 */
-export const appStateStore = readable(state, (set) => subscribe(set));

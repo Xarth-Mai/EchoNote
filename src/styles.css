@@ -22,14 +22,14 @@
     --color-bg-primary: #ffffff;
     --color-bg-secondary: rgba(255, 255, 255, 0.8);
     --color-bg-tertiary: rgba(255, 255, 255, 0.5);
-    
+
     --color-bg-hover: rgba(0, 0, 0, 0.05);
 
     /* 边框颜色 */
     --color-border-primary: rgba(0, 0, 0, 0.05);
     --color-border-secondary: rgba(0, 0, 0, 0.1);
 
-    
+
 }
 
 /* CSS 变量定义 - 深色模式 */
@@ -53,12 +53,12 @@
     --color-bg-primary: #1c1c1e;
     --color-bg-secondary: rgba(28, 28, 30, 0.9);
     --color-bg-tertiary: rgba(28, 28, 30, 0.85);
-    
+
     --color-bg-hover: rgba(255, 255, 255, 0.1);
 
     /* 边框颜色 */
     --color-border-primary: rgba(255, 255, 255, 0.1);
     --color-border-secondary: rgba(255, 255, 255, 0.15);
 
-    
+
 }
