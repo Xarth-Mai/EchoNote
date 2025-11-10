@@ -100,7 +100,27 @@
         await tick();
         const target = entryRefs.get(date);
         if (!target) return;
-        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const container = target.closest<HTMLElement>(".timeline__list");
+        if (container) {
+            const containerRect = container.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const targetOffset =
+                targetRect.top - containerRect.top + container.scrollTop;
+            const idealScroll =
+                targetOffset -
+                container.clientHeight / 2 +
+                target.clientHeight / 2;
+            const clampedScroll = Math.max(
+                0,
+                Math.min(
+                    idealScroll,
+                    container.scrollHeight - container.clientHeight,
+                ),
+            );
+            container.scrollTo({ top: clampedScroll, behavior: "smooth" });
+        } else {
+            target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
         pendingScrollDate = null;
     }
 </script>
@@ -122,7 +142,8 @@
                     <div class="timeline__axis">
                         <span
                             class="timeline__dot"
-                            class:timeline__dot--active={entry.date === currentDate}
+                            class:timeline__dot--active={entry.date ===
+                                currentDate}
                         ></span>
                         <p>{parts.dateLabel}</p>
                         <small>{parts.weekday}</small>
@@ -130,7 +151,8 @@
                     <button
                         type="button"
                         class="timeline__card"
-                        class:timeline__card--active={entry.date === currentDate}
+                        class:timeline__card--active={entry.date ===
+                            currentDate}
                         class:timeline__card--placeholder={entry.__placeholder}
                         aria-pressed={entry.date === currentDate}
                         on:click={() => selectEntry(entry.date)}
@@ -164,4 +186,3 @@
         </ul>
     {/if}
 </div>
-
