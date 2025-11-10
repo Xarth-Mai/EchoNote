@@ -147,7 +147,7 @@
     }
 </script>
 
-<div class="editor-shell">
+<div class="editor-shell surface-card">
     <div class="editor-shell__toolbar">
         <button
             type="button"
@@ -179,7 +179,7 @@
             {/if}
         </p>
 
-        <div class="editor-shell__badge">
+        <div class="editor-shell__badge badge">
             <span class="editor-shell__dot" aria-hidden="true"></span>
             <span>自动保存开启</span>
         </div>

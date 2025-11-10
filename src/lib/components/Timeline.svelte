@@ -150,7 +150,7 @@
                     </div>
                     <button
                         type="button"
-                        class="timeline__card"
+                        class="timeline__card timeline-card"
                         class:timeline__card--active={entry.date ===
                             currentDate}
                         class:timeline__card--placeholder={entry.__placeholder}

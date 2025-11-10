@@ -1,119 +1,191 @@
-/* EchoNote 样式文件 */
+/* EchoNote 样式 - refactored glassmorphism tokens */
 @import "tailwindcss";
 
-/* CSS 变量定义 - 浅色模式 */
+/* Theme tokens */
 :root {
-    /* 主色调 */
     --color-primary: #007aff;
     --color-primary-hover: rgba(0, 122, 255, 0.1);
     --color-primary-light: rgba(0, 122, 255, 0.05);
 
-    /* 强调色 */
     --color-success: #34c759;
     --color-success-light: rgba(52, 199, 89, 0.1);
 
-    /* 文字颜色 */
     --color-text-primary: #1d1d1f;
     --color-text-secondary: #86868b;
     --color-text-tertiary: rgba(134, 134, 139, 0.4);
     --color-text-inverse: #ffffff;
 
-    /* 背景颜色 */
     --color-bg-primary: #ffffff;
-    --color-bg-secondary: rgba(255, 255, 255, 0.8);
-    --color-bg-tertiary: rgba(255, 255, 255, 0.5);
-
+    --color-bg-secondary: rgba(255, 255, 255, 0.85);
+    --color-bg-tertiary: rgba(255, 255, 255, 0.6);
     --color-bg-hover: rgba(0, 0, 0, 0.05);
 
-    /* 边框颜色 */
     --color-border-primary: rgba(0, 0, 0, 0.05);
     --color-border-secondary: rgba(0, 0, 0, 0.1);
+
+    --page-gradient: radial-gradient(circle at 10% 20%, rgba(0, 122, 255, 0.08), transparent 50%),
+        linear-gradient(180deg, #f4f6fb, #fdfdfd);
+    --layout-gradient: radial-gradient(circle at 10% 20%, rgba(0, 122, 255, 0.08), transparent 40%),
+        radial-gradient(circle at 80% 0%, rgba(52, 199, 89, 0.08), transparent 45%);
+
+    --panel-bg: var(--color-bg-secondary);
+    --panel-shadow: 0 20px 70px rgba(15, 23, 42, 0.18);
+    --panel-radius: 1.75rem;
+    --panel-blur: 16px;
+
+    --card-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    --card-border: rgba(255, 255, 255, 0.35);
+    --timeline-card-bg: radial-gradient(circle at 10% 20%, rgba(0, 122, 255, 0.08), transparent 60%),
+        rgba(255, 255, 255, 0.9);
+    --timeline-placeholder-bg: rgba(255, 255, 255, 0.6);
+
+    --focus-ring-color: var(--color-primary);
 }
 
-/* CSS 变量定义 - 深色模式 */
 [data-theme="dark"] {
-    /* 主色调 */
     --color-primary: #0a84ff;
     --color-primary-hover: rgba(10, 132, 255, 0.2);
     --color-primary-light: rgba(10, 132, 255, 0.1);
 
-    /* 强调色 */
     --color-success: #30d158;
     --color-success-light: rgba(48, 209, 88, 0.2);
 
-    /* 文字颜色 */
     --color-text-primary: #f5f5f7;
     --color-text-secondary: #98989d;
     --color-text-tertiary: rgba(152, 152, 157, 0.4);
     --color-text-inverse: #1d1d1f;
 
-    /* 背景颜色 */
     --color-bg-primary: #1c1c1e;
     --color-bg-secondary: rgba(28, 28, 30, 0.9);
     --color-bg-tertiary: rgba(28, 28, 30, 0.85);
-
     --color-bg-hover: rgba(255, 255, 255, 0.1);
 
-    /* 边框颜色 */
     --color-border-primary: rgba(255, 255, 255, 0.1);
     --color-border-secondary: rgba(255, 255, 255, 0.15);
-}
 
-/* Base layout + typography */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background:
-        radial-gradient(circle at 10% 20%,
-            rgba(0, 122, 255, 0.08),
-            transparent 50%),
-        linear-gradient(180deg, #f4f6fb, #fdfdfd);
-    color: var(--color-text-primary);
-    min-height: 100vh;
-}
-
-[data-theme="dark"] body {
-    background:
-        radial-gradient(circle at 10% 20%,
-            rgba(10, 132, 255, 0.12),
-            transparent 50%),
+    --page-gradient: radial-gradient(circle at 10% 20%, rgba(10, 132, 255, 0.12), transparent 50%),
         #0d0f16;
+    --layout-gradient: radial-gradient(circle at 15% 25%, rgba(10, 132, 255, 0.12), transparent 45%),
+        radial-gradient(circle at 80% 0%, rgba(48, 209, 88, 0.08), transparent 50%),
+        linear-gradient(180deg, #05060a, #0f1017);
+
+    --panel-shadow: 0 25px 65px rgba(0, 0, 0, 0.5);
+    --card-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --timeline-card-bg: rgba(30, 30, 34, 0.9);
+    --timeline-placeholder-bg: rgba(30, 30, 34, 0.75);
 }
 
-:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+@layer base {
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family:
+            -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+            "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        color: var(--color-text-primary);
+        min-height: 100vh;
+        background: var(--page-gradient);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--focus-ring-color);
+        outline-offset: 2px;
+    }
 }
 
 @layer components {
-    .layout-shell {
-        @apply min-h-screen flex flex-col;
-        background:
-            radial-gradient(circle at 10% 20%,
-                rgba(0, 122, 255, 0.08),
-                transparent 40%),
-            radial-gradient(circle at 80% 0%,
-                rgba(52, 199, 89, 0.08),
-                transparent 45%);
+
+    /* Shared surfaces */
+    .surface-card {
+        border: 1px solid var(--color-border-primary);
+        border-radius: var(--panel-radius);
+        background: var(--panel-bg);
+        box-shadow: var(--panel-shadow);
+        backdrop-filter: blur(var(--panel-blur));
     }
 
-    [data-theme="dark"] .layout-shell {
-        background:
-            radial-gradient(circle at 15% 25%,
-                rgba(10, 132, 255, 0.12),
-                transparent 45%),
-            radial-gradient(circle at 80% 0%,
-                rgba(48, 209, 88, 0.08),
-                transparent 50%),
-            linear-gradient(180deg, #05060a, #0f1017);
+    .surface-card--plain {
+        background: var(--color-bg-primary);
+    }
+
+    .surface-card--tight {
+        border-radius: 1.25rem;
+    }
+
+    .surface-card--flat {
+        box-shadow: none;
+    }
+
+    .timeline-card {
+        border: 1px solid var(--card-border);
+        border-radius: 1.5rem;
+        background: var(--timeline-card-bg);
+        box-shadow:
+            var(--card-shadow),
+            inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(16px);
+    }
+
+    .pill-button {
+        @apply inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-colors;
+        padding: 0.5rem 1.5rem;
+        border: 1px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .pill-button--ghost {
+        border-color: var(--color-border-primary);
+        color: var(--color-text-primary);
+        background: var(--color-bg-primary);
+    }
+
+    .pill-button--ghost:hover,
+    .icon-button:hover {
+        background: var(--color-primary-hover);
+    }
+
+    .pill-button--primary {
+        color: var(--color-text-inverse);
+        background: var(--color-primary);
+        border-color: transparent;
+    }
+
+    .icon-button {
+        @apply w-8 h-8 inline-flex items-center justify-center rounded-full transition-colors;
+        color: var(--color-primary);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .badge {
+        @apply inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border;
+        border-color: var(--color-border-primary);
+        color: var(--color-text-secondary);
+        background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent);
+    }
+
+    .section-header {
+        @apply text-base font-semibold tracking-tight;
+        color: var(--color-text-primary);
+    }
+
+    .muted-text {
+        color: var(--color-text-secondary);
+    }
+
+    .layout-shell {
+        @apply min-h-screen flex flex-col;
+        background: var(--layout-gradient);
     }
 
     .layout-shell__main {
@@ -130,33 +202,27 @@ body {
     }
 
     .home__hero {
-        @apply flex items-center justify-between p-6 rounded-2xl border bg-[var(--color-bg-secondary)] border-[var(--color-border-primary)] flex-wrap gap-4 shadow-[0_20px_70px_rgba(15, 23, 42, 0.18)];
-        backdrop-filter: blur(12px);
+        @apply flex items-center justify-between p-6 flex-wrap gap-4;
     }
 
     .home__eyebrow {
-        @apply tracking-[0.15em] uppercase text-xs text-[var(--color-text-secondary)] mb-1;
+        @apply uppercase text-xs mb-1;
+        letter-spacing: 0.15em;
+        color: var(--color-text-secondary);
     }
 
     .home__hero h1 {
-        @apply text-[clamp(1.6rem, 3vw, 2.4rem)] mb-1;
+        @apply mb-1;
+        font-size: clamp(1.6rem, 3vw, 2.4rem);
     }
 
     .home__subtitle {
-        @apply text-[var(--color-text-secondary)] text-sm;
+        @apply text-sm;
+        color: var(--color-text-secondary);
     }
 
     .home__hero-actions {
         @apply flex gap-3;
-    }
-
-    .home__hero-actions button,
-    .home__hero-actions a {
-        @apply rounded-full px-6 py-2 font-semibold border border-[var(--color-border-primary)] no-underline text-[var(--color-text-primary)] bg-[var(--color-bg-primary)] cursor-pointer;
-    }
-
-    .home__hero-actions button {
-        @apply bg-[var(--color-primary)] text-white border-transparent;
     }
 
     .home__layout {
@@ -169,14 +235,7 @@ body {
 
     .home__sidebar,
     .home__timeline {
-        @apply rounded-3xl p-5 border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] shadow-[0_25px_60px_rgba(15, 23, 42, 0.2)] w-full;
-        backdrop-filter: blur(16px);
-    }
-
-    [data-theme="dark"] .home__hero,
-    [data-theme="dark"] .home__sidebar,
-    [data-theme="dark"] .home__timeline {
-        box-shadow: 0 25px 65px rgba(0, 0, 0, 0.5);
+        @apply p-5 w-full;
     }
 
     .home__timeline {
@@ -202,10 +261,6 @@ body {
         @apply flex justify-end flex-shrink-0;
     }
 
-    .home__timeline-actions button {
-        @apply border-none rounded-full px-5 py-2 cursor-pointer bg-[var(--color-primary)] text-white font-semibold;
-    }
-
     .home__sidebar :global(.calendar) {
         @apply rounded-2xl overflow-auto;
         max-height: calc(100vh - 14rem);
@@ -216,12 +271,12 @@ body {
     }
 
     .settings {
-        @apply min-h-[calc(100vh-5rem)] py-4 w-full max-w-[90rem] mx-auto flex-1 overflow-y-auto flex;
+        @apply py-4 w-full max-w-[90rem] mx-auto flex-1 overflow-y-auto flex;
+        min-height: calc(100vh - 5rem);
     }
 
     .settings__panel {
-        @apply w-full p-8 rounded-3xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] shadow-[0_30px_80px_rgba(15, 23, 42, 0.22)];
-        backdrop-filter: blur(18px);
+        @apply w-full p-8;
     }
 
     .settings__panel header h1 {
@@ -229,11 +284,13 @@ body {
     }
 
     .settings__panel header p {
-        @apply text-[var(--color-text-secondary)] mb-6;
+        @apply mb-6;
+        color: var(--color-text-secondary);
     }
 
     .settings__back {
-        @apply inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] no-underline;
+        @apply inline-flex items-center gap-1 text-sm font-semibold no-underline;
+        color: var(--color-primary);
     }
 
     .settings__back:hover {
@@ -245,20 +302,12 @@ body {
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
 
+    .settings__grid article {
+        @apply p-5 flex flex-col gap-3;
+    }
+
     .settings__choices {
         @apply flex flex-wrap gap-2;
-    }
-
-    .settings__choices button {
-        @apply rounded-full border border-[var(--color-border-primary)] bg-transparent px-4 py-2 cursor-pointer font-semibold;
-    }
-
-    .settings__choices button.active {
-        @apply bg-[var(--color-primary)] text-white border-transparent;
-    }
-
-    .settings__grid article {
-        @apply rounded-2xl p-5 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] flex flex-col gap-3;
     }
 
     .settings__grid article h2 {
@@ -266,16 +315,14 @@ body {
     }
 
     .settings__grid article p {
-        @apply text-sm text-[var(--color-text-secondary)];
+        @apply text-sm;
+        color: var(--color-text-secondary);
     }
 
     .editor-shell {
-        @apply flex flex-col min-h-[calc(100vh-5rem)] w-full max-w-[80rem] mx-auto flex-1 border border-[var(--color-border-primary)] rounded-2xl gap-4 bg-[var(--color-bg-secondary)] shadow-[0_30px_80px_rgba(15, 23, 42, 0.2)] overflow-y-auto;
+        @apply flex flex-col w-full max-w-[80rem] mx-auto flex-1 gap-4 overflow-y-auto;
+        min-height: calc(100vh - 5rem);
         padding: clamp(1rem, 3vw, 2.25rem);
-    }
-
-    [data-theme="dark"] .editor-shell {
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
     }
 
     .editor-shell__toolbar {
@@ -283,10 +330,11 @@ body {
     }
 
     .editor-shell__ghost-btn {
-        @apply inline-flex items-center gap-1 text-sm font-medium rounded-full px-3 py-1 text-[var(--color-primary)] transition-colors;
+        @apply inline-flex items-center gap-1 text-sm font-medium rounded-full px-3 py-1 transition-colors;
         background: transparent;
         border: none;
         cursor: pointer;
+        color: var(--color-primary);
     }
 
     .editor-shell__ghost-btn:hover {
@@ -294,21 +342,19 @@ body {
     }
 
     .editor-shell__date {
-        @apply font-semibold text-[var(--color-text-primary)] flex-1 flex items-center gap-2 min-w-0 text-base;
+        @apply font-semibold flex-1 flex items-center gap-2 min-w-0 text-base;
+        color: var(--color-text-primary);
     }
 
     .editor-shell__weekday {
-        @apply text-sm text-[var(--color-text-secondary)];
-    }
-
-    .editor-shell__badge {
-        @apply inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full border border-[var(--color-border-primary)] text-[var(--color-text-secondary)];
-        background: color-mix(in srgb, var(--color-bg-tertiary) 90%, transparent);
+        @apply text-sm;
+        color: var(--color-text-secondary);
     }
 
     .editor-shell__dot {
-        @apply w-2 h-2 rounded-full shadow-[0_0_10px_rgba(52, 199, 89, 0.6)];
+        @apply w-2 h-2 rounded-full;
         background: var(--color-success);
+        box-shadow: 0 0 10px rgba(52, 199, 89, 0.6);
     }
 
     .editor-shell__body {
@@ -316,7 +362,8 @@ body {
     }
 
     .editor-shell__textarea {
-        @apply w-full h-full border-none outline-none bg-transparent p-4 resize-none text-base leading-relaxed text-[var(--color-text-primary)];
+        @apply w-full h-full border-none outline-none bg-transparent p-4 resize-none text-base leading-relaxed;
+        color: var(--color-text-primary);
     }
 
     .calendar {
@@ -328,18 +375,21 @@ body {
     }
 
     .calendar__actions button {
-        @apply w-full rounded-[0.85rem] border border-[var(--color-border-primary)] px-4 py-2 text-sm text-[var(--color-text-secondary)] transition;
+        @apply w-full rounded-[0.85rem] border px-4 py-2 text-sm transition;
+        border-color: var(--color-border-primary);
         background: transparent;
+        color: var(--color-text-secondary);
     }
 
     .calendar__actions button:hover:not(:disabled) {
-        @apply text-[var(--color-primary)];
+        color: var(--color-primary);
         border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
         background: color-mix(in srgb, var(--color-primary) 8%, transparent);
     }
 
     .calendar__actions button:disabled {
-        @apply opacity-60 cursor-not-allowed text-[var(--color-text-tertiary)];
+        @apply opacity-60 cursor-not-allowed;
+        color: var(--color-text-tertiary);
     }
 
     .calendar-section {
@@ -375,16 +425,18 @@ body {
     }
 
     .calendar button:focus-visible {
-        @apply outline outline-2 outline-[var(--color-primary)] outline-offset-2;
+        @apply outline outline-2 outline-offset-2;
+        outline-color: var(--color-primary);
     }
 
     .date-cell {
-        @apply w-12 h-12 mx-auto rounded-full border border-[color-mix(in_srgb, var(--color-border-primary)_80%, transparent)] shadow-[0_10px_18px_rgba(15, 23, 42, 0.04), inset_0_1px_0_rgba(255, 255, 255, 0.5)] relative flex flex-col items-center justify-center transition-all duration-200 select-none;
+        @apply w-12 h-12 mx-auto rounded-full border relative flex flex-col items-center justify-center transition-all duration-200 select-none;
+        border-color: color-mix(in srgb, var(--color-border-primary) 80%, transparent);
+        box-shadow: 0 10px 18px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
         background:
-            radial-gradient(circle at top,
-                color-mix(in srgb, var(--color-primary) 12%, transparent),
-                transparent 70%),
+            radial-gradient(circle at top, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 70%),
             rgba(255, 255, 255, 0.35);
+        color: var(--color-text-primary);
     }
 
     [data-theme="dark"] .date-cell {
@@ -392,12 +444,37 @@ body {
         border-color: rgba(255, 255, 255, 0.08);
     }
 
+    .calendar-cell--muted {
+        color: var(--color-text-tertiary);
+    }
+
+    .calendar-cell--selected {
+        background: var(--color-primary);
+        color: var(--color-text-inverse);
+        box-shadow: 0 18px 32px rgba(0, 122, 255, 0.35);
+        outline: 2px solid rgba(255, 255, 255, 0.7);
+        outline-offset: 2px;
+    }
+
+    .calendar-cell--today {
+        background: var(--color-primary-light);
+        color: var(--color-text-primary);
+        font-weight: 600;
+        outline: 1px solid var(--color-primary);
+        outline-offset: 1px;
+    }
+
+    .calendar-cell--has-entry {
+        background: var(--color-success-light);
+    }
+
     .timeline {
         @apply flex flex-col gap-5 h-full min-h-0;
     }
 
     .timeline__empty {
-        @apply m-auto p-8 text-[var(--color-text-secondary)];
+        @apply m-auto p-8;
+        color: var(--color-text-secondary);
     }
 
     .timeline__list {
@@ -411,7 +488,8 @@ body {
     }
 
     .timeline__axis {
-        @apply relative flex flex-col gap-1 text-sm text-[var(--color-text-secondary)] pl-6;
+        @apply relative flex flex-col gap-1 text-sm pl-6;
+        color: var(--color-text-secondary);
     }
 
     .timeline__axis::after {
@@ -421,59 +499,43 @@ body {
         left: 0;
         right: -1.25rem;
         height: 2px;
-        background: linear-gradient(90deg,
-                rgba(0, 0, 0, 0.05),
-                rgba(0, 122, 255, 0.4));
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.05), rgba(0, 122, 255, 0.4));
     }
 
     .timeline__dot {
-        @apply absolute top-[0.45rem] left-0 w-3 h-3 rounded-full border-2 border-[var(--color-primary)];
+        @apply absolute top-[0.45rem] left-0 w-3 h-3 rounded-full border-2;
+        border-color: var(--color-primary);
         box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.12);
         background: #fff;
     }
 
     .timeline__card {
-        @apply w-full border rounded-2xl p-5 text-left cursor-pointer transition;
-        border-color: rgba(255, 255, 255, 0.35);
-        background:
-            radial-gradient(circle at 10% 20%,
-                rgba(0, 122, 255, 0.08),
-                transparent 60%),
-            rgba(255, 255, 255, 0.9);
-        box-shadow:
-            0 20px 45px rgba(15, 23, 42, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(16px);
-    }
-
-    [data-theme="dark"] .timeline__card {
-        background: rgba(30, 30, 34, 0.9);
-        border-color: rgba(255, 255, 255, 0.08);
-    }
-
-    [data-theme="dark"] .timeline__card--placeholder {
-        background: rgba(30, 30, 34, 0.75);
-        border-color: rgba(255, 255, 255, 0.12);
+        @apply w-full p-5 text-left cursor-pointer transition;
     }
 
     .timeline__card:hover {
-        @apply -translate-y-1 shadow-[0_25px_60px_rgba(15, 23, 42, 0.16)];
+        @apply -translate-y-1;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16);
     }
 
     .timeline__card--active {
-        @apply border-[var(--color-primary)] -translate-y-0.5 shadow-[0_25px_60px_rgba(15, 23, 42, 0.2)];
+        @apply -translate-y-0.5;
+        border-color: var(--color-primary);
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2);
     }
 
     .timeline__card--placeholder {
-        @apply border-dashed border-[var(--color-border-secondary)] bg-white/60 min-h-[150px] flex items-center justify-center text-center;
+        @apply border-dashed min-h-[150px] flex items-center justify-center text-center;
+        border-color: var(--color-border-secondary);
+        background: var(--timeline-placeholder-bg);
     }
 
     .timeline__item--active .timeline__axis {
-        @apply text-[var(--color-text-primary)];
+        color: var(--color-text-primary);
     }
 
     .timeline__dot--active {
-        @apply bg-[var(--color-primary)];
+        background: var(--color-primary);
         box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.2);
     }
 
@@ -486,7 +548,8 @@ body {
     }
 
     .timeline__preview {
-        @apply text-sm leading-relaxed text-[var(--color-text-primary)] opacity-80;
+        @apply text-sm leading-relaxed opacity-80;
+        color: var(--color-text-primary);
     }
 
     .timeline__summary {
@@ -497,6 +560,7 @@ body {
     }
 
     .timeline__placeholder {
-        @apply flex flex-col gap-1 text-[var(--color-text-secondary)] text-center items-center;
+        @apply flex flex-col gap-1 text-center items-center;
+        color: var(--color-text-secondary);
     }
 }

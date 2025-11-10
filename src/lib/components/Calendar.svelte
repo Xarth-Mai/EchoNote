@@ -13,7 +13,6 @@
         setCurrentDate,
         setSummaries,
     } from "$utils/state";
-    import { UI } from "$utils/ui";
     import type { DiaryEntry } from "../../types";
 
     const state = appStateStore;
@@ -103,34 +102,21 @@
         const selected = formatDate(date) === currentDate;
         const hasEntry = Boolean(entry);
 
-        const base = [
-            UI.DATE_CELL,
-            isCurrent
-                ? "text-(--color-text-primary)"
-                : "text-(--color-text-tertiary)",
-        ];
+        const classes = ["date-cell"];
 
-        if (selected) {
-            base.push(
-                "bg-(--color-primary)",
-                "text-(--color-text-inverse)",
-                "shadow-lg",
-                "ring-2",
-                "ring-white/70",
-            );
-        } else if (today) {
-            base.push(
-                "bg-(--color-primary-light)",
-                "text-(--color-text-primary)",
-                "font-semibold",
-                "ring-1",
-                "ring-(--color-primary)",
-            );
-        } else if (hasEntry && isCurrent) {
-            base.push("bg-(--color-success-light)");
+        if (!isCurrent) {
+            classes.push("calendar-cell--muted");
         }
 
-        return base.filter(Boolean).join(" ");
+        if (selected) {
+            classes.push("calendar-cell--selected");
+        } else if (today) {
+            classes.push("calendar-cell--today");
+        } else if (hasEntry && isCurrent) {
+            classes.push("calendar-cell--has-entry");
+        }
+
+        return classes.join(" ");
     }
 
     async function ensureMonthSummariesLoaded(grid: Date[]): Promise<void> {
@@ -179,7 +165,7 @@
     <div class="flex items-center justify-between">
         <button
             type="button"
-            class={UI.ICON_BTN}
+            class="icon-button"
             aria-label="上一月"
             on:click={goToPrevMonth}
         >
@@ -200,13 +186,13 @@
         </button>
 
         <div class="text-center">
-            <p class={UI.SECTION_HEADER}>{year}年{month + 1}月</p>
+            <p class="section-header">{year}年{month + 1}月</p>
         </div>
 
         <div class="flex items-center gap-2">
             <button
                 type="button"
-                class={UI.ICON_BTN}
+                class="icon-button"
                 aria-label="下一月"
                 on:click={goToNextMonth}
             >
@@ -230,7 +216,7 @@
 
     <div class="grid grid-cols-7 gap-1 mb-1">
         {#each weekdayLabels as label}
-            <div class={`text-center text-xs font-medium py-2 ${UI.MUTED}`}>
+            <div class="text-center text-xs font-medium py-2 muted-text">
                 {label}
             </div>
         {/each}

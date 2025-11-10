@@ -14,7 +14,7 @@
 </svelte:head>
 
 <div class="settings">
-    <section class="settings__panel">
+    <section class="settings__panel surface-card">
         <header>
             <a class="settings__back" href="/">← 返回主页</a>
             <h1>设置中心</h1>
@@ -22,14 +22,20 @@
         </header>
 
         <div class="settings__grid">
-            <article>
+            <article
+                class="surface-card surface-card--plain surface-card--tight"
+            >
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
                     {#each themes as theme}
                         <button
                             type="button"
-                            class:active={$state.theme === theme.value}
+                            class="pill-button"
+                            class:pill-button--primary={$state.theme ===
+                                theme.value}
+                            class:pill-button--ghost={$state.theme !==
+                                theme.value}
                             on:click={() => setTheme(theme.value)}
                         >
                             {theme.label}
