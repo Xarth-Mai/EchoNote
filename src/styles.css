@@ -32,6 +32,7 @@
     --panel-shadow: 0 20px 70px rgba(15, 23, 42, 0.18);
     --panel-radius: 1.75rem;
     --panel-blur: 16px;
+    --hero-reserved-space: clamp(13rem, 22vh, 16rem);
 
     --card-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
     --card-border: rgba(255, 255, 255, 0.35);
@@ -201,10 +202,18 @@
     .layout-shell__main {
         @apply flex-1 flex flex-col overflow-hidden min-h-0;
         padding: clamp(1.5rem, 4vw, 3.5rem);
+        min-height: 100vh;
+    }
+
+    @supports (min-height: 100dvh) {
+        .layout-shell__main {
+            min-height: 100dvh;
+        }
     }
 
     .home {
         @apply flex flex-col gap-6 w-full max-w-[90rem] mx-auto flex-1 h-full min-h-0 overflow-hidden;
+        height: 100%;
     }
 
     .home--portrait {
@@ -237,10 +246,19 @@
 
     .home__layout {
         @apply flex gap-6 items-stretch min-h-0 flex-1 h-full overflow-hidden;
+        height: calc(100vh - var(--hero-reserved-space));
+        max-height: 100%;
+    }
+
+    @supports (height: 100dvh) {
+        .home__layout {
+            height: calc(100dvh - var(--hero-reserved-space));
+        }
     }
 
     .home--portrait .home__layout {
         @apply flex-col gap-4;
+        min-height: 0;
     }
 
     .home__sidebar,
@@ -250,8 +268,9 @@
 
     .home__timeline {
         @apply flex flex-col gap-4 min-h-0 h-full max-h-full overflow-hidden flex-1;
-        min-height: 520px;
-        max-height: calc(100vh - 14rem);
+        min-height: 0;
+        height: 100%;
+        max-height: 100%;
     }
 
     .home--landscape .home__sidebar {
@@ -269,10 +288,13 @@
 
     .home--portrait .home__sidebar {
         @apply flex-none w-full;
+        max-height: min(45vh, 28rem);
+        overflow: auto;
     }
 
     .home--portrait .home__timeline {
         @apply flex-1 min-h-0 overflow-hidden;
+        max-height: 100%;
     }
 
     .home__timeline-actions {
@@ -281,11 +303,18 @@
 
     .home__sidebar :global(.calendar) {
         @apply rounded-2xl overflow-auto;
-        max-height: calc(100vh - 14rem);
+        max-height: calc(100vh - var(--hero-reserved-space));
+    }
+
+    @supports (height: 100dvh) {
+        .home__sidebar :global(.calendar) {
+            max-height: calc(100dvh - var(--hero-reserved-space));
+        }
     }
 
     .home__timeline :global(.timeline) {
         @apply h-full min-h-0;
+        max-height: 100%;
     }
 
     .settings {
