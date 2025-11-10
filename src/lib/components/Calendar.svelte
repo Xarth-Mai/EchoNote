@@ -299,8 +299,12 @@
         {/each}
     </div>
 
-    <div class="calendar__actions">
-        <button type="button" on:click={toggleCalendarView}>
+    <div class="mt-2">
+        <button
+            type="button"
+            class="pill-button pill-button--ghost w-full"
+            on:click={toggleCalendarView}
+        >
             {calendarExpanded ? "收起月历" : "展开月历"}
         </button>
     </div>

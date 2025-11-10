@@ -51,13 +51,23 @@
     class:home--portrait={layoutMode === "portrait"}
     class:home--landscape={layoutMode === "landscape"}
 >
-    <section class="home__hero surface-card">
+    <section
+        class="surface-card flex flex-wrap items-center justify-between gap-4 p-6"
+    >
         <div>
-            <p class="home__eyebrow">{greeting}</p>
-            <h1>记下你的灵感与情绪节奏</h1>
-            <p class="home__subtitle">{subline}</p>
+            <p
+                class="mb-1 uppercase text-xs tracking-[0.15em] text-[color:var(--color-text-secondary)]"
+            >
+                {greeting}
+            </p>
+            <h1 class="mb-1 text-[clamp(1.6rem,3vw,2.4rem)] font-semibold">
+                记下你的灵感与情绪节奏
+            </h1>
+            <p class="text-sm text-[color:var(--color-text-secondary)]">
+                {subline}
+            </p>
         </div>
-        <div class="home__hero-actions">
+        <div class="flex gap-3">
             <button
                 type="button"
                 class="pill-button pill-button--primary"

@@ -151,7 +151,7 @@
     <div class="editor-shell__toolbar">
         <button
             type="button"
-            class="editor-shell__ghost-btn"
+            class="pill-button pill-button--minimal pill-button--compact font-medium"
             on:click={handleBack}
             aria-label="返回主页"
         >
