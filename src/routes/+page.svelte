@@ -1,78 +1,80 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { browser } from "$app/environment";
+    import { goto } from "$app/navigation";
     import Calendar from "$lib/components/Calendar.svelte";
-    import Editor from "$lib/components/Editor.svelte";
     import Timeline from "$lib/components/Timeline.svelte";
-    import {
-        appStateStore,
-        initLayoutListener,
-        initThemeListener,
-        setCalendarExpanded,
-    } from "$utils/state";
-    import { cx, UI } from "$utils/ui";
+    import { appStateStore, setCurrentDate } from "$utils/state";
 
     const state = appStateStore;
 
-    onMount(() => {
-        initThemeListener();
-        initLayoutListener();
-    });
+    $: greeting = buildGreeting();
+    $: subline = `今天是 ${new Date().toLocaleDateString("zh-CN", {
+        month: "long",
+        day: "numeric",
+        weekday: "long",
+    })}`;
+
+    function buildGreeting(): string {
+        const hour = new Date().getHours();
+        if (hour < 6) return "凌晨好";
+        if (hour < 12) return "早安";
+        if (hour < 18) return "下午好";
+        return "晚上好";
+    }
+
+    function startToday(): void {
+        const today = new Date().toISOString().split("T")[0];
+        setCurrentDate(today);
+        if (browser) {
+            void goto(`/editor?date=${today}`);
+        }
+    }
 
     $: layoutMode = $state.layoutMode;
-    $: viewMode = $state.viewMode;
-    $: editorFullscreen = $state.editorFullscreen;
-    $: calendarExpanded = $state.calendarExpanded;
 
-    $: appClasses = cx("h-full", layoutMode === "landscape" && "flex");
-    $: homePanelClasses = cx(
-        "h-full",
-        "flex",
-        "flex-col",
-        layoutMode === "portrait" && viewMode === "editor" && "hidden",
-        layoutMode === "landscape" && editorFullscreen && "hidden",
-        layoutMode === "landscape" &&
-            !editorFullscreen &&
-            "w-21/55 border-r border-(--color-border-primary)",
-    );
-    $: editorPanelClasses = cx(
-        "h-full",
-        layoutMode === "portrait" && viewMode === "home" && "hidden",
-        layoutMode === "landscape" && "flex-1",
-    );
-
-    $: toggleLabel = calendarExpanded ? "收起日历" : "展开日历";
-    $: toggleIcon = calendarExpanded ? "▲" : "▼";
+    function openSelectedDate(): void {
+        const fallback = new Date().toISOString().split("T")[0];
+        const target = $state.currentDate || fallback;
+        setCurrentDate(target);
+        if (browser) {
+            void goto(`/editor?date=${target}`);
+        }
+    }
 </script>
 
 <svelte:head>
-    <title>EchoNote</title>
+    <title>EchoNote · 日历与时间线</title>
 </svelte:head>
 
-<div class={appClasses}>
-    <div class={homePanelClasses}>
-        <div class="shrink-0 p-5 backdrop-blur-sm bg-(--color-bg-secondary)">
+<div
+    class="home"
+    class:home--portrait={layoutMode === "portrait"}
+    class:home--landscape={layoutMode === "landscape"}
+>
+    <section class="home__hero">
+        <div>
+            <p class="home__eyebrow">{greeting}</p>
+            <h1>记下你的灵感与情绪节奏</h1>
+            <p class="home__subtitle">{subline}</p>
+        </div>
+        <div class="home__hero-actions">
+            <button type="button" on:click={startToday}>今日记录</button>
+            <a href="/settings">设置中心</a>
+        </div>
+    </section>
+
+    <div class="home__layout">
+        <aside class="home__sidebar">
             <Calendar />
-        </div>
+        </aside>
 
-        <div
-            class="shrink-0 flex justify-center py-3 border-y backdrop-blur-sm border-(--color-border-primary) bg-(--color-bg-secondary)"
-        >
-            <button
-                class={cx(UI.BTN_GHOST, "flex items-center gap-2 px-4")}
-                on:click={() => setCalendarExpanded(!calendarExpanded)}
-                aria-pressed={calendarExpanded}
-            >
-                <span class="text-xs">{toggleIcon}</span>
-                <span>{toggleLabel}</span>
-            </button>
-        </div>
-
-        <div class="flex-1 overflow-hidden">
+        <section class="home__timeline">
+            <div class="home__timeline-actions">
+                <button type="button" on:click={openSelectedDate}>
+                    去编辑
+                </button>
+            </div>
             <Timeline />
-        </div>
-    </div>
-
-    <div class={editorPanelClasses}>
-        <Editor />
+        </section>
     </div>
 </div>

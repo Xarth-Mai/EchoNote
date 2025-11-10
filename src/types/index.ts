@@ -14,10 +14,7 @@ export interface AppState {
   currentDate: string; // 当前选中的日期
   currentBody: string | null; // 当前条目的正文缓存
   summaries: Map<string, DiaryEntry>; // 缓存的所有日记条目，key 为日期
-  viewMode: 'home' | 'editor'; // 当前视图模式：home=日历+时间线组合，editor=编辑器
-  layoutMode: 'portrait' | 'landscape'; // 布局模式
+  layoutMode: "portrait" | "landscape"; // 布局模式
   calendarExpanded: boolean; // 日历是否展开
-  editorFullscreen: boolean; // 编辑器是否全屏（仅横屏模式）
-  theme: 'light' | 'dark' | 'auto'; // 主题模式：light=浅色，dark=深色，auto=跟随系统
+  theme: "light" | "dark" | "auto"; // 主题模式：light=浅色，dark=深色，auto=跟随系统
 }
-

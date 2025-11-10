@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { browser } from "$app/environment";
+    import { goto } from "$app/navigation";
     import { onDestroy } from "svelte";
     import { getEntryBody, saveEntryByDate } from "$utils/backend";
     import {
@@ -6,11 +8,8 @@
         getSummary,
         getState,
         setCurrentBody,
-        setViewMode,
-        toggleEditorFullscreen,
         upsertSummary,
     } from "$utils/state";
-    import { cx, UI } from "$utils/ui";
     import type { DiaryEntry } from "../../types";
 
     const state = appStateStore;
@@ -22,10 +21,8 @@
     let lastLoadedDate: string | null = null;
 
     $: currentDate = $state.currentDate;
-    $: layoutMode = $state.layoutMode;
-    $: editorFullscreen = $state.editorFullscreen;
     $: currentBody = $state.currentBody;
-    $: isLandscape = layoutMode === "landscape";
+    $: dateMeta = buildDateMeta(currentDate);
 
     $: if (!lastRenderedDate && currentDate) {
         lastRenderedDate = currentDate;
@@ -48,11 +45,8 @@
     }
 
     function handleBack(): void {
-        setViewMode("home");
-    }
-
-    function handleToggleFullscreen(): void {
-        toggleEditorFullscreen();
+        if (!browser) return;
+        void goto("/");
     }
 
     function handleInput(): void {
@@ -128,69 +122,77 @@
     onDestroy(() => {
         flushAutoSave();
     });
+
+    function buildDateMeta(dateValue?: string | null): {
+        display: string;
+        weekday: string;
+    } {
+        if (!dateValue) {
+            return { display: "未选择日期", weekday: "" };
+        }
+        const date = new Date(dateValue);
+        const weekdayLabels = [
+            "周日",
+            "周一",
+            "周二",
+            "周三",
+            "周四",
+            "周五",
+            "周六",
+        ];
+        return {
+            display: `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`,
+            weekday: weekdayLabels[date.getDay()],
+        };
+    }
 </script>
 
-<div class="editor h-full flex flex-col">
-    <div
-        class="flex items-center justify-between px-5 py-3 border-b backdrop-blur-md border-(--color-border-primary) bg-(--color-bg-tertiary)"
-    >
-        {#if isLandscape}
-            <button
-                type="button"
-                class={UI.BTN_GHOST}
-                on:click={handleToggleFullscreen}
-            >
-                {#if editorFullscreen}
-                    ⊟ 分屏
-                {:else}
-                    ⊡ 全屏
-                {/if}
-            </button>
-        {:else}
-            <button
-                type="button"
-                class={cx(UI.BTN_GHOST, "flex items-center gap-1")}
-                on:click={handleBack}
-                aria-label="返回主页"
-            >
-                <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 19l-7-7 7-7"
-                    />
-                </svg>
-                <span>主页</span>
-            </button>
-        {/if}
-
-        <h2
-            class="text-base font-semibold tracking-tight text-(--color-text-primary)"
+<div class="editor-shell">
+    <div class="editor-shell__toolbar">
+        <button
+            type="button"
+            class="editor-shell__ghost-btn"
+            on:click={handleBack}
+            aria-label="返回主页"
         >
-            {currentDate}
-        </h2>
+            <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 19l-7-7 7-7"
+                />
+            </svg>
+            <span>时间线</span>
+        </button>
 
-        <div
-            class="flex items-center gap-2 text-xs text-(--color-text-secondary)"
-        >
-            <div
-                class="w-2 h-2 rounded-full animate-pulse bg-(--color-success)"
-            ></div>
-            <span>自动保存</span>
+        <p class="editor-shell__date">
+            {dateMeta.display}
+            {#if dateMeta.weekday}
+                <span class="editor-shell__weekday">· {dateMeta.weekday}</span>
+            {/if}
+        </p>
+
+        <div class="editor-shell__badge">
+            <span class="editor-shell__dot" aria-hidden="true"></span>
+            <span>自动保存开启</span>
         </div>
     </div>
 
-    <textarea
-        class="flex-1 px-6 py-5 resize-none outline-none bg-transparent text-base leading-relaxed text-(--color-text-primary)"
-        placeholder="开始写作..."
-        bind:value={textareaValue}
-        on:input={handleInput}
-    ></textarea>
+    <div class="editor-shell__body">
+        <textarea
+            class="editor-shell__textarea"
+            placeholder="记录你的灵感、片刻与感悟..."
+            bind:value={textareaValue}
+            on:input={handleInput}
+        ></textarea>
+    </div>
 </div>
+
+

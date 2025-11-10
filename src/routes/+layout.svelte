@@ -1,5 +1,16 @@
 <script lang="ts">
-  import "../styles.css";
+    import { onMount } from "svelte";
+    import { initLayoutListener, initThemeListener } from "$utils/state";
+    import "../styles.css";
+
+    onMount(() => {
+        initThemeListener();
+        initLayoutListener();
+    });
 </script>
 
-<slot />
+<div class="layout-shell">
+    <main class="layout-shell__main">
+        <slot />
+    </main>
+</div>
