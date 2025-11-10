@@ -37,7 +37,6 @@
                     {/each}
                 </div>
             </article>
-
         </div>
     </section>
 </div>

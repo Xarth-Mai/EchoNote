@@ -173,7 +173,9 @@
     }
 </script>
 
-<div class={`calendar space-y-4 ${disableTransition ? "calendar--static" : ""}`}>
+<div
+    class={`calendar space-y-4 ${disableTransition ? "calendar--static" : ""}`}
+>
     <div class="flex items-center justify-between">
         <button
             type="button"
@@ -317,5 +319,3 @@
         </button>
     </div>
 </div>
-
-

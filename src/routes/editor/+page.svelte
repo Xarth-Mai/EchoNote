@@ -19,5 +19,3 @@
 <div class="editor-page">
     <Editor />
 </div>
-
-

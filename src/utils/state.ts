@@ -13,8 +13,8 @@ function loadThemePreference(): "light" | "dark" | "auto" {
 
 const initialLayoutMode =
   browser &&
-  typeof window !== "undefined" &&
-  window.innerWidth > window.innerHeight
+    typeof window !== "undefined" &&
+    window.innerWidth > window.innerHeight
     ? "landscape"
     : "portrait";
 
