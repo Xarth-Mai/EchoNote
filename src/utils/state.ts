@@ -1,30 +1,32 @@
 // 简单的状态管理（应用状态与通用操作）
 
-import { browser } from '$app/environment';
-import { writable, type Readable } from 'svelte/store';
-import type { AppState, DiaryEntry } from '../types';
+import { browser } from "$app/environment";
+import { writable, type Readable } from "svelte/store";
+import type { AppState, DiaryEntry } from "../types";
 
 /** 从 localStorage 加载主题偏好（SSR 期间强制 auto） */
-function loadThemePreference(): 'light' | 'dark' | 'auto' {
-  if (!browser) return 'auto';
-  const saved = localStorage.getItem('echonote-theme');
-  if (saved === 'light' || saved === 'dark' || saved === 'auto') {
+function loadThemePreference(): "light" | "dark" | "auto" {
+  if (!browser) return "auto";
+  const saved = localStorage.getItem("echonote-theme");
+  if (saved === "light" || saved === "dark" || saved === "auto") {
     return saved;
   }
-  return 'auto'; // 默认跟随系统
+  return "auto"; // 默认跟随系统
 }
 
 /** 全局应用状态 */
 const initialLayoutMode =
-  browser && typeof window !== 'undefined' && window.innerWidth > window.innerHeight
-    ? 'landscape'
-    : 'portrait';
+  browser &&
+  typeof window !== "undefined" &&
+  window.innerWidth > window.innerHeight
+    ? "landscape"
+    : "portrait";
 
 const initialState: AppState = {
-  currentDate: new Date().toISOString().split('T')[0],
+  currentDate: new Date().toISOString().split("T")[0],
   currentBody: null, // 当前日期对应的正文缓存（进入编辑器时按需加载）
   summaries: new Map(), // 仅缓存当月的摘要（frontmatter）
-  viewMode: 'home',
+  viewMode: "home",
   layoutMode: initialLayoutMode,
   calendarExpanded: false, // 默认收起
   editorFullscreen: false,
@@ -63,12 +65,12 @@ export function setCurrentBody(body: string | null): void {
 }
 
 /** 切换视图模式 */
-export function setViewMode(mode: 'home' | 'editor'): void {
+export function setViewMode(mode: "home" | "editor"): void {
   setState({ viewMode: mode });
 }
 
 /** 设置布局模式 */
-export function setLayoutMode(mode: 'portrait' | 'landscape'): void {
+export function setLayoutMode(mode: "portrait" | "landscape"): void {
   setState({ layoutMode: mode });
 }
 
@@ -88,17 +90,14 @@ export function upsertSummary(entry: DiaryEntry): void {
 
 /** 获取所有摘要（按日期倒序） */
 export function getAllSummaries(): DiaryEntry[] {
-  return Array.from(currentState.summaries.values()).sort((a, b) => b.date.localeCompare(a.date));
+  return Array.from(currentState.summaries.values()).sort((a, b) =>
+    b.date.localeCompare(a.date),
+  );
 }
 
 /** 获取指定日期的摘要 */
 export function getSummary(date: string): DiaryEntry | null {
   return currentState.summaries.get(date) || null;
-}
-
-/** 切换日历展开/收起状态 */
-export function toggleCalendarExpanded(): void {
-  setState({ calendarExpanded: !currentState.calendarExpanded });
 }
 
 /** 设置日历展开状态 */
@@ -122,48 +121,55 @@ export function initLayoutListener(): void {
   if (!browser || layoutListenerInitialized) return;
   layoutListenerInitialized = true;
   const updateLayout = () => {
-    const newMode = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    const newMode =
+      window.innerWidth > window.innerHeight ? "landscape" : "portrait";
     if (newMode !== currentState.layoutMode) {
       setLayoutMode(newMode);
       // 切换到竖屏时，重置全屏状态
-      if (newMode === 'portrait') {
+      if (newMode === "portrait") {
         setEditorFullscreen(false);
       }
     }
   };
 
-  window.addEventListener('resize', updateLayout);
+  window.addEventListener("resize", updateLayout);
   updateLayout();
 }
 
 /** 设置主题 */
-export function setTheme(theme: 'light' | 'dark' | 'auto'): void {
+export function setTheme(theme: "light" | "dark" | "auto"): void {
   setState({ theme });
   if (browser) {
-    localStorage.setItem('echonote-theme', theme);
+    localStorage.setItem("echonote-theme", theme);
   }
   applyTheme(theme);
 }
 
 /** 循环切换主题 */
 export function toggleTheme(): void {
-  const themeOrder: Array<'light' | 'dark' | 'auto'> = ['auto', 'light', 'dark'];
+  const themeOrder: Array<"light" | "dark" | "auto"> = [
+    "auto",
+    "light",
+    "dark",
+  ];
   const currentIndex = themeOrder.indexOf(currentState.theme);
   const nextIndex = (currentIndex + 1) % themeOrder.length;
   setTheme(themeOrder[nextIndex]);
 }
 
 /** 应用主题到 DOM */
-function applyTheme(theme: 'light' | 'dark' | 'auto'): void {
+function applyTheme(theme: "light" | "dark" | "auto"): void {
   if (!browser) return;
   const html = document.documentElement;
 
-  if (theme === 'auto') {
+  if (theme === "auto") {
     // 跟随系统
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    html.setAttribute("data-theme", prefersDark ? "dark" : "light");
   } else {
-    html.setAttribute('data-theme', theme);
+    html.setAttribute("data-theme", theme);
   }
 }
 
@@ -176,16 +182,16 @@ export function initThemeListener(): void {
   applyTheme(currentState.theme);
 
   // 监听系统主题变化（仅在 auto 模式下生效）
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const handleChange = () => {
-    if (currentState.theme === 'auto') {
-      applyTheme('auto');
+    if (currentState.theme === "auto") {
+      applyTheme("auto");
     }
   };
 
   // 使用新的 API（如果可用）
   if (mediaQuery.addEventListener) {
-    mediaQuery.addEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
   } else {
     // 兼容旧浏览器
     mediaQuery.addListener(handleChange);
