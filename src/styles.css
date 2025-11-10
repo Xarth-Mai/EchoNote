@@ -98,6 +98,16 @@
         outline: 2px solid var(--focus-ring-color);
         outline-offset: 2px;
     }
+
+    * {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    *::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
 }
 
 @layer components {
@@ -242,6 +252,14 @@
         @apply flex flex-col gap-4 min-h-0 h-full max-h-full overflow-hidden flex-1;
         min-height: 520px;
         max-height: calc(100vh - 14rem);
+    }
+
+    .home--landscape .home__sidebar {
+        flex: 0 0 clamp(280px, 30vw, 400px);
+    }
+
+    .home--landscape .home__timeline {
+        min-width: 0;
     }
 
     .home__sidebar {
@@ -479,6 +497,8 @@
 
     .timeline__list {
         @apply list-none p-0 m-0 flex flex-col gap-7 pr-2 overflow-y-auto flex-1 min-h-0;
+        padding-top: clamp(1rem, 2vw, 1.5rem);
+        padding-left: clamp(1rem, 2vw, 1.5rem);
     }
 
     .timeline__item {
