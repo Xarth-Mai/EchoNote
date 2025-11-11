@@ -210,6 +210,7 @@
         gap: 1.2rem;
         max-height: 520px;
         overflow-y: auto;
+        padding-top: 1rem;
     }
 
     .timeline__item {
@@ -269,7 +270,9 @@
         padding: 1rem;
         background: var(--color-bg-panel);
         box-shadow: var(--shadow-card);
-        transition: border 150ms ease, transform 150ms ease;
+        transition:
+            border 150ms ease,
+            transform 150ms ease;
     }
 
     .timeline__card:hover {

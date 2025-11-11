@@ -15,6 +15,8 @@
     --radius-sm: 8px;
     --shadow-panel: 0 20px 45px rgba(15, 23, 42, 0.08);
     --shadow-card: 0 12px 24px rgba(15, 23, 42, 0.12);
+    --page-shell-width: clamp(960px, 85vw, 2560px);
+    --page-shell-gap: clamp(1.25rem, 4vw, 3.5rem);
 }
 
 [data-theme="dark"] {
@@ -72,7 +74,32 @@ a:focus-visible {
 
 .layout-shell__main {
     width: 100%;
-    padding: clamp(1.5rem, 2vw, 2.5rem);
+    min-height: 100vh;
+    padding: var(--page-shell-gap);
+}
+
+@supports (min-height: 100dvh) {
+    .layout-shell__main {
+        min-height: 100dvh;
+    }
+}
+
+.page-shell {
+    width: min(var(--page-shell-width),
+            calc(100% - (var(--page-shell-gap) * 2)));
+    margin: 0 auto;
+    min-height: calc(100vh - (var(--page-shell-gap) * 2));
+    max-height: calc(100vh - (var(--page-shell-gap) * 2));
+    display: flex;
+    flex-direction: column;
+    gap: clamp(1.25rem, 3vw, 2rem);
+}
+
+@supports (min-height: 100dvh) {
+    .page-shell {
+        min-height: calc(100dvh - (var(--page-shell-gap) * 2));
+        max-height: calc(100dvh - (var(--page-shell-gap) * 2));
+    }
 }
 
 .surface-card {

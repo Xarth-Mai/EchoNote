@@ -36,7 +36,6 @@
         void ensureMonthSummariesLoaded(gridDates);
     }
 
-
     function chunkIntoWeeks(dates: Date[]): Date[][] {
         const result: Date[][] = [];
         for (let i = 0; i < dates.length; i += 7) {

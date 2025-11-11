@@ -13,7 +13,7 @@
     <title>EchoNote · 设置</title>
 </svelte:head>
 
-<div class="settings">
+<div class="settings page-shell">
     <section class="settings__panel surface-card">
         <header>
             <a class="settings__back" href="/">← 返回主页</a>
@@ -32,10 +32,8 @@
                         <button
                             type="button"
                             class="btn"
-                            class:btn--primary={$state.theme ===
-                                theme.value}
-                            class:btn--ghost={$state.theme !==
-                                theme.value}
+                            class:btn--primary={$state.theme === theme.value}
+                            class:btn--ghost={$state.theme !== theme.value}
                             on:click={() => setTheme(theme.value)}
                         >
                             {theme.label}
@@ -49,8 +47,13 @@
 
 <style>
     .settings {
-        max-width: 720px;
-        margin: 0 auto;
+        flex: 1;
+    }
+
+    .settings__panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
 
     .settings__panel header {
@@ -70,6 +73,7 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        flex: 1;
     }
 
     .settings__choices {

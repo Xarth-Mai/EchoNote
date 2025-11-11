@@ -16,6 +16,27 @@
     <title>EchoNote · 编辑器</title>
 </svelte:head>
 
-<div class="editor-page">
+<div class="editor-page page-shell">
     <Editor />
 </div>
+
+<style>
+    .editor-page {
+        flex: 1;
+    }
+
+    .editor-page :global(.editor-shell) {
+        width: 100%;
+        flex: 1;
+    }
+
+    .editor-page :global(.editor-shell__body) {
+        flex: 1;
+        display: flex;
+    }
+
+    .editor-page :global(.editor-shell__textarea) {
+        flex: 1;
+        min-height: 0;
+    }
+</style>

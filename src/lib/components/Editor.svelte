@@ -201,6 +201,7 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        height: 100%;
     }
 
     .editor-shell__toolbar {
@@ -235,10 +236,14 @@
         border: 1px solid var(--color-border);
         border-radius: var(--radius-md);
         min-height: 420px;
+        flex: 1;
+        display: flex;
     }
 
     .editor-shell__textarea {
         width: 100%;
+        flex: 1;
+        height: 100%;
         min-height: 420px;
         border: none;
         padding: 1.5rem;

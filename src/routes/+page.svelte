@@ -41,16 +41,14 @@
 </script>
 
 <svelte:head>
-    <title>EchoNote · 日历与时间线</title>
+    <title>EchoNote</title>
 </svelte:head>
 
-<div class="home">
+<div class="home page-shell">
     <section class="surface-card home__intro">
         <div>
             <p class="eyebrow">{greeting}</p>
-            <h1>
-                记下你的灵感与情绪节奏
-            </h1>
+            <h1>记下你的灵感与情绪节奏</h1>
             <p class="muted-text">
                 {subline}
             </p>
@@ -63,9 +61,7 @@
             >
                 今日记录
             </button>
-            <a class="btn btn--ghost" href="/settings">
-                设置中心
-            </a>
+            <a class="btn btn--ghost" href="/settings"> 设置中心 </a>
         </div>
     </section>
 
@@ -92,8 +88,7 @@
 
 <style>
     .home {
-        max-width: 1200px;
-        margin: 0 auto;
+        flex: 1;
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
@@ -116,6 +111,8 @@
     .home__grid {
         display: grid;
         gap: 1.5rem;
+        flex: 1;
+        min-height: 0;
     }
 
     @media (min-width: 992px) {
@@ -129,6 +126,8 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        flex: 1;
+        min-height: 0;
     }
 
     .timeline-header {
