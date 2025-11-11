@@ -56,7 +56,7 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 
 ## 🧱 Tech Stack
 
-- **Frontend**: Bun + SvelteKit + Vite + Tailwind CSS
+- **Frontend**: Bun + SvelteKit + Vite + CSS
 - **Backend**: Tauri + Rust
 
 ## 🚀 Development

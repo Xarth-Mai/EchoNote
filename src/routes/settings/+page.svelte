@@ -31,10 +31,10 @@
                     {#each themes as theme}
                         <button
                             type="button"
-                            class="pill-button"
-                            class:pill-button--primary={$state.theme ===
+                            class="btn"
+                            class:btn--primary={$state.theme ===
                                 theme.value}
-                            class:pill-button--ghost={$state.theme !==
+                            class:btn--ghost={$state.theme !==
                                 theme.value}
                             on:click={() => setTheme(theme.value)}
                         >
@@ -46,3 +46,35 @@
         </div>
     </section>
 </div>
+
+<style>
+    .settings {
+        max-width: 720px;
+        margin: 0 auto;
+    }
+
+    .settings__panel header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .settings__back {
+        color: var(--color-accent);
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+
+    .settings__grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .settings__choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+</style>

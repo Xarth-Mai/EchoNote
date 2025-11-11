@@ -151,13 +151,14 @@
     <div class="editor-shell__toolbar">
         <button
             type="button"
-            class="pill-button pill-button--minimal pill-button--compact font-medium"
+            class="btn btn--ghost btn--compact"
             on:click={handleBack}
             aria-label="返回主页"
         >
             <svg
-                class="w-4 h-4"
                 fill="none"
+                width="16"
+                height="16"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
@@ -194,3 +195,60 @@
         ></textarea>
     </div>
 </div>
+
+<style>
+    .editor-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .editor-shell__toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .editor-shell__date {
+        font-weight: 600;
+    }
+
+    .editor-shell__weekday {
+        color: var(--color-text-muted);
+    }
+
+    .editor-shell__badge {
+        background: var(--color-accent-soft);
+    }
+
+    .editor-shell__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--color-success);
+        display: inline-flex;
+    }
+
+    .editor-shell__body {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        min-height: 420px;
+    }
+
+    .editor-shell__textarea {
+        width: 100%;
+        min-height: 420px;
+        border: none;
+        padding: 1.5rem;
+        font: inherit;
+        resize: none;
+        background: transparent;
+        color: inherit;
+    }
+
+    .editor-shell__textarea:focus {
+        outline: none;
+    }
+</style>

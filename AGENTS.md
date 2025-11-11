@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-EchoNote combines a SvelteKit front end with a Rust/Tauri shell. UI entry points live in `src/routes` (`+layout.svelte` for global chrome, `+page.svelte` for the editor). Shared components are stored in `src/lib/components`, reusable helpers in `src/utils`, and types in `src/types`. Styling originates from `src/styles.css`, which bootstraps Tailwind utilities. Native commands, capability manifests, and bundle assets live in `src-tauri` (see `src-tauri/src/*.rs`, `tauri.conf.json`, and `icons/`).
+EchoNote combines a SvelteKit front end with a Rust/Tauri shell. UI entry points live in `src/routes` (`+layout.svelte` for global chrome, `+page.svelte` for the editor). Shared components are stored in `src/lib/components`, reusable helpers in `src/utils`, and types in `src/types`. Styling originates from `src/styles.css`, which defines the shared tokens and utility classes for panels, buttons, calendars, and timelines. Native commands, capability manifests, and bundle assets live in `src-tauri` (see `src-tauri/src/*.rs`, `tauri.conf.json`, and `icons/`).
 
 ## Build, Test, and Development Commands
 - `bun install` — install JS dependencies; rerun after changing `package.json` or `bun.lock`.
@@ -12,7 +12,7 @@ EchoNote combines a SvelteKit front end with a Rust/Tauri shell. UI entry points
 - `bash script/android-build.sh [debug|release]` — cross-compile the Android flavor with the Tauri CLI installed.
 
 ## Coding Style & Naming Conventions
-Use TypeScript modules with 2-space indentation and prefer `const` + explicit return types. Components and stores adopt `PascalCase` filenames (`Editor.svelte`, `TimelineStore.ts`), while helper exports stay `camelCase`. Co-locate UI logic inside `<script lang="ts">` blocks, keep side-effect helpers in `src/utils/backend.ts`, and expose state through Svelte stores in `src/utils/state.ts`. Favor Tailwind utility classes for layout; restrict custom CSS to token definitions in `src/styles.css`.
+Use TypeScript modules with 2-space indentation and prefer `const` + explicit return types. Components and stores adopt `PascalCase` filenames (`Editor.svelte`, `TimelineStore.ts`), while helper exports stay `camelCase`. Co-locate UI logic inside `<script lang="ts">` blocks, keep side-effect helpers in `src/utils/backend.ts`, and expose state through Svelte stores in `src/utils/state.ts`. Favor the semantic utility classes already defined in `src/styles.css` (`.btn`, `.surface-card`, `.calendar__*`, `.timeline__*`, etc.) and extend that file when shared styles are needed.
 
 ## Testing Guidelines
 Treat `bun run check` as the minimum gate for every commit. New UI tests should sit next to the subject file as `ComponentName.spec.ts` and run through Vitest (`bun x vitest run`) when introduced. Tauri/Rust code should provide module tests in `src-tauri/src` and be verified with `cargo test`. Always perform an integration smoke test via `bun run preview` plus `bun run tauri dev` to confirm IPC commands, especially after touching `src/utils/backend.ts` or `src-tauri/src/commands.rs`.

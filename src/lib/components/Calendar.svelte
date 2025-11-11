@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import {
         getMonthDates,
         formatDate,
@@ -21,7 +20,6 @@
     let year = new Date().getFullYear();
     let month = new Date().getMonth();
     let lastLoadedKey: string | null = null;
-    let disableTransition = true;
 
     $: currentDate = $state.currentDate;
     $: calendarExpanded = $state.calendarExpanded;
@@ -38,12 +36,6 @@
         void ensureMonthSummariesLoaded(gridDates);
     }
 
-    onMount(() => {
-        if (typeof window === "undefined") return;
-        window.requestAnimationFrame(() => {
-            disableTransition = false;
-        });
-    });
 
     function chunkIntoWeeks(dates: Date[]): Date[][] {
         const result: Date[][] = [];
@@ -159,10 +151,8 @@
     }
 </script>
 
-<div
-    class={`calendar space-y-4 ${disableTransition ? "calendar--static" : ""}`}
->
-    <div class="flex items-center justify-between">
+<div class="calendar">
+    <div class="calendar__header">
         <button
             type="button"
             class="icon-button"
@@ -170,11 +160,12 @@
             on:click={goToPrevMonth}
         >
             <svg
-                class="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
+                width="18"
+                height="18"
             >
                 <path
                     stroke-linecap="round"
@@ -185,11 +176,9 @@
             </svg>
         </button>
 
-        <div class="text-center">
-            <p class="section-header">{year}年{month + 1}月</p>
-        </div>
+        <p class="calendar__title">{year}年{month + 1}月</p>
 
-        <div class="flex items-center gap-2">
+        <div>
             <button
                 type="button"
                 class="icon-button"
@@ -197,11 +186,12 @@
                 on:click={goToNextMonth}
             >
                 <svg
-                    class="w-5 h-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
+                    width="18"
+                    height="18"
                 >
                     <path
                         stroke-linecap="round"
@@ -214,20 +204,19 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-7 gap-1 mb-1">
+    <div class="calendar__weekdays">
         {#each weekdayLabels as label}
-            <div class="text-center text-xs font-medium py-2 muted-text">
-                {label}
-            </div>
+            <span>{label}</span>
         {/each}
     </div>
 
     <div
-        class={`calendar-section ${calendarExpanded ? "calendar-section--expanded" : "calendar-section--collapsed"}`}
+        class="calendar-section"
         aria-hidden={calendarExpanded ? "false" : "true"}
+        hidden={!calendarExpanded}
     >
         {#each topWeeks as week}
-            <div class="grid grid-cols-7 gap-1 mb-1">
+            <div class="calendar__grid">
                 {#each week as date (formatDate(date))}
                     {@const entry = getEntry(date)}
                     <button
@@ -236,10 +225,9 @@
                         on:click={() => handleDateClick(date)}
                         aria-pressed={formatDate(date) === currentDate}
                     >
-                        <span class="text-sm font-medium">{date.getDate()}</span
-                        >
+                        <span class="date-cell__value">{date.getDate()}</span>
                         {#if entry?.mood}
-                            <span class="text-xs mt-0.5">{entry.mood}</span>
+                            <span class="date-cell__mood">{entry.mood}</span>
                         {/if}
                         {#if entry && !isToday(date) && formatDate(date) !== currentDate}
                             <span class="entry-dot" aria-hidden="true"></span>
@@ -250,7 +238,7 @@
         {/each}
     </div>
 
-    <div class="grid grid-cols-7 gap-1 mb-1" aria-live="polite">
+    <div class="calendar__grid" aria-live="polite">
         {#each selectedWeek as date (formatDate(date))}
             {@const entry = getEntry(date)}
             <button
@@ -260,9 +248,9 @@
                 aria-pressed={formatDate(date) === currentDate}
                 on:click={() => handleDateClick(date)}
             >
-                <span class="text-sm font-medium">{date.getDate()}</span>
+                <span class="date-cell__value">{date.getDate()}</span>
                 {#if entry?.mood}
-                    <span class="text-xs mt-0.5">{entry.mood}</span>
+                    <span class="date-cell__mood">{entry.mood}</span>
                 {/if}
                 {#if entry && !isToday(date) && formatDate(date) !== currentDate}
                     <span class="entry-dot" aria-hidden="true"></span>
@@ -272,11 +260,12 @@
     </div>
 
     <div
-        class={`calendar-section ${calendarExpanded ? "calendar-section--expanded" : "calendar-section--collapsed"}`}
+        class="calendar-section"
         aria-hidden={calendarExpanded ? "false" : "true"}
+        hidden={!calendarExpanded}
     >
         {#each bottomWeeks as week}
-            <div class="grid grid-cols-7 gap-1 mb-1">
+            <div class="calendar__grid">
                 {#each week as date (formatDate(date))}
                     {@const entry = getEntry(date)}
                     <button
@@ -285,10 +274,9 @@
                         on:click={() => handleDateClick(date)}
                         aria-pressed={formatDate(date) === currentDate}
                     >
-                        <span class="text-sm font-medium">{date.getDate()}</span
-                        >
+                        <span class="date-cell__value">{date.getDate()}</span>
                         {#if entry?.mood}
-                            <span class="text-xs mt-0.5">{entry.mood}</span>
+                            <span class="date-cell__mood">{entry.mood}</span>
                         {/if}
                         {#if entry && !isToday(date) && formatDate(date) !== currentDate}
                             <span class="entry-dot" aria-hidden="true"></span>
@@ -299,13 +287,121 @@
         {/each}
     </div>
 
-    <div class="mt-2">
+    <div>
         <button
             type="button"
-            class="pill-button pill-button--ghost w-full"
+            class="btn btn--ghost btn--block calendar__toggle"
             on:click={toggleCalendarView}
         >
             {calendarExpanded ? "收起月历" : "展开月历"}
         </button>
     </div>
 </div>
+
+<style>
+    .calendar {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .calendar__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .calendar__title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-align: center;
+        flex: 1;
+    }
+
+    .calendar__weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.3rem;
+        font-size: 0.8rem;
+        text-align: center;
+        color: var(--color-text-muted);
+    }
+
+    .calendar__grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.35rem;
+    }
+
+    .calendar-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
+    .calendar-section[hidden] {
+        display: none;
+    }
+
+    .date-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        border-radius: var(--radius-md);
+        border: 1px solid transparent;
+        min-height: 68px;
+        background: rgba(0, 0, 0, 0.02);
+        transition:
+            background 140ms ease,
+            color 140ms ease,
+            border 140ms ease,
+            transform 140ms ease;
+    }
+
+    .date-cell:hover {
+        transform: translateY(-1px);
+        border-color: var(--color-border);
+    }
+
+    .calendar-cell--muted {
+        color: var(--color-text-muted);
+    }
+
+    .calendar-cell--selected {
+        background: var(--color-accent);
+        color: var(--color-text-inverse);
+    }
+
+    .calendar-cell--today {
+        border-color: var(--color-accent);
+    }
+
+    .calendar-cell--has-entry {
+        background: var(--color-accent-soft);
+        color: var(--color-text);
+    }
+
+    .entry-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-success);
+    }
+
+    .date-cell__value {
+        font-weight: 600;
+    }
+
+    .date-cell__mood {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+    }
+
+    .calendar__toggle {
+        margin-top: 0.35rem;
+    }
+</style>

@@ -30,8 +30,6 @@
         }
     }
 
-    $: layoutMode = $state.layoutMode;
-
     function openSelectedDate(): void {
         const fallback = new Date().toISOString().split("T")[0];
         const target = $state.currentDate || fallback;
@@ -46,51 +44,42 @@
     <title>EchoNote · 日历与时间线</title>
 </svelte:head>
 
-<div
-    class="home"
-    class:home--portrait={layoutMode === "portrait"}
-    class:home--landscape={layoutMode === "landscape"}
->
-    <section
-        class="surface-card flex flex-wrap items-center justify-between gap-4 p-6"
-    >
+<div class="home">
+    <section class="surface-card home__intro">
         <div>
-            <p
-                class="mb-1 uppercase text-xs tracking-[0.15em] text-[color:var(--color-text-secondary)]"
-            >
-                {greeting}
-            </p>
-            <h1 class="mb-1 text-[clamp(1.6rem,3vw,2.4rem)] font-semibold">
+            <p class="eyebrow">{greeting}</p>
+            <h1>
                 记下你的灵感与情绪节奏
             </h1>
-            <p class="text-sm text-[color:var(--color-text-secondary)]">
+            <p class="muted-text">
                 {subline}
             </p>
         </div>
-        <div class="flex gap-3">
+        <div class="home__actions">
             <button
                 type="button"
-                class="pill-button pill-button--primary"
+                class="btn btn--primary"
                 on:click={startToday}
             >
                 今日记录
             </button>
-            <a class="pill-button pill-button--ghost" href="/settings">
+            <a class="btn btn--ghost" href="/settings">
                 设置中心
             </a>
         </div>
     </section>
 
-    <div class="home__layout">
+    <div class="home__grid">
         <aside class="home__sidebar surface-card surface-card--flat">
             <Calendar />
         </aside>
 
         <section class="home__timeline surface-card surface-card--flat">
-            <div class="home__timeline-actions">
+            <div class="timeline-header">
+                <span>最新记录</span>
                 <button
                     type="button"
-                    class="pill-button pill-button--primary"
+                    class="btn btn--primary btn--compact"
                     on:click={openSelectedDate}
                 >
                     去编辑
@@ -100,3 +89,53 @@
         </section>
     </div>
 </div>
+
+<style>
+    .home {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .home__intro {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+    }
+
+    .home__actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .home__grid {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    @media (min-width: 992px) {
+        .home__grid {
+            grid-template-columns: 360px 1fr;
+            align-items: start;
+        }
+    }
+
+    .home__timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .timeline-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        font-weight: 600;
+    }
+</style>
