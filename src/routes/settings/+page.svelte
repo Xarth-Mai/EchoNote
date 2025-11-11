@@ -15,10 +15,30 @@
 
 <div class="settings page-shell">
     <section class="settings__panel surface-card surface-card--shadow">
-        <header>
-            <a class="settings__back" href="/">← 返回主页</a>
-            <h1>设置中心</h1>
-            <p>配置主题、日历偏好，保持设备一致的体验。</p>
+        <header class="settings__toolbar">
+            <a
+                href="/"
+                class="btn btn--ghost btn--compact settings__back-btn"
+                aria-label="返回主页"
+            >
+                <svg
+                    fill="none"
+                    width="16"
+                    height="16"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+                <span>返回</span>
+            </a>
+            <p class="settings__caption">设置中心</p>
         </header>
 
         <div class="settings__grid scroll-fade">
@@ -126,17 +146,26 @@
         overflow: hidden;
     }
 
-    .settings__panel header {
+    .settings__toolbar {
         display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-        margin-bottom: 1.5rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
     }
 
-    .settings__back {
-        color: var(--color-accent);
+    .settings__back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .settings__caption {
+        margin: 0;
         font-weight: 600;
-        margin-bottom: 0.3rem;
+        color: var(--color-text-muted);
+        padding-right: 0.75rem;
     }
 
     .settings__grid {

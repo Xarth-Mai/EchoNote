@@ -161,32 +161,32 @@
 
 <div class="calendar">
     <div class="calendar__header">
-        <button
-            type="button"
-            class="icon-button"
-            aria-label="上一月"
-            on:click={goToPrevMonth}
-        >
-            <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                width="18"
-                height="18"
+        <div class="calendar__nav">
+            <button
+                type="button"
+                class="icon-button"
+                aria-label="上一月"
+                on:click={goToPrevMonth}
             >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 19l-7-7 7-7"
-                />
-            </svg>
-        </button>
+                <svg
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    width="18"
+                    height="18"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M15 19l-7-7 7-7"
+                    />
+                </svg>
+            </button>
 
-        <p class="calendar__title">{year}年{month + 1}月</p>
+            <p class="calendar__title">{year}年{month + 1}月</p>
 
-        <div>
             <button
                 type="button"
                 class="icon-button"
@@ -210,6 +210,15 @@
                 </svg>
             </button>
         </div>
+
+        <button
+            type="button"
+            class="btn btn--ghost calendar__toggle"
+            on:click={toggleCalendarView}
+            aria-pressed={calendarExpanded}
+        >
+            {calendarExpanded ? "收起月历" : "展开月历"}
+        </button>
     </div>
 
     <div class="calendar__weekdays">
@@ -306,35 +315,33 @@
             {/each}
         </div>
     </div>
-
-    <div>
-        <button
-            type="button"
-            class="btn btn--ghost btn--block calendar__toggle"
-            on:click={toggleCalendarView}
-        >
-            {calendarExpanded ? "收起月历" : "展开月历"}
-        </button>
-    </div>
 </div>
 
 <style>
     .calendar {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.35rem;
     }
 
     .calendar__header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 0.5rem;
         flex-wrap: wrap;
     }
 
+    .calendar__nav {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 1;
+        min-width: 0;
+    }
+
     .calendar__title {
-        font-size: 1.2rem;
+        font-size: 1rem;
         font-weight: 600;
         text-align: center;
         flex: 1;
@@ -343,8 +350,8 @@
     .calendar__weekdays {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 0.3rem;
-        font-size: 0.8rem;
+        gap: 0.2rem;
+        font-size: 0.78rem;
         text-align: center;
         color: var(--color-text-muted);
     }
@@ -352,13 +359,13 @@
     .calendar__stack {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.25rem;
     }
 
     .calendar__grid {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
-        gap: 0.35rem;
+        gap: 0.25rem;
     }
 
     .calendar__grid--featured {
@@ -368,7 +375,7 @@
     .calendar-section {
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.25rem;
     }
 
     .calendar-section--collapsible {
@@ -396,10 +403,10 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.2rem;
+        gap: 0.15rem;
         border-radius: var(--radius-md);
         border: 1px solid transparent;
-        min-height: 48px;
+        min-height: clamp(1.9rem, 6.5vh, 4.8rem);
         background: rgba(0, 0, 0, 0.02);
         transition:
             background 140ms ease,
@@ -449,6 +456,30 @@
     }
 
     .calendar__toggle {
-        margin-top: 0.35rem;
+        margin-left: auto;
+        padding-inline: 0.6rem;
+    }
+
+    @media (max-width: 640px) {
+        .calendar__header {
+            gap: 0.35rem;
+        }
+
+        .calendar__title {
+            font-size: 0.95rem;
+        }
+
+        .calendar__toggle {
+            font-size: 0.85rem;
+            padding-inline: 0.5rem;
+        }
+
+        .calendar__weekdays {
+            font-size: 0.72rem;
+        }
+
+        .date-cell {
+            min-height: clamp(1.8rem, 7vw, 3.8rem);
+        }
     }
 </style>

@@ -170,7 +170,7 @@
                     d="M15 19l-7-7 7-7"
                 />
             </svg>
-            <span>时间线</span>
+            <span>完成</span>
         </button>
 
         <p class="editor-shell__date">
@@ -179,21 +179,14 @@
                 <span class="editor-shell__weekday">· {dateMeta.weekday}</span>
             {/if}
         </p>
-
-        <div class="editor-shell__badge badge">
-            <span class="editor-shell__dot" aria-hidden="true"></span>
-            <span>自动保存开启</span>
-        </div>
     </div>
 
-    <div class="editor-shell__body">
-        <textarea
-            class="editor-shell__textarea"
-            placeholder="记录你的灵感、片刻与感悟..."
-            bind:value={textareaValue}
-            on:input={handleInput}
-        ></textarea>
-    </div>
+    <textarea
+        class="editor-shell__textarea"
+        placeholder="记录你的灵感、片刻与感悟..."
+        bind:value={textareaValue}
+        on:input={handleInput}
+    ></textarea>
 </div>
 
 <style>
@@ -218,36 +211,18 @@
 
     .editor-shell__weekday {
         color: var(--color-text-muted);
-    }
-
-    .editor-shell__badge {
-        background: var(--color-accent-soft);
-    }
-
-    .editor-shell__dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--color-success);
-        display: inline-flex;
-    }
-
-    .editor-shell__body {
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        min-height: 420px;
-        flex: 1;
-        display: flex;
+        padding-right: 0.75rem;
     }
 
     .editor-shell__textarea {
         width: 100%;
         flex: 1;
-        height: 100%;
-        min-height: 420px;
+        min-height: clamp(420px, 65vh, 960px);
         border: none;
-        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        padding: clamp(1rem, 2vw, 1.5rem);
         font: inherit;
+        line-height: 1.6;
         resize: none;
         background: transparent;
         color: inherit;

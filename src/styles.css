@@ -39,11 +39,15 @@
 body {
     margin: 0;
     min-height: 100vh;
-    font-family:
-        "SF Pro Display", "PingFang SC", "Segoe UI", system-ui, -apple-system,
-        BlinkMacSystemFont, sans-serif;
+    font-size: x-small;
     color: var(--color-text);
     background: var(--color-bg-page);
+}
+
+@media (min-width: 768px) {
+    body {
+        font-size: small;
+    }
 }
 
 a {
@@ -118,14 +122,6 @@ a:focus-visible {
     --surface-padding: 1.25rem;
 }
 
-.eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.3em;
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    margin-bottom: 0.4rem;
-}
-
 .muted-text {
     color: var(--color-text-muted);
 }
@@ -185,18 +181,6 @@ a:focus-visible {
 .icon-button svg {
     width: 18px;
     height: 18px;
-}
-
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
-    padding: 0.35rem 0.7rem;
-    font-size: 0.85rem;
-    color: var(--color-text-muted);
-    background: var(--color-accent-soft);
 }
 
 .scroll-fade {

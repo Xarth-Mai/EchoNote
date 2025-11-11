@@ -9,7 +9,7 @@
     const todayIso = new Date().toISOString().split("T")[0];
 
     $: greeting = buildGreeting();
-    $: subline = `今天是 ${new Date().toLocaleDateString("zh-CN", {
+    $: subline = `${greeting}! 今天是 ${new Date().toLocaleDateString("zh-CN", {
         month: "long",
         day: "numeric",
         weekday: "long",
@@ -59,11 +59,10 @@
 <div class="home page-shell">
     <section class="surface-card home__intro">
         <div>
-            <p class="eyebrow">{greeting}</p>
-            <h1>记下你的灵感与情绪节奏</h1>
             <p class="muted-text">
                 {subline}
             </p>
+            <h1>记下你的灵感与情绪节奏</h1>
         </div>
         <div class="home__actions">
             <button
@@ -93,7 +92,7 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
     }
 
     .home__intro {
@@ -101,7 +100,6 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: 1.5rem;
     }
 
     .home__actions {
@@ -112,7 +110,7 @@
 
     .home__grid {
         display: grid;
-        gap: 1.5rem;
+        gap: 1rem;
         flex: 1;
         min-height: 0;
     }
