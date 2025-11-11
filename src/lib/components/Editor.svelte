@@ -147,7 +147,7 @@
     }
 </script>
 
-<div class="editor-shell surface-card">
+<div class="editor-shell surface-card surface-card--shadow">
     <div class="editor-shell__toolbar">
         <button
             type="button"

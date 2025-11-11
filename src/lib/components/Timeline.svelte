@@ -129,7 +129,7 @@
     {#if displayEntries.length === 0}
         <div class="timeline__empty">暂无日记</div>
     {:else}
-        <ul class="timeline__list">
+        <ul class="timeline__list scroll-fade">
             {#each displayEntries as entry, index (entry.date)}
                 {@const preview = getPreview(entry.aiSummary)}
                 {@const parts = formatDateParts(entry)}
@@ -192,7 +192,8 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        min-height: 320px;
+        flex: 1 1 320px;
+        min-height: 0;
     }
 
     .timeline__empty {
@@ -208,9 +209,15 @@
         display: flex;
         flex-direction: column;
         gap: 1.2rem;
-        max-height: 520px;
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
         padding-top: 1rem;
+        scrollbar-width: none;
+    }
+
+    .timeline__list::-webkit-scrollbar {
+        display: none;
     }
 
     .timeline__item {

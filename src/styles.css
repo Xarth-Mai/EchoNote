@@ -15,7 +15,6 @@
     --radius-sm: 8px;
     --shadow-panel: 0 20px 45px rgba(15, 23, 42, 0.08);
     --shadow-card: 0 12px 24px rgba(15, 23, 42, 0.12);
-    --page-shell-width: clamp(960px, 85vw, 2560px);
     --page-shell-gap: clamp(1.25rem, 4vw, 3.5rem);
 }
 
@@ -108,16 +107,11 @@ a:focus-visible {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     padding: var(--surface-padding);
-    box-shadow: var(--shadow-panel);
-}
-
-.surface-card--flat {
     box-shadow: none;
 }
 
-.surface-card--plain {
-    background: var(--color-panel-muted);
-    color: var(--color-text);
+.surface-card--shadow {
+    box-shadow: var(--shadow-panel);
 }
 
 .surface-card--tight {
@@ -203,4 +197,19 @@ a:focus-visible {
     font-size: 0.85rem;
     color: var(--color-text-muted);
     background: var(--color-accent-soft);
+}
+
+.scroll-fade {
+    --scroll-fade-edge: 24px;
+    position: relative;
+    mask-image: linear-gradient(to bottom,
+            transparent,
+            #000 var(--scroll-fade-edge),
+            #000 calc(100% - var(--scroll-fade-edge)),
+            transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom,
+            transparent,
+            #000 var(--scroll-fade-edge),
+            #000 calc(100% - var(--scroll-fade-edge)),
+            transparent 100%);
 }

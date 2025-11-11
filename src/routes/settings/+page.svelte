@@ -14,17 +14,83 @@
 </svelte:head>
 
 <div class="settings page-shell">
-    <section class="settings__panel surface-card">
+    <section class="settings__panel surface-card surface-card--shadow">
         <header>
             <a class="settings__back" href="/">← 返回主页</a>
             <h1>设置中心</h1>
             <p>配置主题、日历偏好，保持设备一致的体验。</p>
         </header>
 
-        <div class="settings__grid">
-            <article
-                class="surface-card surface-card--plain surface-card--tight"
-            >
+        <div class="settings__grid scroll-fade">
+            <article class="surface-card surface-card--tight">
+                <h2>主题模式</h2>
+                <p>选择与系统或个人偏好一致的外观。</p>
+                <div class="settings__choices">
+                    {#each themes as theme}
+                        <button
+                            type="button"
+                            class="btn"
+                            class:btn--primary={$state.theme === theme.value}
+                            class:btn--ghost={$state.theme !== theme.value}
+                            on:click={() => setTheme(theme.value)}
+                        >
+                            {theme.label}
+                        </button>
+                    {/each}
+                </div>
+            </article>
+            <article class="surface-card surface-card--tight">
+                <h2>主题模式</h2>
+                <p>选择与系统或个人偏好一致的外观。</p>
+                <div class="settings__choices">
+                    {#each themes as theme}
+                        <button
+                            type="button"
+                            class="btn"
+                            class:btn--primary={$state.theme === theme.value}
+                            class:btn--ghost={$state.theme !== theme.value}
+                            on:click={() => setTheme(theme.value)}
+                        >
+                            {theme.label}
+                        </button>
+                    {/each}
+                </div>
+            </article>
+            <article class="surface-card surface-card--tight">
+                <h2>主题模式</h2>
+                <p>选择与系统或个人偏好一致的外观。</p>
+                <div class="settings__choices">
+                    {#each themes as theme}
+                        <button
+                            type="button"
+                            class="btn"
+                            class:btn--primary={$state.theme === theme.value}
+                            class:btn--ghost={$state.theme !== theme.value}
+                            on:click={() => setTheme(theme.value)}
+                        >
+                            {theme.label}
+                        </button>
+                    {/each}
+                </div>
+            </article>
+            <article class="surface-card surface-card--tight">
+                <h2>主题模式</h2>
+                <p>选择与系统或个人偏好一致的外观。</p>
+                <div class="settings__choices">
+                    {#each themes as theme}
+                        <button
+                            type="button"
+                            class="btn"
+                            class:btn--primary={$state.theme === theme.value}
+                            class:btn--ghost={$state.theme !== theme.value}
+                            on:click={() => setTheme(theme.value)}
+                        >
+                            {theme.label}
+                        </button>
+                    {/each}
+                </div>
+            </article>
+            <article class="surface-card surface-card--tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -48,12 +114,16 @@
 <style>
     .settings {
         flex: 1;
+        display: flex;
+        min-height: 0;
     }
 
     .settings__panel {
         flex: 1;
         display: flex;
         flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
     }
 
     .settings__panel header {
@@ -74,6 +144,10 @@
         flex-direction: column;
         gap: 1rem;
         flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+        padding-top: 1rem;
     }
 
     .settings__choices {
