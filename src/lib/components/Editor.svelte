@@ -222,6 +222,7 @@
         border-radius: var(--radius-md);
         padding: clamp(1rem, 2vw, 1.5rem);
         font: inherit;
+        font-size: medium;
         line-height: 1.6;
         resize: none;
         background: transparent;
