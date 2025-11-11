@@ -289,10 +289,6 @@
             transform 150ms ease;
     }
 
-    .timeline__card:hover {
-        transform: translateY(-2px);
-    }
-
     .timeline__card--active {
         border-color: var(--color-accent);
     }

@@ -421,10 +421,6 @@
             transform 140ms ease;
     }
 
-    .date-cell:hover {
-        border-color: var(--color-border);
-    }
-
     .calendar-cell--muted {
         color: var(--color-text-muted);
     }
