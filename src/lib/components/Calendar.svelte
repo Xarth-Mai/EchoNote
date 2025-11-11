@@ -87,10 +87,14 @@
         return summaries.get(formatDate(date)) ?? null;
     }
 
-    function getCellClasses(date: Date, entry: DiaryEntry | null): string {
+    function getCellClasses(
+        date: Date,
+        entry: DiaryEntry | null,
+        selectedDate: string,
+    ): string {
         const isCurrent = isSameMonth(date, year, month);
         const today = isToday(date);
-        const selected = formatDate(date) === currentDate;
+        const selected = formatDate(date) === selectedDate;
         const hasEntry = Boolean(entry);
 
         const classes = ["date-cell"];
@@ -108,6 +112,11 @@
         }
 
         return classes.join(" ");
+    }
+
+    function getWeekKey(week: Date[], index: number): string {
+        const signature = week.map((date) => formatDate(date)).join("-");
+        return signature || `week-${index}`;
     }
 
     async function ensureMonthSummariesLoaded(grid: Date[]): Promise<void> {
@@ -209,81 +218,93 @@
         {/each}
     </div>
 
-    <div
-        class="calendar-section"
-        aria-hidden={calendarExpanded ? "false" : "true"}
-        hidden={!calendarExpanded}
-    >
-        {#each topWeeks as week}
-            <div class="calendar__grid">
-                {#each week as date (formatDate(date))}
-                    {@const entry = getEntry(date)}
-                    <button
-                        type="button"
-                        class={getCellClasses(date, entry)}
-                        on:click={() => handleDateClick(date)}
-                        aria-pressed={formatDate(date) === currentDate}
-                    >
-                        <span class="date-cell__value">{date.getDate()}</span>
-                        {#if entry?.mood}
-                            <span class="date-cell__mood">{entry.mood}</span>
-                        {/if}
-                        {#if entry && !isToday(date) && formatDate(date) !== currentDate}
-                            <span class="entry-dot" aria-hidden="true"></span>
-                        {/if}
-                    </button>
-                {/each}
-            </div>
-        {/each}
-    </div>
+    <div class="calendar__stack">
+        <div
+            class="calendar-section calendar-section--collapsible"
+            data-expanded={calendarExpanded ? "true" : "false"}
+            aria-hidden={calendarExpanded ? "false" : "true"}
+            inert={!calendarExpanded}
+        >
+            {#each topWeeks as week, index (getWeekKey(week, index))}
+                <div class="calendar__grid">
+                    {#each week as date (formatDate(date))}
+                        {@const entry = getEntry(date)}
+                        <button
+                            type="button"
+                            class={getCellClasses(date, entry, currentDate)}
+                            aria-pressed={formatDate(date) === currentDate}
+                            on:click={() => handleDateClick(date)}
+                        >
+                            <span class="date-cell__value"
+                                >{date.getDate()}</span
+                            >
+                            {#if entry?.mood}
+                                <span class="date-cell__mood">{entry.mood}</span
+                                >
+                            {/if}
+                            {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                <span class="entry-dot" aria-hidden="true"
+                                ></span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            {/each}
+        </div>
 
-    <div class="calendar__grid" aria-live="polite">
-        {#each selectedWeek as date (formatDate(date))}
-            {@const entry = getEntry(date)}
-            <button
-                type="button"
-                class={getCellClasses(date, entry)}
-                aria-current={isToday(date) ? "date" : undefined}
-                aria-pressed={formatDate(date) === currentDate}
-                on:click={() => handleDateClick(date)}
-            >
-                <span class="date-cell__value">{date.getDate()}</span>
-                {#if entry?.mood}
-                    <span class="date-cell__mood">{entry.mood}</span>
-                {/if}
-                {#if entry && !isToday(date) && formatDate(date) !== currentDate}
-                    <span class="entry-dot" aria-hidden="true"></span>
-                {/if}
-            </button>
-        {/each}
-    </div>
+        <div class="calendar__grid calendar__grid--featured" aria-live="polite">
+            {#each selectedWeek as date (formatDate(date))}
+                {@const entry = getEntry(date)}
+                <button
+                    type="button"
+                    class={getCellClasses(date, entry, currentDate)}
+                    aria-current={isToday(date) ? "date" : undefined}
+                    aria-pressed={formatDate(date) === currentDate}
+                    on:click={() => handleDateClick(date)}
+                >
+                    <span class="date-cell__value">{date.getDate()}</span>
+                    {#if entry?.mood}
+                        <span class="date-cell__mood">{entry.mood}</span>
+                    {/if}
+                    {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                        <span class="entry-dot" aria-hidden="true"></span>
+                    {/if}
+                </button>
+            {/each}
+        </div>
 
-    <div
-        class="calendar-section"
-        aria-hidden={calendarExpanded ? "false" : "true"}
-        hidden={!calendarExpanded}
-    >
-        {#each bottomWeeks as week}
-            <div class="calendar__grid">
-                {#each week as date (formatDate(date))}
-                    {@const entry = getEntry(date)}
-                    <button
-                        type="button"
-                        class={getCellClasses(date, entry)}
-                        on:click={() => handleDateClick(date)}
-                        aria-pressed={formatDate(date) === currentDate}
-                    >
-                        <span class="date-cell__value">{date.getDate()}</span>
-                        {#if entry?.mood}
-                            <span class="date-cell__mood">{entry.mood}</span>
-                        {/if}
-                        {#if entry && !isToday(date) && formatDate(date) !== currentDate}
-                            <span class="entry-dot" aria-hidden="true"></span>
-                        {/if}
-                    </button>
-                {/each}
-            </div>
-        {/each}
+        <div
+            class="calendar-section calendar-section--collapsible"
+            data-expanded={calendarExpanded ? "true" : "false"}
+            aria-hidden={calendarExpanded ? "false" : "true"}
+            inert={!calendarExpanded}
+        >
+            {#each bottomWeeks as week, index (getWeekKey(week, index + topWeeks.length + 1))}
+                <div class="calendar__grid">
+                    {#each week as date (formatDate(date))}
+                        {@const entry = getEntry(date)}
+                        <button
+                            type="button"
+                            class={getCellClasses(date, entry, currentDate)}
+                            aria-pressed={formatDate(date) === currentDate}
+                            on:click={() => handleDateClick(date)}
+                        >
+                            <span class="date-cell__value"
+                                >{date.getDate()}</span
+                            >
+                            {#if entry?.mood}
+                                <span class="date-cell__mood">{entry.mood}</span
+                                >
+                            {/if}
+                            {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                <span class="entry-dot" aria-hidden="true"
+                                ></span>
+                            {/if}
+                        </button>
+                    {/each}
+                </div>
+            {/each}
+        </div>
     </div>
 
     <div>
@@ -328,10 +349,20 @@
         color: var(--color-text-muted);
     }
 
+    .calendar__stack {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+
     .calendar__grid {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 0.35rem;
+    }
+
+    .calendar__grid--featured {
+        position: relative;
     }
 
     .calendar-section {
@@ -340,8 +371,24 @@
         gap: 0.35rem;
     }
 
-    .calendar-section[hidden] {
-        display: none;
+    .calendar-section--collapsible {
+        --calendar-stack-max-duration: 260ms;
+        --calendar-stack-opacity-duration: 200ms;
+        overflow: hidden;
+        transition:
+            max-height var(--calendar-stack-max-duration) ease,
+            opacity var(--calendar-stack-opacity-duration) ease;
+        max-height: 0px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .calendar-section--collapsible[data-expanded="true"] {
+        --calendar-stack-max-duration: 520ms;
+        --calendar-stack-opacity-duration: 360ms;
+        max-height: 520px;
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .date-cell {
@@ -352,7 +399,7 @@
         gap: 0.2rem;
         border-radius: var(--radius-md);
         border: 1px solid transparent;
-        min-height: 68px;
+        min-height: 48px;
         background: rgba(0, 0, 0, 0.02);
         transition:
             background 140ms ease,
@@ -362,7 +409,6 @@
     }
 
     .date-cell:hover {
-        transform: translateY(-1px);
         border-color: var(--color-border);
     }
 
@@ -371,8 +417,10 @@
     }
 
     .calendar-cell--selected {
-        background: var(--color-accent);
         color: var(--color-text-inverse);
+        border-color: #fff;
+        background: var(--color-accent);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
     }
 
     .calendar-cell--today {

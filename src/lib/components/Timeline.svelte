@@ -160,7 +160,7 @@
                         {#if entry.__placeholder}
                             <div class="timeline__placeholder">
                                 <p>当日暂无内容</p>
-                                <small>点击“去编辑”开始记录</small>
+                                <small>点击顶部按钮开始记录</small>
                             </div>
                         {:else}
                             <div class="timeline__card-title">
@@ -214,16 +214,11 @@
     }
 
     .timeline__item {
+        --timeline-gap: clamp(0.75rem, 2vw, 1.25rem);
         display: grid;
-        grid-template-columns: 120px 1fr;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    @media (max-width: 720px) {
-        .timeline__item {
-            grid-template-columns: 1fr;
-        }
+        grid-template-columns: minmax(84px, 0.35fr) minmax(0, 1fr);
+        gap: var(--timeline-gap);
+        align-items: stretch;
     }
 
     .timeline__axis {
@@ -231,25 +226,36 @@
         padding-left: 1.8rem;
         color: var(--color-text-muted);
         font-size: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 100%;
+        z-index: 1;
     }
 
     .timeline__axis::after {
         content: "";
         position: absolute;
         left: 0.4rem;
-        right: 0;
-        top: 0.9rem;
+        right: calc(-1 * (var(--timeline-gap) + 0.6rem));
+        top: 50%;
+        transform: translateY(-50%);
         height: 2px;
         background: linear-gradient(
             90deg,
             rgba(0, 0, 0, 0.08),
             rgba(37, 99, 235, 0.45)
         );
+        opacity: 0.9;
+        pointer-events: none;
+        z-index: -1;
     }
 
     .timeline__dot {
         position: absolute;
-        top: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
         left: 0;
         width: 12px;
         height: 12px;
@@ -269,7 +275,8 @@
         border: 1px solid var(--color-border);
         padding: 1rem;
         background: var(--color-bg-panel);
-        box-shadow: var(--shadow-card);
+        position: relative;
+        z-index: 1;
         transition:
             border 150ms ease,
             transform 150ms ease;

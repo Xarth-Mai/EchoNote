@@ -6,6 +6,7 @@
     import { appStateStore, setCurrentDate } from "$utils/state";
 
     const state = appStateStore;
+    const todayIso = new Date().toISOString().split("T")[0];
 
     $: greeting = buildGreeting();
     $: subline = `今天是 ${new Date().toLocaleDateString("zh-CN", {
@@ -13,6 +14,8 @@
         day: "numeric",
         weekday: "long",
     })}`;
+    $: selectedDate = $state.currentDate || todayIso;
+    $: primaryCtaLabel = buildPrimaryCtaLabel(selectedDate);
 
     function buildGreeting(): string {
         const hour = new Date().getHours();
@@ -22,17 +25,26 @@
         return "晚上好";
     }
 
-    function startToday(): void {
-        const today = new Date().toISOString().split("T")[0];
-        setCurrentDate(today);
-        if (browser) {
-            void goto(`/editor?date=${today}`);
+    function buildPrimaryCtaLabel(target: string): string {
+        if (target === todayIso) {
+            return "今日记录";
         }
+        const label = formatMonthDayLabel(target);
+        return label ? `${label}-去编辑` : "去编辑";
+    }
+
+    function formatMonthDayLabel(value: string): string {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return "";
+        }
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${month}月${day}日`;
     }
 
     function openSelectedDate(): void {
-        const fallback = new Date().toISOString().split("T")[0];
-        const target = $state.currentDate || fallback;
+        const target = selectedDate;
         setCurrentDate(target);
         if (browser) {
             void goto(`/editor?date=${target}`);
@@ -57,9 +69,9 @@
             <button
                 type="button"
                 class="btn btn--primary"
-                on:click={startToday}
+                on:click={openSelectedDate}
             >
-                今日记录
+                {primaryCtaLabel}
             </button>
             <a class="btn btn--ghost" href="/settings"> 设置中心 </a>
         </div>
@@ -71,16 +83,6 @@
         </aside>
 
         <section class="home__timeline surface-card surface-card--flat">
-            <div class="timeline-header">
-                <span>最新记录</span>
-                <button
-                    type="button"
-                    class="btn btn--primary btn--compact"
-                    on:click={openSelectedDate}
-                >
-                    去编辑
-                </button>
-            </div>
             <Timeline />
         </section>
     </div>
@@ -128,13 +130,5 @@
         gap: 1rem;
         flex: 1;
         min-height: 0;
-    }
-
-    .timeline-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        font-weight: 600;
     }
 </style>
