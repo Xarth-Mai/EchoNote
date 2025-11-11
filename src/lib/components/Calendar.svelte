@@ -228,38 +228,41 @@
     </div>
 
     <div class="calendar__stack">
-        <div
-            class="calendar-section calendar-section--collapsible"
-            data-expanded={calendarExpanded ? "true" : "false"}
-            aria-hidden={calendarExpanded ? "false" : "true"}
-            inert={!calendarExpanded}
-        >
-            {#each topWeeks as week, index (getWeekKey(week, index))}
-                <div class="calendar__grid">
-                    {#each week as date (formatDate(date))}
-                        {@const entry = getEntry(date)}
-                        <button
-                            type="button"
-                            class={getCellClasses(date, entry, currentDate)}
-                            aria-pressed={formatDate(date) === currentDate}
-                            on:click={() => handleDateClick(date)}
-                        >
-                            <span class="date-cell__value"
-                                >{date.getDate()}</span
+        {#if topWeeks.length}
+            <div
+                class="calendar-section calendar-section--collapsible"
+                data-expanded={calendarExpanded ? "true" : "false"}
+                aria-hidden={calendarExpanded ? "false" : "true"}
+                inert={!calendarExpanded}
+            >
+                {#each topWeeks as week, index (getWeekKey(week, index))}
+                    <div class="calendar__grid">
+                        {#each week as date (formatDate(date))}
+                            {@const entry = getEntry(date)}
+                            <button
+                                type="button"
+                                class={getCellClasses(date, entry, currentDate)}
+                                aria-pressed={formatDate(date) === currentDate}
+                                on:click={() => handleDateClick(date)}
                             >
-                            {#if entry?.mood}
-                                <span class="date-cell__mood">{entry.mood}</span
+                                <span class="date-cell__value"
+                                    >{date.getDate()}</span
                                 >
-                            {/if}
-                            {#if entry && !isToday(date) && formatDate(date) !== currentDate}
-                                <span class="entry-dot" aria-hidden="true"
-                                ></span>
-                            {/if}
-                        </button>
-                    {/each}
-                </div>
-            {/each}
-        </div>
+                                {#if entry?.mood}
+                                    <span class="date-cell__mood"
+                                        >{entry.mood}</span
+                                    >
+                                {/if}
+                                {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                    <span class="entry-dot" aria-hidden="true"
+                                    ></span>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                {/each}
+            </div>
+        {/if}
 
         <div class="calendar__grid calendar__grid--featured" aria-live="polite">
             {#each selectedWeek as date (formatDate(date))}
@@ -282,38 +285,41 @@
             {/each}
         </div>
 
-        <div
-            class="calendar-section calendar-section--collapsible"
-            data-expanded={calendarExpanded ? "true" : "false"}
-            aria-hidden={calendarExpanded ? "false" : "true"}
-            inert={!calendarExpanded}
-        >
-            {#each bottomWeeks as week, index (getWeekKey(week, index + topWeeks.length + 1))}
-                <div class="calendar__grid">
-                    {#each week as date (formatDate(date))}
-                        {@const entry = getEntry(date)}
-                        <button
-                            type="button"
-                            class={getCellClasses(date, entry, currentDate)}
-                            aria-pressed={formatDate(date) === currentDate}
-                            on:click={() => handleDateClick(date)}
-                        >
-                            <span class="date-cell__value"
-                                >{date.getDate()}</span
+        {#if bottomWeeks.length}
+            <div
+                class="calendar-section calendar-section--collapsible"
+                data-expanded={calendarExpanded ? "true" : "false"}
+                aria-hidden={calendarExpanded ? "false" : "true"}
+                inert={!calendarExpanded}
+            >
+                {#each bottomWeeks as week, index (getWeekKey(week, index + topWeeks.length + 1))}
+                    <div class="calendar__grid">
+                        {#each week as date (formatDate(date))}
+                            {@const entry = getEntry(date)}
+                            <button
+                                type="button"
+                                class={getCellClasses(date, entry, currentDate)}
+                                aria-pressed={formatDate(date) === currentDate}
+                                on:click={() => handleDateClick(date)}
                             >
-                            {#if entry?.mood}
-                                <span class="date-cell__mood">{entry.mood}</span
+                                <span class="date-cell__value"
+                                    >{date.getDate()}</span
                                 >
-                            {/if}
-                            {#if entry && !isToday(date) && formatDate(date) !== currentDate}
-                                <span class="entry-dot" aria-hidden="true"
-                                ></span>
-                            {/if}
-                        </button>
-                    {/each}
-                </div>
-            {/each}
-        </div>
+                                {#if entry?.mood}
+                                    <span class="date-cell__mood"
+                                        >{entry.mood}</span
+                                    >
+                                {/if}
+                                {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                    <span class="entry-dot" aria-hidden="true"
+                                    ></span>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                {/each}
+            </div>
+        {/if}
     </div>
 </div>
 
