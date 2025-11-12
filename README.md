@@ -12,7 +12,7 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 
 ## ✨ Features
 
-### 📝 Smart Markdown Editor (Core)
+### 📝 Smart Journal Editor
 
 - **Rich Markdown Support**
   - Real-time syntax highlighting & inline formatting
@@ -31,21 +31,14 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
   - Generates: writing summary, emotion analysis, keyword extraction
   - Saves to front matter's `ai_summary` field
 
-### 📅 Mood Calendar & Timeline View
+### 📅 Creation Calendar & Timeline
 
-- **Calendar Interface**
-  - Visual calendar view showing daily moods and writing status
-  - Emoji-based mood markers for each date
-  - Click any date to open/edit the corresponding entry
-  - Manual mood editing (syncs with metadata)
+- **Calendar Component**
+  - Visual calendar view showing each day's emoji and writing status
+  - Click any date to view the corresponding entry
 
-- **Timeline View**
-  - Displays recent entries with summaries
-  - Auto-loads older content on scroll
-  - Shows AI summaries and entry previews
-  - Responsive layout:
-    - **Portrait**: Calendar + timeline (compact, expandable)
-    - **Landscape**: Split view (calendar on left, editor on right with optional fullscreen)
+- **Timeline Component**
+  - Displays recent diary entries together with their AI summaries
 
 ### 🖥️ Cross-Platform Support
 
@@ -63,10 +56,8 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 
 ```bash
 bun install
-bun run dev
+bun tuari dev
 ```
-
-Use `bun run check` for Svelte diagnostics and `bun run build` before packaging the Tauri app.
 
 ## 🎯 Core Principles
 
