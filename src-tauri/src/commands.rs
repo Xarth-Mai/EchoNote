@@ -5,39 +5,12 @@ use chrono::{Days, Local, NaiveDate};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
+use crate::models::{DiaryEntry, EntryRecord};
+
 static STORE: Lazy<Mutex<HashMap<String, EntryRecord>>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    for record in seed_entries() {
-        map.insert(record.summary.date.clone(), record);
-    }
+    let map = HashMap::new();
     Mutex::new(map)
 });
-
-#[derive(Debug, Clone)]
-struct EntryRecord {
-    summary: DiaryEntry,
-    body: String,
-}
-
-/// 日记条目（与前端 `DiaryEntry` 对齐）
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiaryEntry {
-    /// $Timestamp + "-" + $LogicalCounter + "-" + DeviceID
-    pub hlc: String,
-    /// BLAKE3 HASH
-    pub hash: String,
-    /// 日期：YYYY-MM-DD
-    pub date: String,
-    /// 每日 Emoji
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub emoji: Option<String>,
-    /// AI 生成的摘要（前端字段名为 aiSummary）
-    #[serde(rename = "aiSummary", skip_serializing_if = "Option::is_none")]
-    pub ai_summary: Option<String>,
-    /// 语言
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub language: Option<String>,
-}
 
 /// 列出指定年月的日记条目摘要（仅 frontmatter，不含正文）
 ///

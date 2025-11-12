@@ -1,6 +1,7 @@
 //! EchoNote Tauri Core Lib
 
 mod commands;
+mod models;
 
 /// Init and Run Tauri App
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
