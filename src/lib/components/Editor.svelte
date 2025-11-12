@@ -90,7 +90,7 @@
         }) as DiaryEntry;
         const summary: DiaryEntry = {
             ...existing,
-            updatedAt: Math.floor(Date.now() / 1000),
+            emoji: "",
         };
 
         setCurrentBody(body);

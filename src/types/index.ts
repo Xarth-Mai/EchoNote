@@ -2,11 +2,12 @@
 
 /** 日记条目 */
 export interface DiaryEntry {
-  date: string; // YYYY-MM-DD 格式
-  mood?: string; // 心情 emoji
+  hlc?: string; // $Timestamp-$LogicalCounter-DeviceID
+  hash?: string; // BLAKE3
+  date: string; // YYYY-MM-DD
+  emoji?: string; // 每日 Emoji
   aiSummary?: string; // AI 生成的摘要
-  language?: string; // 语言
-  updatedAt?: number; // 更新时间(秒)
+  language?: string; // 创作语言
 }
 
 /** 应用状态 */

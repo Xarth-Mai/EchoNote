@@ -165,10 +165,11 @@
                         {:else}
                             <div class="timeline__card-title">
                                 <p>记录概览</p>
-                                {#if entry.mood}
+                                {#if entry.emoji}
                                     <span
-                                        class="timeline__mood"
-                                        aria-label="心情状态">{entry.mood}</span
+                                        class="timeline__emoji"
+                                        aria-label="每日Emoji"
+                                        >{entry.emoji}</span
                                     >
                                 {/if}
                             </div>
@@ -307,7 +308,7 @@
         font-weight: 600;
     }
 
-    .timeline__mood {
+    .timeline__emoji {
         font-size: 1.5rem;
     }
 

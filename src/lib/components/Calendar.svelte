@@ -248,9 +248,9 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry?.mood}
-                                    <span class="date-cell__mood"
-                                        >{entry.mood}</span
+                                {#if entry?.emoji}
+                                    <span class="date-cell__emoji"
+                                        >{entry.emoji}</span
                                     >
                                 {/if}
                                 {#if entry && !isToday(date) && formatDate(date) !== currentDate}
@@ -275,8 +275,8 @@
                     on:click={() => handleDateClick(date)}
                 >
                     <span class="date-cell__value">{date.getDate()}</span>
-                    {#if entry?.mood}
-                        <span class="date-cell__mood">{entry.mood}</span>
+                    {#if entry?.emoji}
+                        <span class="date-cell__emoji">{entry.emoji}</span>
                     {/if}
                     {#if entry && !isToday(date) && formatDate(date) !== currentDate}
                         <span class="entry-dot" aria-hidden="true"></span>
@@ -305,9 +305,9 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry?.mood}
-                                    <span class="date-cell__mood"
-                                        >{entry.mood}</span
+                                {#if entry?.emoji}
+                                    <span class="date-cell__emoji"
+                                        >{entry.emoji}</span
                                     >
                                 {/if}
                                 {#if entry && !isToday(date) && formatDate(date) !== currentDate}
@@ -452,7 +452,7 @@
         font-weight: 600;
     }
 
-    .date-cell__mood {
+    .date-cell__emoji {
         font-size: 0.75rem;
         color: var(--color-text-muted);
     }
