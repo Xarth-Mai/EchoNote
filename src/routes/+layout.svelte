@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { initLayoutListener, initThemeListener } from "$utils/state";
-    import "../styles.css";
+    import "../styles/index.scss";
 
     onMount(() => {
         initThemeListener();

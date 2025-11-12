@@ -1,4 +1,6 @@
 <script lang="ts">
+    import Card from "$lib/components/Card.svelte";
+    import Toolbar from "$lib/components/Toolbar.svelte";
     import { appStateStore, setTheme } from "$utils/state";
 
     const state = appStateStore;
@@ -14,8 +16,12 @@
 </svelte:head>
 
 <div class="settings page-shell">
-    <section class="settings__panel surface-card surface-card--shadow">
-        <header class="settings__toolbar">
+    <Card as="section" shadow class="settings__panel">
+        <Toolbar
+            as="header"
+            class="settings__toolbar"
+            gap="clamp(0.75rem, 2vw, 1.25rem)"
+        >
             <a
                 href="/"
                 class="btn btn--ghost btn--compact settings__back-btn"
@@ -39,10 +45,10 @@
                 <span>返回</span>
             </a>
             <p class="settings__caption">设置中心</p>
-        </header>
+        </Toolbar>
 
         <div class="settings__grid scroll-fade">
-            <article class="surface-card surface-card--tight">
+            <Card as="article" padding="tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -58,8 +64,8 @@
                         </button>
                     {/each}
                 </div>
-            </article>
-            <article class="surface-card surface-card--tight">
+            </Card>
+            <Card as="article" padding="tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -75,8 +81,8 @@
                         </button>
                     {/each}
                 </div>
-            </article>
-            <article class="surface-card surface-card--tight">
+            </Card>
+            <Card as="article" padding="tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -92,8 +98,8 @@
                         </button>
                     {/each}
                 </div>
-            </article>
-            <article class="surface-card surface-card--tight">
+            </Card>
+            <Card as="article" padding="tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -109,8 +115,8 @@
                         </button>
                     {/each}
                 </div>
-            </article>
-            <article class="surface-card surface-card--tight">
+            </Card>
+            <Card as="article" padding="tight">
                 <h2>主题模式</h2>
                 <p>选择与系统或个人偏好一致的外观。</p>
                 <div class="settings__choices">
@@ -126,32 +132,30 @@
                         </button>
                     {/each}
                 </div>
-            </article>
+            </Card>
         </div>
-    </section>
+    </Card>
 </div>
 
-<style>
+<style lang="scss">
+    @use "../../styles/mixins.scss" as mixins;
+
     .settings {
+        @include mixins.flex-column(0);
         flex: 1;
-        display: flex;
         min-height: 0;
     }
 
-    .settings__panel {
+    :global(.settings__panel) {
+        @include mixins.flex-column(0);
         flex: 1;
-        display: flex;
-        flex-direction: column;
         min-height: 0;
         overflow: hidden;
+        height: 100%;
     }
 
-    .settings__toolbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
+    :global(.settings__toolbar) {
+        width: 100%;
         margin-bottom: 0.5rem;
     }
 
@@ -169,9 +173,7 @@
     }
 
     .settings__grid {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
+        @include mixins.flex-column(1rem);
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -182,6 +184,26 @@
     .settings__choices {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: clamp(0.65rem, 2vw, 0.85rem);
+    }
+
+    @media (max-width: 720px) and (orientation: portrait) {
+        :global(.settings__panel) {
+            border-radius: var(--radius-md);
+        }
+
+        :global(.settings__toolbar) {
+            margin-bottom: 0.35rem;
+        }
+
+        .settings__grid {
+            gap: clamp(0.75rem, 4vw, 1rem);
+            padding-right: 0;
+            padding-top: 0.75rem;
+        }
+
+        .settings__choices {
+            gap: clamp(0.5rem, 4vw, 0.75rem);
+        }
     }
 </style>

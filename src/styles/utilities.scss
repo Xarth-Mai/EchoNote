@@ -1,0 +1,28 @@
+.scroll-fade {
+  --scroll-fade-edge: 24px;
+  position: relative;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--scroll-fade-edge),
+    #000 calc(100% - var(--scroll-fade-edge)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--scroll-fade-edge),
+    #000 calc(100% - var(--scroll-fade-edge)),
+    transparent 100%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .timeline__card:hover {
+    transform: translateY(-2px);
+  }
+
+  .date-cell:hover {
+    border-color: var(--color-border);
+  }
+}

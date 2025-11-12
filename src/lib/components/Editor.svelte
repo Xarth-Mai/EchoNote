@@ -2,6 +2,8 @@
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { onDestroy } from "svelte";
+    import Card from "$lib/components/Card.svelte";
+    import Toolbar from "$lib/components/Toolbar.svelte";
     import { getEntryBody, saveEntryByDate } from "$utils/backend";
     import {
         appStateStore,
@@ -147,8 +149,8 @@
     }
 </script>
 
-<div class="editor-shell surface-card surface-card--shadow">
-    <div class="editor-shell__toolbar">
+<Card class="editor-shell" shadow>
+    <Toolbar class="editor-shell__toolbar" gap="clamp(0.75rem, 2vw, 1rem)">
         <button
             type="button"
             class="btn btn--ghost btn--compact"
@@ -179,7 +181,7 @@
                 <span class="editor-shell__weekday">· {dateMeta.weekday}</span>
             {/if}
         </p>
-    </div>
+    </Toolbar>
 
     <textarea
         class="editor-shell__textarea"
@@ -187,22 +189,15 @@
         bind:value={textareaValue}
         on:input={handleInput}
     ></textarea>
-</div>
+</Card>
 
-<style>
-    .editor-shell {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
+<style lang="scss">
+    @use "../../styles/mixins.scss" as mixins;
+
+    :global(.editor-shell) {
+        @include mixins.flex-column(1rem);
         height: 100%;
-    }
-
-    .editor-shell__toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
+        min-height: 0;
     }
 
     .editor-shell__date {
@@ -217,7 +212,7 @@
     .editor-shell__textarea {
         width: 100%;
         flex: 1;
-        min-height: clamp(420px, 65vh, 960px);
+        min-height: clamp(320px, 55vh, 880px);
         border: none;
         border-radius: var(--radius-md);
         padding: clamp(1rem, 2vw, 1.5rem);

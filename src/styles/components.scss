@@ -1,0 +1,111 @@
+.surface-card {
+  --surface-padding: clamp(1rem, 2.5vw, 1.65rem);
+  background: var(--color-bg-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--surface-padding);
+  box-shadow: none;
+}
+
+.surface-card--shadow {
+  box-shadow: var(--shadow-panel);
+}
+
+.surface-card--tight {
+  --surface-padding: clamp(0.85rem, 2vw, 1.15rem);
+}
+
+.surface-card--flat {
+  --surface-padding: clamp(0.85rem, 2vw, 1.15rem);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.muted-text {
+  color: var(--color-text-muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: clamp(0.5rem, 1.8vw, 0.65rem) clamp(1rem, 5vw, 1.45rem);
+  font-weight: 600;
+  transition: background 160ms ease, color 160ms ease, border 160ms ease;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.btn--compact {
+  padding: 0.45rem 1.1rem;
+  font-size: 0.9rem;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover {
+    background: #1e4fd9;
+  }
+
+  .btn--ghost:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+}
+
+@media (max-width: 720px) and (orientation: portrait) {
+  .surface-card {
+    --surface-padding: clamp(0.75rem, 4vw, 1.2rem);
+  }
+
+  .surface-card--tight,
+  .surface-card--flat {
+    --surface-padding: clamp(0.65rem, 4vw, 1rem);
+  }
+
+  .btn {
+    gap: 0.4rem;
+    padding: clamp(0.45rem, 4vw, 0.55rem) clamp(0.85rem, 7vw, 1.15rem);
+  }
+
+  .icon-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .icon-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}
