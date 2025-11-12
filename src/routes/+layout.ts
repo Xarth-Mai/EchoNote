@@ -1,4 +1,4 @@
 /**
- * EchoNote relies on runtime-only Tauri APIs, so keep prerendering disabled.
+ * Pre-render the static chrome for faster startup; dynamic routes opt out locally.
  */
-export const prerender = false;
+export const prerender = true;
