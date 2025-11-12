@@ -109,7 +109,8 @@
     }
 
     .home__grid {
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 1rem;
         flex: 1;
         min-height: 0;
@@ -117,6 +118,7 @@
 
     @media (min-width: 992px) {
         .home__grid {
+            display: grid;
             grid-template-columns: 360px 1fr;
             align-items: start;
         }
