@@ -60,7 +60,7 @@
         );
     }
 
-    function getPreview(content: string | null | undefined): string {
+    function getSummary(content: string | null | undefined): string {
         if (!content) return "空白日记";
         const plain = content
             .replace(/^#+\s+/gm, "")
@@ -85,6 +85,11 @@
 
     function selectEntry(date: string): void {
         setCurrentDate(date);
+    }
+
+    function getEmojiSymbol(emoji?: string | null): string {
+        const trimmed = emoji?.trim();
+        return trimmed ? trimmed : "🤔";
     }
 
     function trackEntry(node: HTMLLIElement, date: string) {
@@ -131,7 +136,7 @@
     {:else}
         <ul class="timeline__list scroll-fade">
             {#each displayEntries as entry, index (entry.date)}
-                {@const preview = getPreview(entry.aiSummary)}
+                {@const preview = getSummary(entry.aiSummary)}
                 {@const parts = formatDateParts(entry)}
                 <li
                     class="timeline__item"
@@ -163,23 +168,16 @@
                                 <small>点击顶部按钮开始记录</small>
                             </div>
                         {:else}
-                            <div class="timeline__card-title">
-                                <p>记录概览</p>
-                                {#if entry.emoji}
-                                    <span
-                                        class="timeline__emoji"
-                                        aria-label="每日Emoji"
-                                        >{entry.emoji}</span
-                                    >
-                                {/if}
-                            </div>
-                            <p class="timeline__preview">{preview}</p>
-                            {#if entry.aiSummary}
-                                <p class="timeline__summary">
-                                    <span aria-hidden="true">💡</span>
-                                    {entry.aiSummary}
-                                </p>
-                            {/if}
+                            <p class="timeline__summary-line">
+                                <span
+                                    class="timeline__emoji"
+                                    aria-label="每日Emoji"
+                                    >{getEmojiSymbol(entry.emoji)}</span
+                                >
+                                <span class="timeline__summary-text">
+                                    {preview}</span
+                                >
+                            </p>
                         {/if}
                     </button>
                 </li>
@@ -209,7 +207,7 @@
         padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 1.2rem;
+        gap: 0.85rem;
         flex: 1;
         min-height: 0;
         overflow-y: auto;
@@ -223,7 +221,7 @@
     }
 
     .timeline__item {
-        --timeline-gap: clamp(0.75rem, 2vw, 1.25rem);
+        --timeline-gap: clamp(0.6rem, 1.6vw, 1rem);
         display: grid;
         grid-template-columns: minmax(84px, 0.35fr) minmax(0, 1fr);
         gap: var(--timeline-gap);
@@ -232,7 +230,7 @@
 
     .timeline__axis {
         position: relative;
-        padding-left: 1.8rem;
+        padding-left: 1.6rem;
         color: var(--color-text-muted);
         font-size: 0.9rem;
         display: flex;
@@ -270,11 +268,28 @@
         height: 12px;
         border-radius: 50%;
         border: 3px solid var(--color-accent);
-        background: var(--color-bg-panel);
+        background: var(--color-accent);
     }
 
-    .timeline__dot--active {
-        background: var(--color-accent);
+    .timeline__dot::after {
+        content: "";
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-bg-panel-dark);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.4);
+        opacity: 0;
+        transition:
+            opacity 150ms ease,
+            transform 150ms ease;
+    }
+
+    .timeline__dot--active::after {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 
     .timeline__card {
@@ -282,7 +297,7 @@
         text-align: left;
         border-radius: var(--radius-md);
         border: 1px solid var(--color-border);
-        padding: 1rem;
+        padding: 0.85rem 0.95rem;
         background: var(--color-bg-panel);
         position: relative;
         z-index: 1;
@@ -301,34 +316,21 @@
         color: var(--color-text-muted);
     }
 
-    .timeline__card-title {
+    .timeline__summary-line {
+        margin: 0;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.6rem;
-        font-weight: 600;
+        gap: 0.55rem;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    .timeline__summary-text {
+        flex: 1;
     }
 
     .timeline__emoji {
         font-size: 1.5rem;
-    }
-
-    .timeline__preview {
-        font-size: 0.95rem;
-        line-height: 1.5;
-        color: var(--color-text);
-        opacity: 0.85;
-    }
-
-    .timeline__summary {
-        margin-top: 0.6rem;
-        display: inline-flex;
-        gap: 0.3rem;
-        align-items: center;
-        border-radius: var(--radius-sm);
-        border: 1px solid var(--color-border);
-        padding: 0.35rem 0.7rem;
-        font-size: 0.85rem;
-        background: var(--color-accent-soft);
+        line-height: 1;
     }
 </style>
