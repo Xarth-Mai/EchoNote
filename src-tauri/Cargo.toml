@@ -22,7 +22,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 # Performance optimization: build configuration
 [profile.dev]
-opt-level = 1
+opt-level = 0
 debug = true
 split-debuginfo = "unpacked"
 incremental = true
@@ -30,7 +30,7 @@ overflow-checks = true
 lto = false
 
 [profile.release]
-opt-level = "s"        # Optimize for binary (balance between size and speed)
+opt-level = 3          # Optimize for binary (balance between size and speed)
 lto = "fat"            # Link Time Optimization for better runtime performance
 codegen-units = 1      # Better optimization at the cost of slightly increased build time
 strip = true           # Remove debug symbols to reduce binary size
