@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { browser } from "$app/environment";
     import {
         getMonthDates,
         formatDate,
@@ -32,7 +33,7 @@
     $: topWeeks = weeks.slice(0, selectedWeekIndex);
     $: bottomWeeks = weeks.slice(selectedWeekIndex + 1);
 
-    $: if (gridDates.length) {
+    $: if (browser && gridDates.length) {
         void ensureMonthSummariesLoaded(gridDates);
     }
 
@@ -120,7 +121,7 @@
     }
 
     async function ensureMonthSummariesLoaded(grid: Date[]): Promise<void> {
-        if (grid.length === 0) return;
+        if (!browser || grid.length === 0) return;
 
         const hasPrevMonthDates =
             grid[0].getMonth() !== month || grid[0].getFullYear() !== year;

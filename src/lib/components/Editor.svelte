@@ -2,11 +2,16 @@
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { onDestroy } from "svelte";
-    import { getEntryBody, saveEntryByDate } from "$utils/backend";
+    import {
+        getEntryBody,
+        listEntriesByMonth,
+        saveEntryByDate,
+    } from "$utils/backend";
     import {
         appStateStore,
         getSummary,
         getState,
+        setSummaries,
         setCurrentBody,
         upsertSummary,
     } from "$utils/state";
@@ -24,6 +29,13 @@
     $: currentDate = $state.currentDate;
     $: currentBody = $state.currentBody;
     $: dateMeta = buildDateMeta(currentDate);
+    $: if (
+        !hasLocalEdits &&
+        currentBody !== null &&
+        textareaValue !== currentBody
+    ) {
+        textareaValue = currentBody;
+    }
 
     $: if (!lastRenderedDate && currentDate) {
         lastRenderedDate = currentDate;
@@ -83,18 +95,17 @@
         if (!targetDate) return;
 
         const body = contentOverride ?? textareaValue;
-        const existing = (getSummary(targetDate) ?? {
-            date: targetDate,
-        }) as DiaryEntry;
-        const summary: DiaryEntry = {
-            ...existing,
-            emoji: "",
-        };
+        const existing = getSummary(targetDate);
+        const optimistic: DiaryEntry = existing
+            ? { ...existing, date: targetDate }
+            : { date: targetDate };
 
         setCurrentBody(body);
-        upsertSummary(summary);
+        upsertSummary(optimistic);
         try {
-            await saveEntryByDate(summary, body);
+            const savedSummary = await saveEntryByDate(targetDate, body);
+            upsertSummary(savedSummary);
+            await refreshMonthSummaries(targetDate);
         } catch (error) {
             console.error("保存日记失败:", error);
         }
@@ -146,6 +157,19 @@
             display: `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`,
             weekday: weekdayLabels[date.getDay()],
         };
+    }
+
+    async function refreshMonthSummaries(date: string): Promise<void> {
+        const parsed = new Date(date);
+        if (Number.isNaN(parsed.getTime())) return;
+        const year = parsed.getFullYear();
+        const month = parsed.getMonth() + 1;
+        try {
+            const summaries = await listEntriesByMonth(year, month);
+            setSummaries(summaries);
+        } catch (error) {
+            console.error("刷新月度摘要失败:", error);
+        }
     }
 </script>
 

@@ -1,7 +1,10 @@
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, Utc};
 use once_cell::sync::Lazy;
 
 use crate::models::{DiaryEntry, EntryRecord};
@@ -75,34 +78,40 @@ pub async fn get_entry_body_by_date(date: String) -> Result<Option<String>, Stri
 
 /// 根据日期保存/更新日记内容
 ///
-/// 与前端 `saveEntryByDate(summary, body)` 对应。
+/// 与前端 `saveEntryByDate(date, body)` 对应，返回最新的摘要信息。
 ///
 /// 参数：
-/// - entry: 日记元数据（frontmatter）
+/// - date: 日期（YYYY-MM-DD）
 /// - body: 正文内容（Markdown）
 #[tauri::command]
-pub async fn save_entry_by_date(mut entry: DiaryEntry, body: String) -> Result<(), String> {
+pub async fn save_entry_by_date(date: String, body: String) -> Result<DiaryEntry, String> {
     // 标准化日期后才写入 Map，确保多种格式都能正确聚合。
-    let normalized_date = normalize_date(&entry.date)?;
-    entry.date = normalized_date.clone();
+    let normalized_date = normalize_date(&date)?;
 
     let mut store = STORE
         .lock()
         .map_err(|_| "failed to lock in-memory store".to_string())?;
 
-    match store.get_mut(&normalized_date) {
-        Some(record) => {
-            record.update(entry, body);
-        }
-        None => {
-            store.insert(normalized_date, EntryRecord::new(entry, body));
-        }
+    let summary = if let Some(record) = store.get_mut(&normalized_date) {
+        let summary = build_summary(Some(record.summary()), &normalized_date, &body);
+        record.update(summary.clone(), body.clone());
+        summary
+    } else {
+        let summary = build_summary(None, &normalized_date, &body);
+        store.insert(
+            normalized_date.clone(),
+            EntryRecord::new(summary.clone(), body),
+        );
+        summary
     };
 
-    Ok(())
+    Ok(summary)
 }
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
+
+static DEVICE_ID: Lazy<String> = Lazy::new(resolve_device_id);
+static LOGICAL_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// 尝试按照固定格式解析日期，错误信息中包含原始输入，方便前端调试。
 fn parse_date(date: &str) -> Result<NaiveDate, String> {
@@ -113,4 +122,89 @@ fn parse_date(date: &str) -> Result<NaiveDate, String> {
 /// 返回标准 YYYY-MM-DD 字符串，持久化 key 与排序都依赖该结果。
 fn normalize_date(date: &str) -> Result<String, String> {
     Ok(parse_date(date)?.format(DATE_FORMAT).to_string())
+}
+
+fn build_summary(existing: Option<&DiaryEntry>, date: &str, body: &str) -> DiaryEntry {
+    DiaryEntry {
+        hlc: existing
+            .map(|entry| entry.hlc.clone())
+            .unwrap_or_else(next_hlc),
+        hash: fingerprint(body),
+        date: date.to_string(),
+        emoji: existing.and_then(|entry| entry.emoji.clone()),
+        ai_summary: summarize_body(body),
+        language: detect_language(body),
+    }
+}
+
+fn next_hlc() -> String {
+    let timestamp = Utc::now().timestamp_millis();
+    let logical = LOGICAL_COUNTER.fetch_add(1, Ordering::SeqCst);
+    format!("{timestamp}-{logical}-{}", DEVICE_ID.as_str())
+}
+
+fn resolve_device_id() -> String {
+    std::env::var("HOSTNAME")
+        .or_else(|_| std::env::var("COMPUTERNAME"))
+        .unwrap_or_else(|_| "echonote".to_string())
+}
+
+fn fingerprint(body: &str) -> String {
+    let mut hasher = DefaultHasher::new();
+    body.hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
+fn summarize_body(body: &str) -> Option<String> {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    const LIMIT: usize = 120;
+    let mut summary = String::new();
+    let mut count = 0;
+    let mut truncated = false;
+
+    for ch in trimmed.chars() {
+        if count >= LIMIT {
+            truncated = true;
+            break;
+        }
+        let normalized = match ch {
+            '\n' | '\r' => ' ',
+            _ => ch,
+        };
+        summary.push(normalized);
+        count += 1;
+    }
+
+    if truncated {
+        summary.push_str("...");
+    }
+
+    Some(summary)
+}
+
+fn detect_language(body: &str) -> Option<String> {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let total = trimmed.chars().count();
+    if total == 0 {
+        return None;
+    }
+
+    let ascii_letters = trimmed
+        .chars()
+        .filter(|ch| ch.is_ascii_alphabetic())
+        .count();
+    let ratio = ascii_letters as f32 / total as f32;
+    if ratio > 0.6 {
+        Some("en".to_string())
+    } else {
+        Some("zh".to_string())
+    }
 }
