@@ -2,8 +2,6 @@
 
 /** 日记条目 */
 export interface DiaryEntry {
-  hlc?: string; // $Timestamp-$LogicalCounter-DeviceID
-  hash?: string; // BLAKE3
   date: string; // YYYY-MM-DD
   emoji?: string; // 每日 Emoji
   aiSummary?: string; // AI 生成的摘要
@@ -18,4 +16,64 @@ export interface AppState {
   layoutMode: "portrait" | "landscape"; // 布局模式
   calendarExpanded: boolean; // 日历是否展开
   theme: "light" | "dark" | "auto"; // 主题模式：light=浅色，dark=深色，auto=跟随系统
+}
+
+export interface OpenAiMessage {
+  role: string;
+  content: string;
+}
+
+export interface OpenAiChatRequest {
+  model: string;
+  messages: OpenAiMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  apiKey?: string;
+  apiBase?: string;
+}
+
+export interface OpenAiChatResponse {
+  content: string;
+  finishReason?: string;
+  model?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+export type BuiltinAiProvider = "chatgpt" | "deepseek";
+export type CustomAiProvider = `openai-custom-${string}`;
+export type AiProviderId = BuiltinAiProvider | CustomAiProvider;
+
+export interface AiProviderConfig {
+  id: AiProviderId;
+  label: string;
+  baseUrl: string;
+  editable: boolean;
+  apiKey?: string;
+  model?: string;
+  prompt?: string;
+  maxTokens?: number;
+  temperature?: number;
+  type: "builtin" | "custom";
+  suffix?: string;
+}
+
+export interface AiSettingsState {
+  activeProviderId: AiProviderId;
+  providers: Record<AiProviderId, AiProviderConfig>;
+}
+
+export interface AiInvokePayload {
+  baseUrl: string;
+  apiKey: string;
+  model?: string | null;
+  prompt?: string | null;
+  maxTokens?: number | null;
+  temperature?: number | null;
+}
+
+export interface AiModelQuery {
+  baseUrl: string;
+  apiKey: string;
 }

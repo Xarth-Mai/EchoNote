@@ -61,7 +61,7 @@
     }
 
     function getSummary(content: string | null | undefined): string {
-        if (!content) return "空白日记";
+        if (!content) return "AI 摘要生成中...";
         const plain = content
             .replace(/^#+\s+/gm, "")
             .replace(/\*\*(.+?)\*\*/g, "$1")

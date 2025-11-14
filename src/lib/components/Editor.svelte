@@ -7,6 +7,7 @@
         listEntriesByMonth,
         saveEntryByDate,
     } from "$utils/backend";
+    import { getActiveAiInvokePayload } from "$utils/ai";
     import {
         appStateStore,
         getSummary,
@@ -16,6 +17,12 @@
         upsertSummary,
     } from "$utils/state";
     import type { DiaryEntry } from "../../types";
+
+    type SaveOptions = {
+        dateOverride?: string;
+        contentOverride?: string;
+        triggerAi?: boolean;
+    };
 
     const state = appStateStore;
 
@@ -42,7 +49,7 @@
     }
 
     $: if (currentDate && currentDate !== lastRenderedDate) {
-        flushAutoSave();
+        void flushAutoSave();
         lastRenderedDate = currentDate;
         textareaValue = "";
         hasLocalEdits = false;
@@ -53,9 +60,10 @@
         void ensureBodyLoaded(currentDate);
     }
 
-    function handleBack(): void {
+    async function handleBack(): Promise<void> {
+        await flushAutoSave();
         if (!browser) return;
-        void goto("/");
+        await goto("/");
     }
 
     function handleInput(): void {
@@ -76,21 +84,31 @@
         }, 10000);
     }
 
-    function flushAutoSave(): void {
+    async function flushAutoSave(triggerAi = true): Promise<void> {
         if (autoSaveTimer) {
             clearTimeout(autoSaveTimer);
             autoSaveTimer = null;
             const targetDate = lastRenderedDate || currentDate;
             if (targetDate) {
-                void save(targetDate, textareaValue);
+                await save({
+                    dateOverride: targetDate,
+                    contentOverride: textareaValue,
+                    triggerAi,
+                });
+                return;
             }
+        }
+        if (hasLocalEdits) {
+            await save({ triggerAi });
         }
     }
 
-    async function save(
-        dateOverride?: string,
-        contentOverride?: string,
-    ): Promise<void> {
+    async function save(options: SaveOptions = {}): Promise<void> {
+        const {
+            dateOverride,
+            contentOverride,
+            triggerAi = false,
+        } = options;
         const targetDate = dateOverride ?? currentDate;
         if (!targetDate) return;
 
@@ -99,11 +117,20 @@
         const optimistic: DiaryEntry = existing
             ? { ...existing, date: targetDate }
             : { date: targetDate };
+        if (triggerAi) {
+            optimistic.aiSummary = "AI 摘要生成中...";
+        }
 
         setCurrentBody(body);
         upsertSummary(optimistic);
         try {
-            const savedSummary = await saveEntryByDate(targetDate, body);
+            const aiConfig =
+                triggerAi && browser ? getActiveAiInvokePayload() : null;
+            const savedSummary = await saveEntryByDate(
+                targetDate,
+                body,
+                aiConfig,
+            );
             upsertSummary(savedSummary);
             await refreshMonthSummaries(targetDate);
         } catch (error) {
@@ -133,7 +160,7 @@
     }
 
     onDestroy(() => {
-        flushAutoSave();
+        void flushAutoSave();
     });
 
     function buildDateMeta(dateValue?: string | null): {

@@ -1,5 +1,11 @@
 import { browser } from "$app/environment";
-import type { DiaryEntry as EntrySummary } from "../types";
+import type {
+  DiaryEntry as EntrySummary,
+  OpenAiChatRequest,
+  OpenAiChatResponse,
+  AiInvokePayload,
+  AiModelQuery,
+} from "../types";
 
 type Invoke = typeof import("@tauri-apps/api/core").invoke;
 
@@ -31,13 +37,31 @@ async function safeInvoke<T>(
         return [] as T;
       case "get_entry_body_by_date":
         return null as T;
+      case "invoke_openai_chat":
+        throw new Error("OpenAI API is unavailable during SSR");
+      case "list_ai_models":
+        return [] as T;
       default:
         return undefined as T;
     }
   }
 
   const invoke = await getInvoke();
-  return invoke<T>(cmd, args);
+  if (browser) {
+    console.info("[EchoNote] invoke", cmd, args ?? {});
+  }
+  try {
+    const result = await invoke<T>(cmd, args);
+    if (browser) {
+      console.info("[EchoNote] result", cmd, result);
+    }
+    return result;
+  } catch (error) {
+    if (browser) {
+      console.error("[EchoNote] invoke failed", cmd, error);
+    }
+    throw error;
+  }
 }
 
 export async function listEntriesByMonth(
@@ -54,6 +78,23 @@ export async function getEntryBody(date: string): Promise<string | null> {
 export async function saveEntryByDate(
   date: string,
   body: string,
+  ai?: AiInvokePayload | null,
 ): Promise<EntrySummary> {
-  return safeInvoke<EntrySummary>("save_entry_by_date", { date, body });
+  return safeInvoke<EntrySummary>("save_entry_by_date", {
+    date,
+    body,
+    ai: ai ?? null,
+  });
+}
+
+export async function invokeOpenAiChat(
+  request: OpenAiChatRequest,
+): Promise<OpenAiChatResponse> {
+  return safeInvoke<OpenAiChatResponse>("invoke_openai_chat", { request });
+}
+
+export async function listAiModels(
+  request: AiModelQuery,
+): Promise<string[]> {
+  return safeInvoke<string[]>("list_ai_models", { request });
 }

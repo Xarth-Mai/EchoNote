@@ -30,7 +30,7 @@ impl EntryRecord {
     }
 }
 
-/// 日记元数据（与前端 `DiaryEntry` 对齐）
+/// 日记元数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiaryEntry {
     /// $Timestamp + "-" + $LogicalCounter + "-" + DeviceID
