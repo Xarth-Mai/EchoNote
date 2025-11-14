@@ -177,6 +177,12 @@
         overflow-y: auto;
         padding-right: 0.25rem;
         padding-top: 1rem;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .settings__grid::-webkit-scrollbar {
+        display: none;
     }
 
     .settings__choices {
