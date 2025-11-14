@@ -7,6 +7,29 @@ pub struct EntryRecord {
     body: String,
 }
 
+impl EntryRecord {
+    /// 创建新的记录，summary 负责前端元数据，body 保留完整 Markdown 正文。
+    pub fn new(summary: DiaryEntry, body: String) -> Self {
+        Self { summary, body }
+    }
+
+    /// 返回引用，供列表等只读场景复用 frontmatter。
+    pub fn summary(&self) -> &DiaryEntry {
+        &self.summary
+    }
+
+    /// 返回正文引用，避免多次克隆。
+    pub fn body(&self) -> &str {
+        &self.body
+    }
+
+    /// 覆写记录内容，用于更新同一天的条目。
+    pub fn update(&mut self, summary: DiaryEntry, body: String) {
+        self.summary = summary;
+        self.body = body;
+    }
+}
+
 /// 日记元数据（与前端 `DiaryEntry` 对齐）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiaryEntry {

@@ -19,6 +19,7 @@
     let lastRenderedDate = "";
     let loadingDate: string | null = null;
     let lastLoadedDate: string | null = null;
+    let hasLocalEdits = false;
 
     $: currentDate = $state.currentDate;
     $: currentBody = $state.currentBody;
@@ -31,15 +32,11 @@
     $: if (currentDate && currentDate !== lastRenderedDate) {
         flushAutoSave();
         lastRenderedDate = currentDate;
+        textareaValue = "";
+        hasLocalEdits = false;
+        lastLoadedDate = null;
         setCurrentBody(null);
     }
-
-    $: if (currentBody !== null && currentBody !== textareaValue) {
-        textareaValue = currentBody;
-    } else if (currentBody === null && textareaValue !== "") {
-        textareaValue = "";
-    }
-
     $: if (currentBody === null && currentDate) {
         void ensureBodyLoaded(currentDate);
     }
@@ -50,6 +47,7 @@
     }
 
     function handleInput(): void {
+        hasLocalEdits = true;
         setCurrentBody(textareaValue);
         scheduleAutoSave();
     }
@@ -111,7 +109,11 @@
         try {
             const body = await getEntryBody(date);
             lastLoadedDate = date;
-            setCurrentBody(body ?? "");
+            const bodyValue = body ?? "";
+            if (!hasLocalEdits) {
+                textareaValue = bodyValue;
+                setCurrentBody(bodyValue);
+            }
         } catch (error) {
             console.error("加载正文失败:", error);
         } finally {
