@@ -92,11 +92,14 @@ a:focus-visible {
 }
 
 .page-shell {
-    width: min(var(--page-shell-width),
-            calc(100% - (var(--page-shell-gap) * 2)));
+    width: min(
+        var(--page-shell-width),
+        calc(100% - (var(--page-shell-gap) * 2))
+    );
     margin: 0 auto;
     min-height: calc(100vh - (var(--page-shell-gap) * 2));
     max-height: calc(100vh - (var(--page-shell-gap) * 2));
+    height: calc(100vh - (var(--page-shell-gap) * 2));
     display: flex;
     flex-direction: column;
     gap: clamp(1.25rem, 3vw, 2rem);
@@ -106,6 +109,7 @@ a:focus-visible {
     .page-shell {
         min-height: calc(100dvh - (var(--page-shell-gap) * 2));
         max-height: calc(100dvh - (var(--page-shell-gap) * 2));
+        height: calc(100dvh - (var(--page-shell-gap) * 2));
     }
 }
 
@@ -139,7 +143,10 @@ a:focus-visible {
     border: 1px solid transparent;
     padding: 0.55rem 1.4rem;
     font-weight: 600;
-    transition: background 160ms ease, color 160ms ease, border 160ms ease;
+    transition:
+        background 160ms ease,
+        color 160ms ease,
+        border 160ms ease;
 }
 
 .btn--primary {
@@ -181,16 +188,20 @@ a:focus-visible {
 .scroll-fade {
     --scroll-fade-edge: 24px;
     position: relative;
-    mask-image: linear-gradient(to bottom,
-            transparent,
-            #000 var(--scroll-fade-edge),
-            #000 calc(100% - var(--scroll-fade-edge)),
-            transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom,
-            transparent,
-            #000 var(--scroll-fade-edge),
-            #000 calc(100% - var(--scroll-fade-edge)),
-            transparent 100%);
+    mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 var(--scroll-fade-edge),
+        #000 calc(100% - var(--scroll-fade-edge)),
+        transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent,
+        #000 var(--scroll-fade-edge),
+        #000 calc(100% - var(--scroll-fade-edge)),
+        transparent 100%
+    );
 }
 
 /* Hover effects applied only when the device actually supports hovering pointers */

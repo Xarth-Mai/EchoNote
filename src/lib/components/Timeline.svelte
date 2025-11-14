@@ -214,6 +214,7 @@
         min-height: 0;
         overflow-y: auto;
         padding-top: 1rem;
+        padding-right: 0.5rem;
         scrollbar-width: none;
     }
 
