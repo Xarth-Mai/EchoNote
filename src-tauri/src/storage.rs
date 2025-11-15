@@ -1,6 +1,7 @@
 //! File-based diary storage utilities.
 
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use chrono::{Datelike, NaiveDate};
@@ -9,6 +10,8 @@ use tauri::{AppHandle, Manager};
 use crate::models::{DiaryEntry, EntryRecord};
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
+const FRONTMATTER_INITIAL_BYTES: u64 = 1024;
+const FRONTMATTER_ADDITIONAL_BYTES: u64 = 2048;
 
 #[derive(Debug, Clone)]
 pub struct StorageLayout {
@@ -89,20 +92,13 @@ pub fn load_month_entries(
     for entry in fs::read_dir(&month_dir)
         .map_err(|err| format!("failed to read {}: {err}", month_dir.display()))?
     {
-        let entry = entry.map_err(|err| format!("failed to iterate entries: {err}"))?;
-        let path = entry.path();
-        if !path.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
-            continue;
-        }
-        let content = fs::read_to_string(&path)
-            .map_err(|err| format!("failed to read entry {}: {err}", path.display()))?;
-        match parse_document(&content) {
-            Ok(record) => records.push(record),
-            Err(err) => {
-                return Err(format!(
-                    "failed to parse entry file {}: {err}",
-                    path.display()
-                ))
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if !path.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+                continue;
+            }
+            if let Ok(record) = read_frontmatter_record(&path) {
+                records.push(record);
             }
         }
     }
@@ -144,6 +140,45 @@ fn ensure_dir(path: &Path) -> Result<(), String> {
 }
 
 fn parse_document(document: &str) -> Result<EntryRecord, String> {
+    let (summary, remainder) = extract_frontmatter(document)?;
+    Ok(EntryRecord::new(summary, remainder.to_string()))
+}
+
+fn read_frontmatter_record(path: &Path) -> Result<EntryRecord, String> {
+    let mut file = fs::File::open(path)
+        .map_err(|err| format!("failed to open entry {}: {err}", path.display()))?;
+    let mut buffer = Vec::with_capacity(
+        (FRONTMATTER_INITIAL_BYTES + FRONTMATTER_ADDITIONAL_BYTES) as usize,
+    );
+
+    {
+        let mut limited = (&mut file).take(FRONTMATTER_INITIAL_BYTES);
+        limited
+            .read_to_end(&mut buffer)
+            .map_err(|err| format!("failed to read entry {}: {err}", path.display()))?;
+    }
+
+    let mut content = String::from_utf8_lossy(&buffer).into_owned();
+    if !content.contains("\n---") {
+        let mut limited = file.take(FRONTMATTER_ADDITIONAL_BYTES);
+        limited
+            .read_to_end(&mut buffer)
+            .map_err(|err| format!("failed to read entry tail {}: {err}", path.display()))?;
+        content = String::from_utf8_lossy(&buffer).into_owned();
+    }
+
+    if !content.contains("\n---") {
+        return Err(format!(
+            "entry missing closing frontmatter delimiter {}",
+            path.display()
+        ));
+    }
+
+    extract_frontmatter(&content)
+        .map(|(summary, _)| EntryRecord::new(summary, String::new()))
+}
+
+fn extract_frontmatter<'a>(document: &'a str) -> Result<(DiaryEntry, &'a str), String> {
     let sanitized = document.trim_start_matches('\u{feff}');
     let body_start = sanitized
         .strip_prefix("---\r\n")
@@ -165,5 +200,5 @@ fn parse_document(document: &str) -> Result<EntryRecord, String> {
 
     let summary: DiaryEntry = serde_yaml::from_str(frontmatter_block)
         .map_err(|err| format!("failed to parse diary metadata: {err}"))?;
-    Ok(EntryRecord::new(summary, remainder.to_string()))
+    Ok((summary, remainder))
 }
