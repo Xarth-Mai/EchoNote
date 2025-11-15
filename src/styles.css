@@ -160,6 +160,11 @@ a:focus-visible {
     color: var(--color-text);
 }
 
+.btn--danger {
+    background: #d64545;
+    color: var(--color-text-inverse);
+}
+
 .btn--compact {
     padding: 0.45rem 1.1rem;
     font-size: 0.9rem;
@@ -213,6 +218,10 @@ a:focus-visible {
     .btn--ghost:hover {
         border-color: var(--color-accent);
         color: var(--color-accent);
+    }
+
+    .btn--danger:hover {
+        background: #b83535;
     }
 
     .timeline__card:hover {

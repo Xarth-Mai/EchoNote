@@ -1,9 +1,12 @@
+//! Diary domain services: storage, caching, and AI summary orchestration.
+
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use chrono::{NaiveDate, Utc};
 use once_cell::sync::{Lazy, OnceCell};
+use reqwest::Url;
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 
@@ -25,6 +28,9 @@ const DEFAULT_MODEL: &str = "gpt-5.1-mini";
 const DATE_FORMAT: &str = "%Y-%m-%d";
 const DEFAULT_PROMPT: &str = "You are an assistant that summarizes diary entries in concise Chinese, optionally referencing emotions if present.";
 const DEFAULT_TEMPERATURE: f32 = 0.3;
+const DEFAULT_API_BASE: &str = "https://api.openai.com/v1";
+// 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
+const MAX_STORE_ENTRIES: usize = 500;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AiInvokePayload {
@@ -86,8 +92,7 @@ pub fn get_entry_body_by_date(app: AppHandle, date: String) -> Result<Option<Str
         store.get(&normalized_date).and_then(|record| {
             // 仅当缓存正文与摘要内的 hash 一致时复用，避免月度索引只加载 frontmatter 导致正文为空。
             let cached_body = record.body();
-            (fingerprint(cached_body) == record.summary().hash)
-                .then(|| cached_body.to_string())
+            (fingerprint(cached_body) == record.summary().hash).then(|| cached_body.to_string())
         })
     } {
         return Ok(Some(body));
@@ -99,6 +104,7 @@ pub fn get_entry_body_by_date(app: AppHandle, date: String) -> Result<Option<Str
             .lock()
             .map_err(|_| "failed to lock in-memory store".to_string())?;
         store.insert(normalized_date, record);
+        prune_store_capacity(&mut store);
         return Ok(Some(body));
     }
 
@@ -163,6 +169,7 @@ pub fn save_entry_by_date(
             EntryRecord::new(summary.clone(), body.clone()),
         );
     }
+    prune_store_capacity(&mut store);
 
     if let Some(payload) = ai_payload {
         spawn_metadata_refresh(
@@ -189,8 +196,7 @@ pub async fn invoke_openai_chat(
 
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = secrets::load_base_url(app, provider_id)?
-        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
+    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?)?;
     let model = secrets::load_selected_model(app, provider_id)?
         .unwrap_or_else(|| DEFAULT_MODEL.to_string());
 
@@ -207,15 +213,11 @@ pub async fn list_ai_models(
         return Err("AI provider is disabled".to_string());
     }
 
-    let base_url = request
-        .base_url
-        .or_else(|| secrets::load_base_url(app, &provider_id).ok().flatten())
-        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-    let base_url = if base_url.trim().is_empty() {
-        "https://api.openai.com/v1".to_string()
-    } else {
-        base_url
-    };
+    let base_url = sanitize_api_base_url(
+        request
+            .base_url
+            .or_else(|| secrets::load_base_url(app, &provider_id).ok().flatten()),
+    )?;
     let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required to list models".to_string())?;
 
@@ -317,6 +319,7 @@ fn load_month_into_store(
         entries.push(summary.clone());
         store.insert(summary.date.clone(), record);
     }
+    prune_store_capacity(&mut store);
 
     entries.sort_by(|a, b| match a.date.cmp(&b.date) {
         std::cmp::Ordering::Equal => a.hlc.cmp(&b.hlc),
@@ -405,8 +408,7 @@ async fn request_ai_summary(
         .ok_or_else(|| "AI provider is required".to_string())?;
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = secrets::load_base_url(app, provider_id)?
-        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
+    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?)?;
 
     let model = secrets::load_selected_model(app, provider_id)?
         .unwrap_or_else(|| DEFAULT_MODEL.to_string());
@@ -472,5 +474,45 @@ fn detect_language(body: &str) -> Option<String> {
         Some("en".to_string())
     } else {
         Some("zh".to_string())
+    }
+}
+
+fn sanitize_api_base_url(raw: Option<String>) -> Result<String, String> {
+    let value = raw.unwrap_or_default();
+    if value.trim().is_empty() {
+        return Ok(DEFAULT_API_BASE.to_string());
+    }
+
+    let parsed = Url::parse(value.trim())
+        .map_err(|err| format!("invalid AI base URL: {err}"))?;
+    parsed
+        .host_str()
+        .ok_or_else(|| "AI base URL is missing host".to_string())?;
+
+    Ok(parsed.into_string().trim_end_matches('/').to_string())
+}
+
+fn prune_store_capacity(store: &mut HashMap<String, EntryRecord>) {
+    if store.len() <= MAX_STORE_ENTRIES {
+        return;
+    }
+
+    let mut entries: Vec<(String, NaiveDate, String)> = store
+        .iter()
+        .filter_map(|(key, record)| {
+            parse_date(key)
+                .ok()
+                .map(|date| (key.clone(), date, record.summary().hlc.clone()))
+        })
+        .collect();
+
+    if entries.is_empty() {
+        return;
+    }
+
+    entries.sort_by(|a, b| a.1.cmp(&b.1).then(a.2.cmp(&b.2)));
+    let overflow = store.len().saturating_sub(MAX_STORE_ENTRIES);
+    for (key, _, _) in entries.into_iter().take(overflow) {
+        store.remove(&key);
     }
 }

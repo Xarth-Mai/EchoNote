@@ -61,6 +61,8 @@
     let modelOptions: string[] = [];
     let advancedOpen = false;
     let apiKeyDirty = false;
+    let unsafeConfirmTarget: { baseUrl: string; warnings: string[] } | null =
+        null;
 
     $: aiState = sanitizeState(aiState);
     $: {
@@ -80,6 +82,18 @@
     $: syncFormWithProvider();
     $: modelOptions =
         providerModels[activeProviderId] ?? (formModel ? [formModel] : []);
+    $: normalizedCandidateBase = normalizedBaseUrl(formBaseUrl);
+    $: unsafeConfirmActive =
+        Boolean(
+            unsafeConfirmTarget &&
+                unsafeConfirmTarget.baseUrl === normalizedCandidateBase &&
+                currentProvider.editable,
+        ) && !savingBasic;
+    $: basicSaveLabel = savingBasic
+        ? "保存中..."
+        : unsafeConfirmActive
+            ? "确认风险后保存"
+            : "保存基础设置";
 
     function getCurrentProvider(): AiProviderConfig {
         return (
@@ -103,6 +117,7 @@
             provider.maxTokens ?? getDefaultMaxTokens(provider.id),
         );
         apiKeyDirty = false;
+        unsafeConfirmTarget = null;
         void hydrateProviderFromBackend();
     }
 
@@ -136,6 +151,68 @@
         return trimmed || "https://api.openai.com/v1";
     }
 
+    function analyzeBaseUrlSafety(
+        value: string,
+    ): { normalized: string; warnings: string[]; valid: boolean; error?: string } {
+        const normalized = normalizedBaseUrl(value);
+        try {
+            const parsed = new URL(normalized);
+            const warnings: string[] = [];
+            if (parsed.protocol !== "https:") {
+                warnings.push("使用非 HTTPS 协议");
+            }
+            const hostname = parsed.hostname.toLowerCase();
+            if (hostname === "localhost" || hostname.endsWith(".local")) {
+                warnings.push("指向本地主机");
+            } else if (isPrivateHost(hostname)) {
+                warnings.push("使用内网或回环地址");
+            }
+            return { normalized, warnings, valid: true };
+        } catch (_error) {
+            return {
+                normalized,
+                warnings: [],
+                valid: false,
+                error: "Base URL 格式不正确",
+            };
+        }
+    }
+
+    function isPrivateHost(hostname: string): boolean {
+        return isPrivateIpv4(hostname) || isUnsafeIpv6(hostname);
+    }
+
+    function isPrivateIpv4(hostname: string): boolean {
+        const parts = hostname.split(".");
+        if (parts.length !== 4) return false;
+        const octets = parts.map((part) => Number(part));
+        if (
+            octets.some(
+                (octet) => Number.isNaN(octet) || octet < 0 || octet > 255,
+            )
+        ) {
+            return false;
+        }
+        if (octets[0] === 10) return true;
+        if (octets[0] === 127) return true;
+        if (octets[0] === 169 && octets[1] === 254) return true;
+        if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+        if (octets[0] === 192 && octets[1] === 168) return true;
+        return false;
+    }
+
+    function isUnsafeIpv6(hostname: string): boolean {
+        if (!hostname.includes(":")) return false;
+        const normalized = hostname.toLowerCase();
+        return (
+            normalized === "::1" ||
+            normalized === "::" ||
+            normalized.startsWith("fc") ||
+            normalized.startsWith("fd") ||
+            normalized.startsWith("fe80")
+        );
+    }
+
     function setActiveProvider(id: AiProviderId): void {
         if (!aiState.providers[id]) {
             return;
@@ -143,6 +220,7 @@
         aiState.activeProviderId = id;
         activeProviderId = id;
         statusBanner = null;
+        unsafeConfirmTarget = null;
         syncFormWithProvider();
     }
 
@@ -208,6 +286,8 @@
         const value = (event.currentTarget as HTMLInputElement).value;
         formBaseUrl = value;
         provider.baseUrl = value;
+        unsafeConfirmTarget = null;
+        statusBanner = null;
     }
 
     function handleApiKeyInput(event: Event): void {
@@ -270,6 +350,7 @@
         aiState.providers[provider.id] = provider;
         customSuffix = "";
         customBaseUrl = "";
+        unsafeConfirmTarget = null;
         statusBanner = { tone: "ok", text: "已添加自定义接口" };
         setActiveProvider(provider.id);
     }
@@ -360,13 +441,42 @@
             statusBanner = { tone: "error", text: "请选择模型类型" };
             return;
         }
-        provider.baseUrl = provider.editable
-            ? normalizedBaseUrl(formBaseUrl)
-            : provider.baseUrl;
+        let analyzedBase: ReturnType<typeof analyzeBaseUrlSafety> | null = null;
+        if (provider.editable) {
+            analyzedBase = analyzeBaseUrlSafety(formBaseUrl);
+            if (!analyzedBase.valid) {
+                unsafeConfirmTarget = null;
+                statusBanner = {
+                    tone: "error",
+                    text: analyzedBase.error ?? "Base URL 无效",
+                };
+                return;
+            }
+            const confirmMatched =
+                unsafeConfirmTarget &&
+                unsafeConfirmTarget.baseUrl === analyzedBase.normalized;
+            if (analyzedBase.warnings.length > 0 && !confirmMatched) {
+                unsafeConfirmTarget = {
+                    baseUrl: analyzedBase.normalized,
+                    warnings: analyzedBase.warnings,
+                };
+                const warningText = analyzedBase.warnings.join("、");
+                statusBanner = {
+                    tone: "error",
+                    text: `检测到潜在风险（${warningText}），请再次点击按钮确认保存`,
+                };
+                return;
+            }
+            provider.baseUrl = analyzedBase.normalized;
+            unsafeConfirmTarget = null;
+        } else {
+            unsafeConfirmTarget = null;
+        }
         provider.model = formModel;
 
         try {
             savingBasic = true;
+            statusBanner = null;
             await storeProviderBaseUrl(provider.id, provider.baseUrl);
             if (provider.model) {
                 await storeProviderModel(provider.id, provider.model);
@@ -636,11 +746,13 @@
                     <div class="settings__actions">
                         <button
                             type="button"
-                            class="btn btn--primary"
+                            class="btn"
+                            class:btn--primary={!unsafeConfirmActive}
+                            class:btn--danger={unsafeConfirmActive}
                             on:click={() => handleBasicSave()}
                             disabled={savingBasic}
                         >
-                            {savingBasic ? "保存中..." : "保存基础设置"}
+                            {basicSaveLabel}
                         </button>
                         {#if activeProviderId.startsWith("openai-custom-")}
                             <button
