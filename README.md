@@ -34,7 +34,7 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 ### 📅 Creation Calendar & Timeline
 
 - **Calendar Component**
-  - Visual calendar view showing each day's emoji and writing status
+  - Visual calendar view showing each day's writing status
   - Click any date to view the corresponding entry
 
 - **Timeline Component**

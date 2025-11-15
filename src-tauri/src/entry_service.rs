@@ -285,7 +285,6 @@ fn build_summary(
             .unwrap_or(next_hlc(app)?),
         hash: fingerprint(body),
         date: date.to_string(),
-        emoji: existing.and_then(|entry| entry.emoji.clone()),
         ai_summary: Some(ai_summary),
         language: detect_language(body),
     })

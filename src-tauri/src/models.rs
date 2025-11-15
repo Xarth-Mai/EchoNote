@@ -41,9 +41,6 @@ pub struct DiaryEntry {
     pub hash: String,
     /// 日期：YYYY-MM-DD
     pub date: String,
-    /// 每日 Emoji
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub emoji: Option<String>,
     /// AI 生成的摘要（前端字段名为 aiSummary）
     #[serde(rename = "aiSummary", skip_serializing_if = "Option::is_none")]
     pub ai_summary: Option<String>,

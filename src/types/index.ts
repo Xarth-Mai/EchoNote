@@ -3,7 +3,6 @@
 /** 日记条目 */
 export interface DiaryEntry {
   date: string; // YYYY-MM-DD
-  emoji?: string; // 每日 Emoji
   aiSummary?: string; // AI 生成的摘要
   language?: string; // 创作语言
 }

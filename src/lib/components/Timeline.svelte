@@ -87,11 +87,6 @@
         setCurrentDate(date);
     }
 
-    function getEmojiSymbol(emoji?: string | null): string {
-        const trimmed = emoji?.trim();
-        return trimmed ? trimmed : "🤔";
-    }
-
     function trackEntry(node: HTMLLIElement, date: string) {
         entryRefs.set(date, node);
         return {
@@ -168,16 +163,7 @@
                                 <small>点击顶部按钮开始记录</small>
                             </div>
                         {:else}
-                            <p class="timeline__summary-line">
-                                <span
-                                    class="timeline__emoji"
-                                    aria-label="每日Emoji"
-                                    >{getEmojiSymbol(entry.emoji)}</span
-                                >
-                                <span class="timeline__summary-text">
-                                    {preview}</span
-                                >
-                            </p>
+                            <p class="timeline__summary-line">{preview}</p>
                         {/if}
                     </button>
                 </li>
@@ -318,19 +304,7 @@
 
     .timeline__summary-line {
         margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
         font-size: 0.9rem;
         line-height: 1.4;
-    }
-
-    .timeline__summary-text {
-        flex: 1;
-    }
-
-    .timeline__emoji {
-        font-size: 1.5rem;
-        line-height: 1;
     }
 </style>
