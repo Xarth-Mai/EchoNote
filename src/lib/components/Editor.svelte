@@ -107,11 +107,7 @@
 
     // 将草稿写入状态后再调用后端保存，保证乐观 UI 不阻塞
     async function save(options: SaveOptions = {}): Promise<void> {
-        const {
-            dateOverride,
-            contentOverride,
-            triggerAi = false,
-        } = options;
+        const { dateOverride, contentOverride, triggerAi = false } = options;
         const targetDate = dateOverride ?? currentDate;
         if (!targetDate) return;
 
@@ -128,7 +124,9 @@
         upsertSummary(optimistic);
         try {
             const aiConfig =
-                triggerAi && browser ? await getActiveAiInvokePayload() : null;
+                body && triggerAi && browser
+                    ? await getActiveAiInvokePayload()
+                    : null;
             const savedSummary = await saveEntryByDate(
                 targetDate,
                 body,

@@ -1,5 +1,6 @@
 import { browser } from "$app/environment";
 import type {
+  AiAdvancedSettings,
   AiInvokePayload,
   AiProviderConfig,
   AiProviderId,
@@ -8,7 +9,7 @@ import type {
 
 const STORAGE_KEY = "echonote-ai-settings";
 export const DEFAULT_AI_PROMPT =
-  `请阅读用户的 Markdown 日记，仅输出 JSON：{"emoji":"<emoji>","summary":"<不超过60字的摘要>"}；emoji 贴合情绪或主题且只有一个符号，不含其它文字；summary 完全沿用作者视角与语言，保持事实准确且不得编造内容。`;
+  `Provide the summary exactly according to the system rules. You may adjust tone, focus, or preference here if needed.`;
 
 export const DEFAULT_TEMPERATURE = 0.3;
 
@@ -83,11 +84,12 @@ export async function getActiveAiInvokePayload(
     return { providerId: "noai" };
   }
 
+  const advanced = snapshot.advanced;
   return {
     providerId,
-    prompt: normalizePrompt(provider.prompt),
-    maxTokens: normalizeMaxTokens(provider.maxTokens, provider.id),
-    temperature: normalizeTemperature(provider.temperature),
+    prompt: advanced.prompt,
+    maxTokens: advanced.maxTokens,
+    temperature: advanced.temperature,
   };
 }
 
@@ -128,7 +130,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         existing?.model ??
         DEFAULT_MODEL_BY_PROVIDER[key] ??
         DEFAULT_MODEL_BY_PROVIDER.chatgpt,
-      prompt: normalizePrompt(built.prompt),
+      prompt: normalizePrompt(existing?.prompt ?? built.prompt),
       maxTokens: normalizeMaxTokens(existing?.maxTokens, id),
       temperature: normalizeTemperature(existing?.temperature ?? built.temperature),
       type: "builtin",
@@ -165,9 +167,25 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         ? base.activeProviderId
         : ("chatgpt" as AiProviderId);
 
+  const advanced = sanitizeAdvancedSettings(
+    base.advanced,
+    providers[active],
+    active,
+  );
+  const apiKeyHints = sanitizeApiKeyHints(base.apiKeyHints, providers);
+
+  for (const cfg of Object.values(providers)) {
+    if (!cfg) continue;
+    cfg.prompt = advanced.prompt;
+    cfg.temperature = advanced.temperature;
+    cfg.maxTokens = advanced.maxTokens;
+  }
+
   return {
     activeProviderId: active,
     providers: providers as Record<AiProviderId, AiProviderConfig>,
+    advanced,
+    apiKeyHints,
   };
 }
 
@@ -209,6 +227,12 @@ export function createDefaultState(): AiSettingsState {
         type: "builtin",
       },
     },
+    advanced: {
+      prompt: DEFAULT_AI_PROMPT,
+      temperature: DEFAULT_TEMPERATURE,
+      maxTokens: getDefaultMaxTokens("chatgpt"),
+    },
+    apiKeyHints: {},
   };
 }
 
@@ -243,4 +267,38 @@ function normalizeTemperature(value?: number): number {
   }
   const clamped = Math.max(0, Math.min(value, 2));
   return Math.round(clamped * 100) / 100;
+}
+
+function sanitizeAdvancedSettings(
+  input: AiAdvancedSettings | undefined,
+  fallback?: AiProviderConfig,
+  providerId?: AiProviderId,
+): AiAdvancedSettings {
+  const prompt = normalizePrompt(input?.prompt ?? fallback?.prompt);
+  const temperature = normalizeTemperature(
+    input?.temperature ?? fallback?.temperature,
+  );
+  const maxTokens = normalizeMaxTokens(
+    input?.maxTokens ?? fallback?.maxTokens,
+    providerId ?? fallback?.id,
+  );
+
+  return { prompt, temperature, maxTokens };
+}
+
+function sanitizeApiKeyHints(
+  input: Partial<Record<AiProviderId, string>> | undefined,
+  providers: Partial<Record<AiProviderId, AiProviderConfig>>,
+): Partial<Record<AiProviderId, string>> {
+  if (!input) return {};
+  const hints: Partial<Record<AiProviderId, string>> = {};
+  for (const [key, value] of Object.entries(input)) {
+    const providerId = key as AiProviderId;
+    if (!providers[providerId]) continue;
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    hints[providerId] = trimmed;
+  }
+  return hints;
 }

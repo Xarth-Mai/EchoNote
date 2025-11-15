@@ -23,11 +23,11 @@ static STORE: Lazy<Mutex<HashMap<String, EntryRecord>>> = Lazy::new(|| {
 });
 static STORAGE_LAYOUT: OnceCell<StorageLayout> = OnceCell::new();
 const ENTRY_METADATA_EVENT: &str = "entry-metadata-updated";
-const AI_NOT_CONFIGURED_SUMMARY: &str = "AI 功能未配置";
+const EMPTY_ENTRY_SUMMARY: &str = "空白日记";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
 const DEFAULT_MODEL: &str = "gpt-5.1-mini";
 const DATE_FORMAT: &str = "%Y-%m-%d";
-const DEFAULT_PROMPT: &str = "请阅读用户的 Markdown 日记，仅输出 JSON：{\"emoji\":\"<emoji>\",\"summary\":\"<不超过60字的摘要>\"}；emoji 贴合情绪或主题且只有一个符号，不含其它文字；summary 完全沿用作者视角与语言，保持事实准确且不得编造内容。";
+const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules. You may adjust tone, focus, or preference here if needed.";
 const DEFAULT_TEMPERATURE: f32 = 0.3;
 const DEFAULT_API_BASE: &str = "https://api.openai.com/v1";
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
@@ -141,11 +141,7 @@ pub fn save_entry_by_date(
     let ai_summary_text = if ai_payload.is_some() {
         AI_PENDING_SUMMARY.to_string()
     } else {
-        existing_summary
-            .as_ref()
-            .and_then(|entry| entry.ai_summary.clone())
-            .or_else(|| summarize_body(&body))
-            .unwrap_or_else(|| AI_NOT_CONFIGURED_SUMMARY.to_string())
+        summarize_body(&body).unwrap_or_else(|| EMPTY_ENTRY_SUMMARY.to_string())
     };
 
     let summary = build_summary(
@@ -236,19 +232,22 @@ pub async fn list_ai_models(
     }
 }
 
-fn build_summary_prompt(body: &str, custom_prompt: Option<&str>) -> Vec<OpenAiMessage> {
-    let system_prompt = custom_prompt.unwrap_or(DEFAULT_PROMPT);
+fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<OpenAiMessage> {
+    let user_custom = custom_prompt.unwrap_or(DEFAULT_PROMPT);
+
+    let system_prompt = format!(
+        r#"Output only JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.Rules: emoji = 1 symbol; summary must use the diary author's language and writing style; no fabrication; JSON only.Diary: {}"#,
+        body.as_ref()
+    );
+
     vec![
         OpenAiMessage {
-            role: "system".to_string(),
-            content: system_prompt.to_string(),
+            role: "system".into(),
+            content: system_prompt,
         },
         OpenAiMessage {
-            role: "user".to_string(),
-            content: format!(
-                "请围绕以下日记内容生成一句话摘要（限制 60 字以内）：\n{}",
-                body
-            ),
+            role: "user".into(),
+            content: user_custom.into(),
         },
     ]
 }

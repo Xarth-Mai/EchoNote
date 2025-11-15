@@ -56,9 +56,17 @@ export interface AiProviderConfig {
   suffix?: string;
 }
 
+export interface AiAdvancedSettings {
+  prompt: string;
+  temperature: number;
+  maxTokens: number;
+}
+
 export interface AiSettingsState {
   activeProviderId: AiProviderId;
   providers: Partial<Record<AiProviderId, AiProviderConfig>>;
+  advanced: AiAdvancedSettings;
+  apiKeyHints: Partial<Record<AiProviderId, string>>;
 }
 
 export interface AiInvokePayload {

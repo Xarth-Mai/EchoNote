@@ -40,6 +40,7 @@
         chatgpt: 0,
         deepseek: 1,
     };
+    const API_KEY_PLACEHOLDER = "sk-xxxxxxxxxxxxxxxx";
 
     let aiState: AiSettingsState = sanitizeState(loadAiSettingsState());
     let activeProviderId: AiProviderId = aiState.activeProviderId;
@@ -47,12 +48,13 @@
     let currentProvider: AiProviderConfig = getCurrentProvider();
     let providerModels: Partial<Record<AiProviderId, string[]>> = {};
     let formBaseUrl = "";
-    let formApiKey = "";
+    let formApiKey = getStoredApiKeyPlaceholder(activeProviderId);
     let formModel = "";
-    let formPrompt = DEFAULT_AI_PROMPT;
-    let formTemperature = String(DEFAULT_TEMPERATURE);
-    let formMaxTokens = String(getDefaultMaxTokens(activeProviderId));
-    let statusBanner: { text: string; tone: "ok" | "error" } | null = null;
+    let formPrompt = aiState.advanced.prompt;
+    let formTemperature = String(aiState.advanced.temperature);
+    let formMaxTokens = String(aiState.advanced.maxTokens);
+    let statusBanner: { text: string; tone: "ok" | "error" | "info" } | null =
+        null;
     let savingBasic = false;
     let savingAdvanced = false;
     let loadingModels = false;
@@ -61,6 +63,8 @@
     let modelOptions: string[] = [];
     let advancedOpen = false;
     let apiKeyDirty = false;
+    let basicDirty = false;
+    let advancedDirty = false;
     let unsafeConfirmTarget: { baseUrl: string; warnings: string[] } | null =
         null;
 
@@ -94,6 +98,19 @@
         : unsafeConfirmActive
           ? "确认风险后保存"
           : "保存基础设置";
+    $: showAiForm = activeProviderId !== "noai";
+    $: if (!showAiForm) {
+        advancedOpen = false;
+    }
+    $: hasUnsavedChanges = basicDirty || advancedDirty || apiKeyDirty;
+    $: displayedStatusBanner =
+        statusBanner ??
+        (hasUnsavedChanges ? { tone: "info", text: "存在未保存的更改" } : null);
+    $: if (!advancedDirty) {
+        formPrompt = aiState.advanced.prompt;
+        formTemperature = String(aiState.advanced.temperature);
+        formMaxTokens = String(aiState.advanced.maxTokens);
+    }
 
     function getCurrentProvider(): AiProviderConfig {
         return (
@@ -109,16 +126,30 @@
         currentProvider = getCurrentProvider();
         const provider = currentProvider;
         formBaseUrl = provider.baseUrl;
-        formApiKey = "";
+        formApiKey = getStoredApiKeyPlaceholder(provider.id);
         formModel = provider.model ?? "";
-        formPrompt = provider.prompt ?? DEFAULT_AI_PROMPT;
-        formTemperature = String(provider.temperature ?? DEFAULT_TEMPERATURE);
-        formMaxTokens = String(
-            provider.maxTokens ?? getDefaultMaxTokens(provider.id),
-        );
         apiKeyDirty = false;
         unsafeConfirmTarget = null;
         void hydrateProviderFromBackend();
+    }
+
+    function hasStoredApiKey(providerId: AiProviderId): boolean {
+        return Boolean(aiState.apiKeyHints?.[providerId]);
+    }
+
+    function getStoredApiKeyPlaceholder(providerId: AiProviderId): string {
+        return hasStoredApiKey(providerId) ? API_KEY_PLACEHOLDER : "";
+    }
+
+    function setStoredApiKeyFlag(
+        providerId: AiProviderId,
+        hasKey: boolean,
+    ): void {
+        if (!hasKey) {
+            delete aiState.apiKeyHints[providerId];
+            return;
+        }
+        aiState.apiKeyHints[providerId] = API_KEY_PLACEHOLDER;
     }
 
     async function hydrateProviderFromBackend(): Promise<void> {
@@ -226,6 +257,17 @@
         statusBanner = null;
         unsafeConfirmTarget = null;
         syncFormWithProvider();
+        basicDirty = true;
+    }
+
+    function markBasicDirty(): void {
+        basicDirty = true;
+        statusBanner = null;
+    }
+
+    function markAdvancedDirty(): void {
+        advancedDirty = true;
+        statusBanner = null;
     }
 
     async function fetchModels(): Promise<void> {
@@ -291,13 +333,14 @@
         formBaseUrl = value;
         provider.baseUrl = value;
         unsafeConfirmTarget = null;
-        statusBanner = null;
+        markBasicDirty();
     }
 
     function handleApiKeyInput(event: Event): void {
         const value = (event.currentTarget as HTMLInputElement).value;
         formApiKey = value;
         apiKeyDirty = true;
+        markBasicDirty();
     }
 
     function handleModelChange(event: Event): void {
@@ -305,35 +348,25 @@
         formModel = value;
         const provider = getCurrentProvider();
         provider.model = value;
+        markBasicDirty();
     }
 
     function handlePromptInput(event: Event): void {
         const value = (event.currentTarget as HTMLTextAreaElement).value;
         formPrompt = value;
-        const provider = getCurrentProvider();
-        provider.prompt = value;
+        markAdvancedDirty();
     }
 
     function handleTemperatureInput(event: Event): void {
         const value = (event.currentTarget as HTMLInputElement).value;
         formTemperature = value;
-        const numeric = Number(value);
-        const provider = getCurrentProvider();
-        provider.temperature =
-            Number.isFinite(numeric) && numeric >= 0
-                ? parseFloat(value)
-                : undefined;
+        markAdvancedDirty();
     }
 
     function handleMaxTokensInput(event: Event): void {
         const value = (event.currentTarget as HTMLInputElement).value;
         formMaxTokens = value;
-        const numeric = Number(value);
-        const provider = getCurrentProvider();
-        provider.maxTokens =
-            Number.isFinite(numeric) && numeric > 0
-                ? Math.floor(numeric)
-                : undefined;
+        markAdvancedDirty();
     }
 
     function addCustomProvider(): void {
@@ -377,10 +410,14 @@
 
         const nextProviders = { ...aiState.providers };
         delete nextProviders[activeProviderId];
+        const nextHints = { ...aiState.apiKeyHints };
+        delete nextHints[activeProviderId];
 
         aiState = sanitizeState({
             activeProviderId: "noai",
             providers: nextProviders as Record<AiProviderId, AiProviderConfig>,
+            advanced: aiState.advanced,
+            apiKeyHints: nextHints as Partial<Record<AiProviderId, string>>,
         });
         activeProviderId = aiState.activeProviderId;
         providerModels = {};
@@ -394,10 +431,7 @@
         formPrompt = DEFAULT_AI_PROMPT;
         formTemperature = String(DEFAULT_TEMPERATURE);
         formMaxTokens = String(defaults);
-        const provider = getCurrentProvider();
-        provider.prompt = DEFAULT_AI_PROMPT;
-        provider.temperature = DEFAULT_TEMPERATURE;
-        provider.maxTokens = defaults;
+        markAdvancedDirty();
         void handleAdvancedSave(true, "已恢复高级设置默认值");
     }
 
@@ -409,9 +443,25 @@
         const trimmed = formApiKey.trim();
         if (!trimmed) {
             await deleteProviderApiKey(provider.id);
+            setStoredApiKeyFlag(provider.id, false);
+            formApiKey = "";
+            apiKeyDirty = false;
+            return;
+        }
+        if (trimmed === API_KEY_PLACEHOLDER) {
+            if (hasStoredApiKey(provider.id)) {
+                apiKeyDirty = false;
+                formApiKey = API_KEY_PLACEHOLDER;
+                return;
+            }
+            statusBanner = { tone: "error", text: "请输入有效 API Key" };
+            formApiKey = "";
+            apiKeyDirty = false;
             return;
         }
         await storeProviderApiKey(provider.id, trimmed);
+        setStoredApiKeyFlag(provider.id, true);
+        formApiKey = API_KEY_PLACEHOLDER;
         apiKeyDirty = false;
     }
 
@@ -428,6 +478,7 @@
                 savingBasic = true;
                 aiState.activeProviderId = provider.id;
                 saveAiSettingsState(aiState);
+                basicDirty = false;
                 if (showBanner) {
                     statusBanner = { tone: "ok", text: "已关闭 AI" };
                 }
@@ -487,11 +538,9 @@
             }
             await persistCurrentApiKey(provider);
             saveAiSettingsState(aiState);
+            basicDirty = false;
             if (showBanner) {
                 statusBanner = { tone: "ok", text: "基础配置已保存" };
-                setTimeout(() => {
-                    statusBanner = null;
-                }, 2000);
             }
         } catch (error) {
             console.error("保存基础配置失败", error);
@@ -516,17 +565,15 @@
 
         try {
             savingAdvanced = true;
-            provider.prompt = formPrompt || DEFAULT_AI_PROMPT;
-            provider.temperature =
+            aiState.advanced.prompt = formPrompt || DEFAULT_AI_PROMPT;
+            aiState.advanced.temperature =
                 Number(formTemperature) || DEFAULT_TEMPERATURE;
-            provider.maxTokens =
+            aiState.advanced.maxTokens =
                 Number(formMaxTokens) || getDefaultMaxTokens(activeProviderId);
             saveAiSettingsState(aiState);
+            advancedDirty = false;
             if (showBanner) {
                 statusBanner = { tone: "ok", text: message };
-                setTimeout(() => {
-                    statusBanner = null;
-                }, 2000);
             }
         } catch (error) {
             console.error("保存高级设置失败", error);
@@ -608,127 +655,135 @@
                         </select>
                     </label>
 
-                    <label class="settings__field">
-                        <span>Base URL</span>
-                        <input
-                            type="text"
-                            placeholder="https://api.openai.com/v1"
-                            bind:value={formBaseUrl}
-                            on:input={handleBaseInput}
-                            disabled={!currentProvider.editable}
-                        />
-                        {#if !currentProvider.editable}
-                            <small class="settings__hint">
-                                该提供商使用固定 Base URL
-                            </small>
-                        {:else}
-                            <small class="settings__hint">
-                                例如 https://api.openai.com/v1
-                            </small>
-                        {/if}
-                    </label>
+                    {#if showAiForm}
+                        <label class="settings__field">
+                            <span>Base URL</span>
+                            <input
+                                type="text"
+                                placeholder="https://api.openai.com/v1"
+                                bind:value={formBaseUrl}
+                                on:input={handleBaseInput}
+                                disabled={!currentProvider.editable}
+                            />
+                            {#if !currentProvider.editable}
+                                <small class="settings__hint">
+                                    该提供商使用固定 Base URL
+                                </small>
+                            {:else}
+                                <small class="settings__hint">
+                                    例如 https://api.openai.com/v1
+                                </small>
+                            {/if}
+                        </label>
 
-                    <label class="settings__field">
-                        <span>API Key</span>
-                        <input
-                            type="password"
-                            autocomplete="off"
-                            placeholder="sk-..."
-                            bind:value={formApiKey}
-                            on:input={handleApiKeyInput}
-                            disabled={currentProvider.id === "noai"}
-                        />
-                        <small class="settings__hint">
-                            保存后密钥将加密存储于后端，不会在前端回显。
-                        </small>
-                    </label>
+                        <label class="settings__field">
+                            <span>API Key</span>
+                            <input
+                                type="password"
+                                autocomplete="off"
+                                placeholder="sk-..."
+                                bind:value={formApiKey}
+                                on:input={handleApiKeyInput}
+                            />
+                            <small class="settings__hint">
+                                保存后密钥将加密存储于后端，不会在前端回显。若未填写则复用已保存的密钥。
+                            </small>
+                        </label>
 
-                    <label class="settings__field">
-                        <span>默认模型</span>
-                        <div class="settings__model-row">
-                            <select
-                                bind:value={formModel}
-                                on:change={handleModelChange}
-                                disabled={modelOptions.length === 0 ||
-                                    currentProvider.id === "noai"}
-                            >
-                                {#if modelOptions.length === 0}
-                                    <option value="">请先获取模型列表</option>
-                                {/if}
-                                {#each modelOptions as model}
-                                    <option value={model}>{model}</option>
-                                {/each}
-                            </select>
+                        <label class="settings__field">
+                            <span>默认模型</span>
+                            <div class="settings__model-row">
+                                <select
+                                    bind:value={formModel}
+                                    on:change={handleModelChange}
+                                    disabled={modelOptions.length === 0}
+                                >
+                                    {#if modelOptions.length === 0}
+                                        <option value=""
+                                            >请先获取模型列表</option
+                                        >
+                                    {/if}
+                                    {#each modelOptions as model}
+                                        <option value={model}>{model}</option>
+                                    {/each}
+                                </select>
+                                <button
+                                    type="button"
+                                    class="btn btn--ghost"
+                                    on:click={fetchModels}
+                                    disabled={loadingModels}
+                                >
+                                    {loadingModels ? "拉取中..." : "刷新模型"}
+                                </button>
+                            </div>
+                            <small class="settings__hint">
+                                推荐使用 Chat 模型，如 gpt-5.1-mini
+                            </small>
+                        </label>
+
+                        <div class="settings__advanced-toggle">
+                            <span>高级设置</span>
                             <button
                                 type="button"
                                 class="btn btn--ghost"
-                                on:click={fetchModels}
-                                disabled={loadingModels ||
-                                    currentProvider.id === "noai"}
+                                on:click={() => (advancedOpen = !advancedOpen)}
                             >
-                                {loadingModels ? "拉取中..." : "刷新模型"}
+                                {advancedOpen ? "隐藏" : "显示"}高级设置
                             </button>
                         </div>
-                        <small class="settings__hint">
-                            若未填写则复用已保存的密钥。
-                        </small>
-                    </label>
 
-                    <div class="settings__advanced-toggle">
-                        <span>高级设置</span>
-                        <button
-                            type="button"
-                            class="btn btn--ghost"
-                            on:click={() => (advancedOpen = !advancedOpen)}
-                        >
-                            {advancedOpen ? "隐藏" : "显示"}高级设置
-                        </button>
-                    </div>
+                        {#if advancedOpen}
+                            <label class="settings__field">
+                                <span>自定义 Prompt</span>
+                                <textarea
+                                    rows="4"
+                                    bind:value={formPrompt}
+                                    on:input={handlePromptInput}
+                                ></textarea>
+                                <small class="settings__hint">
+                                    推理模型通常耗时高且价值有限，可沿用该提示词。
+                                </small>
+                            </label>
 
-                    {#if advancedOpen}
-                        <label class="settings__field">
-                            <span>自定义 Prompt</span>
-                            <textarea
-                                rows="4"
-                                bind:value={formPrompt}
-                                on:input={handlePromptInput}
-                            ></textarea>
-                            <small class="settings__hint">
-                                默认为“{DEFAULT_AI_PROMPT}”。推理模型通常耗时高且价值有限，可沿用该提示词。
-                            </small>
-                        </label>
+                            <label class="settings__field">
+                                <span>温度（0-1）</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="2"
+                                    step="0.05"
+                                    placeholder="例如 0.3"
+                                    bind:value={formTemperature}
+                                    on:input={handleTemperatureInput}
+                                />
+                                <small class="settings__hint">
+                                    推荐值：Chat 模型约 0.3。温度越高越发散。
+                                </small>
+                            </label>
 
-                        <label class="settings__field">
-                            <span>温度（0-1）</span>
-                            <input
-                                type="number"
-                                min="0"
-                                max="2"
-                                step="0.05"
-                                placeholder="例如 0.3"
-                                bind:value={formTemperature}
-                                on:input={handleTemperatureInput}
-                            />
-                            <small class="settings__hint">
-                                推荐值：Chat 模型约 0.3。温度越高越发散。
-                            </small>
-                        </label>
+                            <label class="settings__field">
+                                <span>最大输出 Tokens</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="例如 60 或 2048"
+                                    bind:value={formMaxTokens}
+                                    on:input={handleMaxTokensInput}
+                                />
+                                <small class="settings__hint">
+                                    建议：Chat 模型约 60；推理模型约
+                                    2048（但多数场景并不值得启用推理模型）。
+                                </small>
+                            </label>
+                        {/if}
+                    {:else}
+                        <p class="settings__placeholder">
+                            当前已关闭 AI，若需开启请在上方选择其他提供商。
+                        </p>
+                    {/if}
 
-                        <label class="settings__field">
-                            <span>最大输出 Tokens</span>
-                            <input
-                                type="number"
-                                min="1"
-                                placeholder="例如 60 或 2048"
-                                bind:value={formMaxTokens}
-                                on:input={handleMaxTokensInput}
-                            />
-                            <small class="settings__hint">
-                                建议：Chat 模型约 60；推理模型约
-                                2048（但多数场景并不值得启用推理模型）。
-                            </small>
-                        </label>
-                        <div class="settings__actions">
+                    <div class="settings__actions settings__actions--inline">
+                        {#if showAiForm && advancedOpen}
                             <button
                                 type="button"
                                 class="btn btn--primary"
@@ -741,13 +796,11 @@
                                 type="button"
                                 class="btn btn--ghost"
                                 on:click={resetAdvancedSettings}
+                                disabled={savingAdvanced}
                             >
                                 恢复高级设置默认值并保存
                             </button>
-                        </div>
-                    {/if}
-
-                    <div class="settings__actions">
+                        {/if}
                         <button
                             type="button"
                             class="btn"
@@ -758,7 +811,7 @@
                         >
                             {basicSaveLabel}
                         </button>
-                        {#if activeProviderId.startsWith("openai-custom-")}
+                        {#if showAiForm && activeProviderId.startsWith("openai-custom-")}
                             <button
                                 type="button"
                                 class="btn btn--ghost"
@@ -767,18 +820,22 @@
                                 删除当前自定义接口
                             </button>
                         {/if}
-                        {#if statusBanner}
+                    </div>
+                    {#if displayedStatusBanner}
+                        <div class="settings__status-row">
                             <span
                                 class="settings__status"
-                                class:settings__status--ok={statusBanner.tone ===
+                                class:settings__status--ok={displayedStatusBanner.tone ===
                                     "ok"}
-                                class:settings__status--error={statusBanner.tone ===
+                                class:settings__status--error={displayedStatusBanner.tone ===
                                     "error"}
+                                class:settings__status--info={displayedStatusBanner.tone ===
+                                    "info"}
                             >
-                                {statusBanner.text}
+                                {displayedStatusBanner.text}
                             </span>
-                        {/if}
-                    </div>
+                        </div>
+                    {/if}
                 </form>
 
                 <div class="settings__custom">
@@ -938,6 +995,14 @@
         flex-wrap: wrap;
     }
 
+    .settings__actions--inline {
+        gap: 0.5rem;
+    }
+
+    .settings__status-row {
+        margin-top: 0.35rem;
+    }
+
     .settings__status {
         font-size: 0.85rem;
     }
@@ -948,6 +1013,10 @@
 
     .settings__status--error {
         color: var(--color-danger, #d64545);
+    }
+
+    .settings__status--info {
+        color: var(--color-text-muted);
     }
 
     .settings__hint {
@@ -969,5 +1038,13 @@
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 0.75rem;
         align-items: end;
+    }
+
+    .settings__placeholder {
+        padding: 0.85rem;
+        border-radius: var(--radius-sm);
+        background-color: var(--color-surface-card, rgba(0, 0, 0, 0.04));
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
     }
 </style>

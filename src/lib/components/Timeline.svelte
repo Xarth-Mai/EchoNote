@@ -327,6 +327,8 @@
 
     .timeline__summary-text {
         flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .timeline__emoji {
