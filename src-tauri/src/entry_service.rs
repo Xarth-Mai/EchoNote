@@ -83,9 +83,12 @@ pub fn get_entry_body_by_date(app: AppHandle, date: String) -> Result<Option<Str
         let store = STORE
             .lock()
             .map_err(|_| "failed to lock in-memory store".to_string())?;
-        store
-            .get(&normalized_date)
-            .map(|record| record.body().to_string())
+        store.get(&normalized_date).and_then(|record| {
+            // 仅当缓存正文与摘要内的 hash 一致时复用，避免月度索引只加载 frontmatter 导致正文为空。
+            let cached_body = record.body();
+            (fingerprint(cached_body) == record.summary().hash)
+                .then(|| cached_body.to_string())
+        })
     } {
         return Ok(Some(body));
     }

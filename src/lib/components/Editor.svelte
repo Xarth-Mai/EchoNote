@@ -1,7 +1,7 @@
 <script lang="ts">
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
-    import { onDestroy } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import {
         getEntryBody,
         listEntriesByMonth,
@@ -138,10 +138,14 @@
         }
     }
 
-    async function ensureBodyLoaded(date: string): Promise<void> {
-        if (!date || loadingDate === date) return;
+    async function ensureBodyLoaded(
+        date: string,
+        options: { force?: boolean } = {},
+    ): Promise<void> {
+        const { force = false } = options;
+        if (!browser || !date || loadingDate === date) return;
         const { currentBody: bodyInState } = getState();
-        if (lastLoadedDate === date && bodyInState !== null) return;
+        if (!force && lastLoadedDate === date && bodyInState !== null) return;
 
         loadingDate = date;
         try {
@@ -158,6 +162,13 @@
             loadingDate = null;
         }
     }
+
+    onMount(() => {
+        const initialDate = currentDate || getState().currentDate;
+        if (initialDate) {
+            void ensureBodyLoaded(initialDate, { force: true });
+        }
+    });
 
     onDestroy(() => {
         void flushAutoSave();
