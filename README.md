@@ -1,49 +1,78 @@
 # EchoNote 🪞
 
-*EchoNote（回声记）— A minimal intelligent bilingual diary & writing app powered by LLM.*
+*EchoNote — a minimal, LLM-powered, multilingual journaling and writing app.*
 
-English | [中文](./README_CN.md)
+English | [简体中文](./README.zhs.md) | [繁體中文](./README.zht.md) | [日本語](./README.jp.md)
 
 ---
 
-EchoNote provides an elegant, distraction-free writing experience. It combines AI assistance for expression, reflection, and summarization while maintaining full offline capabilities.
+EchoNote focuses on an elegant, distraction-free writing experience with **AI-assisted writing and reflection** at its core. You can journal in any language, store everything as local Markdown files, and then ask AI to summarize, polish, or translate your entries.
+
+---
+
+## 🤖 AI Capabilities
+
+- **AI journaling assistant**
+  - Chat with AI / continue writing to generate a full-day journal
+  - Real-time spellchecking and grammar hints
+  - Whole-line smart completion and sentence-level semantic suggestions
+  - Post-writing analysis with revision suggestions
+
+- **Multilingual writing & translation**
+  - Write in multiple languages (not limited to Chinese and English)
+  - AI summaries try to preserve the original language and tone
+  - Built-in translation workflow that works well as a language-learning partner
+
+- **AI summaries & review**
+  - Generate an emoji + concise summary for each day
+  - Quickly review your recent days from the timeline view
 
 ---
 
 ## ✨ Features
 
-### 📝 Smart Journal Editor
+### 📝 Calendar editor
 
-- **Rich Markdown Support**
-  - Real-time syntax highlighting & inline formatting
-  - Auto-save functionality
-  - Support for headings, lists, code blocks, quotes, etc.
+- **Rich Markdown support**
+  - Live syntax highlighting and inline formatting
+  - Auto-save while you write
+  - Support for headings, lists, code blocks, blockquotes, and more
 
-- **AI-Assisted Writing**
-  - Real-time spelling & grammar error detection with lightweight hints
-  - Tab key to accept suggestions
-  - Auto-completion & semantic prompts (sentence-level)
-  - Optional translation hints when selecting text
+### 📅 Writing calendar & timeline
 
-- **AI Summary & Analysis**
-  - Automatic analysis after writing completion
-  - Grammar & logic corrections (when necessary)
-  - Generates: writing summary, emotion analysis, keyword extraction
-  - Saves to front matter's `ai_summary` field
+- **Calendar**
+  - Visual calendar showing per-day emoji and writing status
 
-### 📅 Creation Calendar & Timeline
+- **Timeline**
+  - Linear preview of recent entries plus AI summaries
 
-- **Calendar Component**
-  - Visual calendar view showing each day's emoji and writing status
-  - Click any date to view the corresponding entry
+### 🌐 Multilingual support
 
-- **Timeline Component**
-  - Displays recent diary entries together with their AI summaries
+- Learn to write in different languages with the help of translation
+- AI summaries keep the same language and perspective as the original text where possible
 
-### 🖥️ Cross-Platform Support
+### 🖥️ Cross-platform
 
 - **Desktop**: Windows, macOS, Linux
 - **Mobile**: Android, iOS, iPadOS
+
+---
+
+## 🧠 Multiple AI API Providers
+
+EchoNote works with multiple OpenAI-compatible APIs, and you can choose or disable AI as needed:
+
+- [x] ChatGPT (OpenAI API)
+- [x] DeepSeek
+- [x] Custom OpenAI-compatible providers (configure `baseUrl` in Settings)
+- [x] No AI (pure local Markdown writing mode)
+- [ ] Claude (Anthropic)
+- [ ] Azure OpenAI
+- [ ] Gemini (Google)
+- [ ] Cloudflare
+- [ ] Others
+
+> You can switch the active provider in **Settings**, or add custom configurations for any compatible service.
 
 ---
 
@@ -56,17 +85,16 @@ EchoNote provides an elegant, distraction-free writing experience. It combines A
 
 ```bash
 bun install
-bun tuari dev
+bun run dev          # Start web dev server
+bun run tauri dev    # Start desktop shell (after `bun run build`)
 ```
 
-## 🎯 Core Principles
+## 🎯 Principles
 
-- **Minimal Writing**: Clean interface that doesn't distract from creativity
-- **AI Assistance**: Non-intrusive intelligent corrections and summaries
-- **Data Ownership**: All diaries are Markdown files that can be opened directly and backed up
-- **Consistent Cross-Platform Experience**: Same interface logic across desktop platforms
-
----
+- **Minimal writing experience**: clean UI that stays out of your way
+- **AI as assistant**: non-intrusive suggestions and summaries
+- **Data ownership**: all entries are plain Markdown files, easy to open and back up
+- **Consistent cross-platform UX**: same layout and flows across desktop platforms
 
 ## 📄 License
 
