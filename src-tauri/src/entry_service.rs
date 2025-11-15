@@ -489,7 +489,8 @@ fn sanitize_api_base_url(raw: Option<String>) -> Result<String, String> {
         .host_str()
         .ok_or_else(|| "AI base URL is missing host".to_string())?;
 
-    Ok(parsed.into_string().trim_end_matches('/').to_string())
+    let url_string: String = parsed.into();
+    Ok(url_string.trim_end_matches('/').to_string())
 }
 
 fn prune_store_capacity(store: &mut HashMap<String, EntryRecord>) {
