@@ -84,10 +84,6 @@
         setCalendarExpanded(!calendarExpanded);
     }
 
-    function getEntry(date: Date): DiaryEntry | null {
-        return summaries.get(formatDate(date)) ?? null;
-    }
-
     function getCellClasses(
         date: Date,
         entry: DiaryEntry | null,
@@ -239,7 +235,7 @@
                 {#each topWeeks as week, index (getWeekKey(week, index))}
                     <div class="calendar__grid">
                         {#each week as date (formatDate(date))}
-                            {@const entry = getEntry(date)}
+                            {@const entry = summaries.get(formatDate(date)) ?? null}
                             <button
                                 type="button"
                                 class={getCellClasses(date, entry, currentDate)}
@@ -249,12 +245,7 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry?.emoji}
-                                    <span class="date-cell__emoji"
-                                        >{entry.emoji}</span
-                                    >
-                                {/if}
-                                {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                {#if entry}
                                     <span class="entry-dot" aria-hidden="true"
                                     ></span>
                                 {/if}
@@ -267,7 +258,7 @@
 
         <div class="calendar__grid calendar__grid--featured" aria-live="polite">
             {#each selectedWeek as date (formatDate(date))}
-                {@const entry = getEntry(date)}
+                {@const entry = summaries.get(formatDate(date)) ?? null}
                 <button
                     type="button"
                     class={getCellClasses(date, entry, currentDate)}
@@ -276,10 +267,7 @@
                     on:click={() => handleDateClick(date)}
                 >
                     <span class="date-cell__value">{date.getDate()}</span>
-                    {#if entry?.emoji}
-                        <span class="date-cell__emoji">{entry.emoji}</span>
-                    {/if}
-                    {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                    {#if entry}
                         <span class="entry-dot" aria-hidden="true"></span>
                     {/if}
                 </button>
@@ -296,7 +284,7 @@
                 {#each bottomWeeks as week, index (getWeekKey(week, index + topWeeks.length + 1))}
                     <div class="calendar__grid">
                         {#each week as date (formatDate(date))}
-                            {@const entry = getEntry(date)}
+                            {@const entry = summaries.get(formatDate(date)) ?? null}
                             <button
                                 type="button"
                                 class={getCellClasses(date, entry, currentDate)}
@@ -306,12 +294,7 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry?.emoji}
-                                    <span class="date-cell__emoji"
-                                        >{entry.emoji}</span
-                                    >
-                                {/if}
-                                {#if entry && !isToday(date) && formatDate(date) !== currentDate}
+                                {#if entry}
                                     <span class="entry-dot" aria-hidden="true"
                                     ></span>
                                 {/if}
@@ -451,11 +434,6 @@
 
     .date-cell__value {
         font-weight: 600;
-    }
-
-    .date-cell__emoji {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
     }
 
     .calendar__toggle {
