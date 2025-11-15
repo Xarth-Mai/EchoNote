@@ -245,9 +245,10 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry}
-                                    <span class="entry-dot" aria-hidden="true"
-                                    ></span>
+                                {#if entry?.emoji}
+                                    <span class="date-cell__emoji"
+                                        >{entry.emoji}</span
+                                    >
                                 {/if}
                             </button>
                         {/each}
@@ -267,8 +268,8 @@
                     on:click={() => handleDateClick(date)}
                 >
                     <span class="date-cell__value">{date.getDate()}</span>
-                    {#if entry}
-                        <span class="entry-dot" aria-hidden="true"></span>
+                    {#if entry?.emoji}
+                        <span class="date-cell__emoji">{entry.emoji}</span>
                     {/if}
                 </button>
             {/each}
@@ -294,9 +295,10 @@
                                 <span class="date-cell__value"
                                     >{date.getDate()}</span
                                 >
-                                {#if entry}
-                                    <span class="entry-dot" aria-hidden="true"
-                                    ></span>
+                                {#if entry?.emoji}
+                                    <span class="date-cell__emoji"
+                                        >{entry.emoji}</span
+                                    >
                                 {/if}
                             </button>
                         {/each}
@@ -425,15 +427,13 @@
         color: var(--color-text);
     }
 
-    .entry-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--color-success);
-    }
-
     .date-cell__value {
         font-weight: 600;
+    }
+
+    .date-cell__emoji {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
     }
 
     .calendar__toggle {

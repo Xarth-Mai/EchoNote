@@ -52,6 +52,14 @@ struct ChatCompletionPayload {
     temperature: Option<f32>,
     #[serde(rename = "max_tokens", skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<ResponseFormatPayload>,
+}
+
+#[derive(Debug, Serialize)]
+struct ResponseFormatPayload {
+    #[serde(rename = "type")]
+    kind: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -123,6 +131,9 @@ pub async fn invoke_chat_completion(
         messages: request.messages,
         temperature: request.temperature,
         max_tokens: request.max_tokens,
+        response_format: Some(ResponseFormatPayload {
+            kind: "json_object".to_string(),
+        }),
     };
 
     let response = HTTP_CLIENT

@@ -1,5 +1,6 @@
 //! Diary domain services: storage, caching, and AI summary orchestration.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -26,7 +27,7 @@ const AI_NOT_CONFIGURED_SUMMARY: &str = "AI 功能未配置";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
 const DEFAULT_MODEL: &str = "gpt-5.1-mini";
 const DATE_FORMAT: &str = "%Y-%m-%d";
-const DEFAULT_PROMPT: &str = "格式`$emoji: summary`；emoji贴合情绪/主题；语言与风格完全跟随正文作者；不得虚构内容；保持视角一致；仅精炼压缩正文。";
+const DEFAULT_PROMPT: &str = "请阅读用户的 Markdown 日记，仅输出 JSON：{\"emoji\":\"<emoji>\",\"summary\":\"<不超过60字的摘要>\"}；emoji 贴合情绪或主题且只有一个符号，不含其它文字；summary 完全沿用作者视角与语言，保持事实准确且不得编造内容。";
 const DEFAULT_TEMPERATURE: f32 = 0.3;
 const DEFAULT_API_BASE: &str = "https://api.openai.com/v1";
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
@@ -368,7 +369,11 @@ async fn regenerate_entry_metadata(
     expected_hash: String,
 ) -> Result<(), String> {
     let layout = storage_layout(&app)?;
-    let summary_text = request_ai_summary(&app, &ai, &body).await?;
+    let summary_payload = request_ai_summary(&app, &ai, &body).await?;
+    let AiSummaryResult {
+        summary: ai_summary,
+        emoji: ai_emoji,
+    } = summary_payload;
 
     let (updated_summary, persisted_body) = {
         let mut store = STORE
@@ -383,7 +388,10 @@ async fn regenerate_entry_metadata(
         }
 
         let mut summary = record.summary().clone();
-        summary.ai_summary = Some(summary_text);
+        summary.ai_summary = Some(ai_summary);
+        if let Some(new_emoji) = ai_emoji {
+            summary.emoji = Some(new_emoji);
+        }
         summary.language = detect_language(&body);
 
         record.update(summary.clone(), body.clone());
@@ -401,7 +409,7 @@ async fn request_ai_summary(
     app: &AppHandle,
     ai: &AiInvokePayload,
     body: &str,
-) -> Result<String, String> {
+) -> Result<AiSummaryResult, String> {
     let provider_id = ai
         .provider_id
         .as_ref()
@@ -427,7 +435,117 @@ async fn request_ai_summary(
     };
 
     let response = openai::invoke_chat_completion(request, model, &api_key, &api_base).await?;
-    Ok(response.content.trim().to_string())
+    Ok(parse_ai_summary_response(&response.content))
+}
+
+#[derive(Debug, Clone)]
+struct AiSummaryResult {
+    summary: String,
+    emoji: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AiSummaryJsonPayload {
+    summary: Option<String>,
+    emoji: Option<String>,
+}
+
+fn parse_ai_summary_response(raw: &str) -> AiSummaryResult {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return AiSummaryResult {
+            summary: String::new(),
+            emoji: None,
+        };
+    }
+
+    if let Some(result) = parse_ai_summary_json(trimmed) {
+        return result;
+    }
+
+    parse_ai_summary_fallback(trimmed)
+}
+
+fn parse_ai_summary_json(raw: &str) -> Option<AiSummaryResult> {
+    let block = strip_code_fence_block(raw);
+    let payload: AiSummaryJsonPayload = serde_json::from_str(block.as_ref()).ok()?;
+    let summary = sanitize_summary_text(payload.summary, block.as_ref());
+    let emoji = sanitize_emoji_text(payload.emoji);
+    Some(AiSummaryResult { summary, emoji })
+}
+
+fn parse_ai_summary_fallback(raw: &str) -> AiSummaryResult {
+    if let Some((idx, width)) = find_summary_delimiter(raw) {
+        let emoji_candidate = raw[..idx].trim().trim_start_matches('$').trim();
+        let summary_candidate = raw[idx + width..].trim();
+        let summary_text = if summary_candidate.is_empty() {
+            raw
+        } else {
+            summary_candidate
+        };
+        let emoji = sanitize_emoji_text(Some(emoji_candidate.to_string()));
+        return AiSummaryResult {
+            summary: summary_text.to_string(),
+            emoji,
+        };
+    }
+
+    AiSummaryResult {
+        summary: raw.to_string(),
+        emoji: None,
+    }
+}
+
+fn strip_code_fence_block(input: &str) -> Cow<'_, str> {
+    let trimmed = input.trim();
+    if !trimmed.starts_with("```") {
+        return Cow::Borrowed(trimmed);
+    }
+
+    let mut parts = trimmed.splitn(2, '\n');
+    let _ = parts.next();
+    if let Some(rest) = parts.next() {
+        if let Some(end_idx) = rest.rfind("```") {
+            return Cow::Owned(rest[..end_idx].trim().to_string());
+        }
+        return Cow::Owned(rest.trim().to_string());
+    }
+
+    Cow::Borrowed(trimmed)
+}
+
+fn sanitize_summary_text(value: Option<String>, fallback: &str) -> String {
+    value
+        .and_then(|text| {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        })
+        .unwrap_or_else(|| fallback.trim().to_string())
+}
+
+fn sanitize_emoji_text(value: Option<String>) -> Option<String> {
+    value.and_then(|text| {
+        let trimmed = text.trim();
+        let char_count = trimmed.chars().count();
+        if trimmed.is_empty() || char_count > 8 {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn find_summary_delimiter(value: &str) -> Option<(usize, usize)> {
+    for (idx, ch) in value.char_indices() {
+        if ch == ':' || ch == '：' {
+            return Some((idx, ch.len_utf8()));
+        }
+    }
+    None
 }
 
 fn summarize_body(body: &str) -> Option<String> {

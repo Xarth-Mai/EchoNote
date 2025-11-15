@@ -8,7 +8,7 @@ import type {
 
 const STORAGE_KEY = "echonote-ai-settings";
 export const DEFAULT_AI_PROMPT =
-  "格式`$emoji: summary`；emoji贴合情绪/主题；语言与风格完全跟随正文作者；不得虚构内容；保持视角一致；仅精炼压缩正文。";
+  `请阅读用户的 Markdown 日记，仅输出 JSON：{"emoji":"<emoji>","summary":"<不超过60字的摘要>"}；emoji 贴合情绪或主题且只有一个符号，不含其它文字；summary 完全沿用作者视角与语言，保持事实准确且不得编造内容。`;
 
 export const DEFAULT_TEMPERATURE = 0.3;
 
@@ -128,7 +128,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         existing?.model ??
         DEFAULT_MODEL_BY_PROVIDER[key] ??
         DEFAULT_MODEL_BY_PROVIDER.chatgpt,
-      prompt: normalizePrompt(existing?.prompt ?? built.prompt),
+      prompt: normalizePrompt(built.prompt),
       maxTokens: normalizeMaxTokens(existing?.maxTokens, id),
       temperature: normalizeTemperature(existing?.temperature ?? built.temperature),
       type: "builtin",

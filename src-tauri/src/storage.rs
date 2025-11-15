@@ -148,9 +148,8 @@ fn parse_document(document: &str) -> Result<EntryRecord, String> {
 fn read_frontmatter_record(path: &Path) -> Result<EntryRecord, String> {
     let mut file = fs::File::open(path)
         .map_err(|err| format!("failed to open entry {}: {err}", path.display()))?;
-    let mut buffer = Vec::with_capacity(
-        (FRONTMATTER_INITIAL_BYTES + FRONTMATTER_ADDITIONAL_BYTES) as usize,
-    );
+    let mut buffer =
+        Vec::with_capacity((FRONTMATTER_INITIAL_BYTES + FRONTMATTER_ADDITIONAL_BYTES) as usize);
 
     {
         let mut limited = (&mut file).take(FRONTMATTER_INITIAL_BYTES);
@@ -175,8 +174,7 @@ fn read_frontmatter_record(path: &Path) -> Result<EntryRecord, String> {
         ));
     }
 
-    extract_frontmatter(&content)
-        .map(|(summary, _)| EntryRecord::new(summary, String::new()))
+    extract_frontmatter(&content).map(|(summary, _)| EntryRecord::new(summary, String::new()))
 }
 
 fn extract_frontmatter<'a>(document: &'a str) -> Result<(DiaryEntry, &'a str), String> {
