@@ -8,7 +8,7 @@ import type {
 
 const STORAGE_KEY = "echonote-ai-settings";
 export const DEFAULT_AI_PROMPT =
-  "You are an assistant that summarizes diary entries in concise Chinese, optionally referencing emotions if present.";
+  "格式`$emoji: summary`；emoji贴合情绪/主题；语言与风格完全跟随正文作者；不得虚构内容；保持视角一致；仅精炼压缩正文。";
 
 export const DEFAULT_TEMPERATURE = 0.3;
 
@@ -40,7 +40,7 @@ const BUILTIN_PROVIDERS: Record<
     label: "DeepSeek",
     baseUrl: "https://api.deepseek.com",
     prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 2048,
+    maxTokens: 60,
     temperature: DEFAULT_TEMPERATURE,
   },
 };
@@ -162,8 +162,8 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
     base.activeProviderId === "noai"
       ? "noai"
       : providers[base.activeProviderId]
-          ? base.activeProviderId
-          : ("chatgpt" as AiProviderId);
+        ? base.activeProviderId
+        : ("chatgpt" as AiProviderId);
 
   return {
     activeProviderId: active,

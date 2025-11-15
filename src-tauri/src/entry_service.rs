@@ -26,7 +26,7 @@ const AI_NOT_CONFIGURED_SUMMARY: &str = "AI 功能未配置";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
 const DEFAULT_MODEL: &str = "gpt-5.1-mini";
 const DATE_FORMAT: &str = "%Y-%m-%d";
-const DEFAULT_PROMPT: &str = "You are an assistant that summarizes diary entries in concise Chinese, optionally referencing emotions if present.";
+const DEFAULT_PROMPT: &str = "格式`$emoji: summary`；emoji贴合情绪/主题；语言与风格完全跟随正文作者；不得虚构内容；保持视角一致；仅精炼压缩正文。";
 const DEFAULT_TEMPERATURE: f32 = 0.3;
 const DEFAULT_API_BASE: &str = "https://api.openai.com/v1";
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
@@ -482,8 +482,7 @@ fn sanitize_api_base_url(raw: Option<String>) -> Result<String, String> {
         return Ok(DEFAULT_API_BASE.to_string());
     }
 
-    let parsed = Url::parse(value.trim())
-        .map_err(|err| format!("invalid AI base URL: {err}"))?;
+    let parsed = Url::parse(value.trim()).map_err(|err| format!("invalid AI base URL: {err}"))?;
     parsed
         .host_str()
         .ok_or_else(|| "AI base URL is missing host".to_string())?;
