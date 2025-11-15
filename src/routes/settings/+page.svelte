@@ -92,8 +92,8 @@
     $: basicSaveLabel = savingBasic
         ? "保存中..."
         : unsafeConfirmActive
-            ? "确认风险后保存"
-            : "保存基础设置";
+          ? "确认风险后保存"
+          : "保存基础设置";
 
     function getCurrentProvider(): AiProviderConfig {
         return (
@@ -151,9 +151,12 @@
         return trimmed || "https://api.openai.com/v1";
     }
 
-    function analyzeBaseUrlSafety(
-        value: string,
-    ): { normalized: string; warnings: string[]; valid: boolean; error?: string } {
+    function analyzeBaseUrlSafety(value: string): {
+        normalized: string;
+        warnings: string[];
+        valid: boolean;
+        error?: string;
+    } {
         const normalized = normalizedBaseUrl(value);
         try {
             const parsed = new URL(normalized);
@@ -196,7 +199,8 @@
         if (octets[0] === 10) return true;
         if (octets[0] === 127) return true;
         if (octets[0] === 169 && octets[1] === 254) return true;
-        if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+        if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31)
+            return true;
         if (octets[0] === 192 && octets[1] === 168) return true;
         return false;
     }
@@ -394,7 +398,7 @@
         provider.prompt = DEFAULT_AI_PROMPT;
         provider.temperature = DEFAULT_TEMPERATURE;
         provider.maxTokens = defaults;
-        void handleAdvancedSave(false, "已恢复高级设置默认值");
+        void handleAdvancedSave(true, "已恢复高级设置默认值");
     }
 
     async function persistCurrentApiKey(
