@@ -1,3 +1,5 @@
+//! Tauri command entrypoints that bridge front-end invokes to the Rust services.
+
 use tauri::AppHandle;
 
 use crate::entry_service::{self, AiInvokePayload, ModelListRequest};

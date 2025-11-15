@@ -27,6 +27,7 @@
     const state = appStateStore;
 
     let textareaValue = "";
+    // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
     let lastRenderedDate = "";
     let loadingDate: string | null = null;
@@ -84,6 +85,7 @@
         }, 10000);
     }
 
+    // 确保切换路由或组件卸载前队列中的自动保存已执行
     async function flushAutoSave(triggerAi = true): Promise<void> {
         if (autoSaveTimer) {
             clearTimeout(autoSaveTimer);
@@ -103,6 +105,7 @@
         }
     }
 
+    // 将草稿写入状态后再调用后端保存，保证乐观 UI 不阻塞
     async function save(options: SaveOptions = {}): Promise<void> {
         const {
             dateOverride,
@@ -138,6 +141,7 @@
         }
     }
 
+    // 在切换日期时按需加载正文，防止重复请求同一天的内容
     async function ensureBodyLoaded(
         date: string,
         options: { force?: boolean } = {},

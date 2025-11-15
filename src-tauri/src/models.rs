@@ -1,3 +1,5 @@
+//! Domain data structures shared across storage and Tauri commands.
+
 use serde::{Deserialize, Serialize};
 
 /// 完整日记数据

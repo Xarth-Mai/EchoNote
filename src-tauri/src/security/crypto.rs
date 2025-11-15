@@ -1,3 +1,5 @@
+//! Small AES-GCM + HKDF wrapper for encrypting secrets bound to a device ID.
+
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use rand::rngs::OsRng;

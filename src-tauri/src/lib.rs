@@ -11,6 +11,7 @@ mod storage;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // 注册允许前端调用的指令，新增命令需在此同步登记。
         .invoke_handler(tauri::generate_handler![
             commands::list_entries_by_month,
             commands::get_entry_body_by_date,

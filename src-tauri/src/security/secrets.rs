@@ -1,3 +1,5 @@
+//! Local, device-bound storage for AI provider credentials and preferences.
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;

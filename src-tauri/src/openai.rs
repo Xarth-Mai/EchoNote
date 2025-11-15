@@ -5,6 +5,7 @@ use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 static HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+    // 复用单例 Client，避免重复创建连接池。
     reqwest::Client::builder()
         .user_agent("EchoNote/0.1")
         .build()

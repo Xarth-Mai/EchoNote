@@ -10,6 +10,7 @@ use tauri::{AppHandle, Manager};
 use crate::models::{DiaryEntry, EntryRecord};
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
+// 仅预读前若干字节获取 frontmatter，避免大文件浪费 I/O。
 const FRONTMATTER_INITIAL_BYTES: u64 = 1024;
 const FRONTMATTER_ADDITIONAL_BYTES: u64 = 2048;
 

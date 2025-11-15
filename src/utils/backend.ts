@@ -12,6 +12,7 @@ type Invoke = typeof import("@tauri-apps/api/core").invoke;
 let invokeFn: Invoke | null = null;
 
 async function getInvoke(): Promise<Invoke> {
+  // 按需加载 Tauri invoke，避免 SSR 阶段直接引用导致异常
   if (!browser) {
     throw new Error("Tauri invoke is unavailable during SSR");
   }
@@ -28,6 +29,7 @@ async function safeInvoke<T>(
   cmd: string,
   args?: Record<string, unknown>,
 ): Promise<T> {
+  // SSR 或非 Tauri 环境下返回可控的降级结果，避免因调用失败导致崩溃
   if (!browser) {
     console.warn(
       `[EchoNote] Attempted to call "${cmd}" during SSR; returning fallback result.`,

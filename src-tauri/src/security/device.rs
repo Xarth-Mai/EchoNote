@@ -1,3 +1,5 @@
+//! Generates and persists a per-device identifier used for local encryption.
+
 use std::fs;
 use std::path::PathBuf;
 
