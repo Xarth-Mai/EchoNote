@@ -2,7 +2,17 @@
     import { browser } from "$app/environment";
     import { onMount } from "svelte";
     import { appStateStore, setTheme } from "$utils/state";
-    import { listAiModels } from "$utils/backend";
+    import {
+        listAiModels,
+        storeProviderApiKey,
+        deleteProviderApiKey,
+        loadProviderModelCache,
+        loadProviderBaseUrl,
+        storeProviderBaseUrl,
+        deleteProviderSlot,
+        loadProviderModel,
+        storeProviderModel,
+    } from "$utils/backend";
     import {
         createCustomProviderConfig,
         loadAiSettingsState,
@@ -26,6 +36,7 @@
     ];
 
     const BUILTIN_ORDER: Record<string, number> = {
+        noai: -1,
         chatgpt: 0,
         deepseek: 1,
     };
@@ -42,26 +53,30 @@
     let formTemperature = String(DEFAULT_TEMPERATURE);
     let formMaxTokens = String(getDefaultMaxTokens(activeProviderId));
     let statusBanner: { text: string; tone: "ok" | "error" } | null = null;
-    let savingAi = false;
+    let savingBasic = false;
+    let savingAdvanced = false;
     let loadingModels = false;
     let customSuffix = "";
     let customBaseUrl = "";
     let modelOptions: string[] = [];
     let advancedOpen = false;
+    let apiKeyDirty = false;
 
     $: aiState = sanitizeState(aiState);
     $: {
         if (!aiState.providers[activeProviderId]) {
-            activeProviderId = "chatgpt";
-            aiState.activeProviderId = "chatgpt";
+            activeProviderId = "noai";
+            aiState.activeProviderId = "noai";
         }
     }
-    $: providerOptions = Object.values(aiState.providers).sort((a, b) => {
-        const orderA = BUILTIN_ORDER[a.id] ?? 10;
-        const orderB = BUILTIN_ORDER[b.id] ?? 10;
-        if (orderA !== orderB) return orderA - orderB;
-        return a.label.localeCompare(b.label);
-    });
+    $: providerOptions = Object.values(aiState.providers)
+        .filter((provider): provider is AiProviderConfig => Boolean(provider))
+        .sort((a, b) => {
+            const orderA = BUILTIN_ORDER[a.id] ?? 10;
+            const orderB = BUILTIN_ORDER[b.id] ?? 10;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.label.localeCompare(b.label);
+        });
     $: syncFormWithProvider();
     $: modelOptions =
         providerModels[activeProviderId] ?? (formModel ? [formModel] : []);
@@ -69,7 +84,9 @@
     function getCurrentProvider(): AiProviderConfig {
         return (
             aiState.providers[activeProviderId] ??
-            Object.values(aiState.providers)[0] ??
+            Object.values(aiState.providers).find(
+                (item): item is AiProviderConfig => Boolean(item),
+            ) ??
             createCustomProviderConfig("default", "https://api.openai.com/v1")
         );
     }
@@ -78,15 +95,36 @@
         currentProvider = getCurrentProvider();
         const provider = currentProvider;
         formBaseUrl = provider.baseUrl;
-        formApiKey = provider.apiKey ?? "";
+        formApiKey = "";
         formModel = provider.model ?? "";
         formPrompt = provider.prompt ?? DEFAULT_AI_PROMPT;
-        formTemperature = String(
-            provider.temperature ?? DEFAULT_TEMPERATURE,
-        );
+        formTemperature = String(provider.temperature ?? DEFAULT_TEMPERATURE);
         formMaxTokens = String(
             provider.maxTokens ?? getDefaultMaxTokens(provider.id),
         );
+        apiKeyDirty = false;
+        void hydrateProviderFromBackend();
+    }
+
+    async function hydrateProviderFromBackend(): Promise<void> {
+        if (!browser) return;
+        const provider = getCurrentProvider();
+        const baseUrl = await loadProviderBaseUrl(provider.id);
+        if (baseUrl) {
+            formBaseUrl = baseUrl;
+            provider.baseUrl = baseUrl;
+        }
+        const cached = await loadProviderModelCache(provider.id);
+        if (cached && cached.length > 0) {
+            providerModels = { ...providerModels, [provider.id]: cached };
+            const storedModel = await loadProviderModel(provider.id);
+            const pick =
+                storedModel && cached.includes(storedModel)
+                    ? storedModel
+                    : cached[0];
+            formModel = pick;
+            provider.model = formModel;
+        }
     }
 
     onMount(() => {
@@ -111,9 +149,8 @@
     async function fetchModels(): Promise<void> {
         if (!browser) return;
         const provider = getCurrentProvider();
-        const apiKey = formApiKey.trim();
-        if (!apiKey) {
-            statusBanner = { tone: "error", text: "请先填写 API Key" };
+        if (provider.id === "noai") {
+            statusBanner = { tone: "error", text: "当前已关闭 AI" };
             return;
         }
         loadingModels = true;
@@ -122,12 +159,17 @@
             ? normalizedBaseUrl(formBaseUrl)
             : provider.baseUrl;
         try {
+            const apiKey = formApiKey.trim();
+            if (apiKey) {
+                await storeProviderApiKey(provider.id, apiKey);
+                apiKeyDirty = false;
+            }
+            await storeProviderBaseUrl(provider.id, baseUrl);
             const models = await listAiModels({
                 baseUrl,
-                apiKey,
+                providerId: provider.id,
             });
             provider.baseUrl = baseUrl;
-            provider.apiKey = apiKey;
             providerModels = {
                 ...providerModels,
                 [provider.id]: models,
@@ -171,8 +213,7 @@
     function handleApiKeyInput(event: Event): void {
         const value = (event.currentTarget as HTMLInputElement).value;
         formApiKey = value;
-        const provider = getCurrentProvider();
-        provider.apiKey = value;
+        apiKeyDirty = true;
     }
 
     function handleModelChange(event: Event): void {
@@ -195,7 +236,9 @@
         const numeric = Number(value);
         const provider = getCurrentProvider();
         provider.temperature =
-            Number.isFinite(numeric) && numeric >= 0 ? parseFloat(value) : undefined;
+            Number.isFinite(numeric) && numeric >= 0
+                ? parseFloat(value)
+                : undefined;
     }
 
     function handleMaxTokensInput(event: Event): void {
@@ -231,7 +274,7 @@
         setActiveProvider(provider.id);
     }
 
-    function removeActiveCustom(): void {
+    async function removeActiveCustom(): Promise<void> {
         if (!activeProviderId.startsWith("openai-custom-")) {
             statusBanner = {
                 tone: "error",
@@ -240,11 +283,18 @@
             return;
         }
 
+        try {
+            await deleteProviderApiKey(activeProviderId);
+            await deleteProviderSlot(activeProviderId);
+        } catch (error) {
+            console.error("删除自定义密钥失败", error);
+        }
+
         const nextProviders = { ...aiState.providers };
         delete nextProviders[activeProviderId];
 
         aiState = sanitizeState({
-            activeProviderId: "chatgpt",
+            activeProviderId: "noai",
             providers: nextProviders as Record<AiProviderId, AiProviderConfig>,
         });
         activeProviderId = aiState.activeProviderId;
@@ -263,18 +313,49 @@
         provider.prompt = DEFAULT_AI_PROMPT;
         provider.temperature = DEFAULT_TEMPERATURE;
         provider.maxTokens = defaults;
-        statusBanner = { tone: "ok", text: "已恢复高级设置默认值" };
-        setTimeout(() => {
-            if (statusBanner?.tone === "ok") {
-                statusBanner = null;
-            }
-        }, 2000);
+        void handleAdvancedSave(false, "已恢复高级设置默认值");
     }
 
-    async function handleAiSubmit(event: Event): Promise<void> {
+    async function persistCurrentApiKey(
+        provider: AiProviderConfig,
+    ): Promise<void> {
+        if (!apiKeyDirty) return;
+        if (!browser) return;
+        const trimmed = formApiKey.trim();
+        if (!trimmed) {
+            await deleteProviderApiKey(provider.id);
+            return;
+        }
+        await storeProviderApiKey(provider.id, trimmed);
+        apiKeyDirty = false;
+    }
+
+    function handleFormSubmit(event: Event): void {
         event.preventDefault();
-        if (savingAi) return;
+        void handleBasicSave(true);
+    }
+
+    async function handleBasicSave(showBanner = true): Promise<void> {
+        if (savingBasic) return;
         const provider = getCurrentProvider();
+        if (provider.id === "noai") {
+            try {
+                savingBasic = true;
+                aiState.activeProviderId = provider.id;
+                saveAiSettingsState(aiState);
+                if (showBanner) {
+                    statusBanner = { tone: "ok", text: "已关闭 AI" };
+                }
+            } catch (error) {
+                console.error("关闭 AI 失败", error);
+                if (showBanner) {
+                    statusBanner = { tone: "error", text: "关闭失败，请重试" };
+                }
+            } finally {
+                savingBasic = false;
+            }
+            return;
+        }
         if (!formModel.trim()) {
             statusBanner = { tone: "error", text: "请选择模型类型" };
             return;
@@ -282,26 +363,64 @@
         provider.baseUrl = provider.editable
             ? normalizedBaseUrl(formBaseUrl)
             : provider.baseUrl;
-        provider.apiKey = formApiKey;
         provider.model = formModel;
-        provider.prompt = formPrompt || DEFAULT_AI_PROMPT;
-        provider.temperature =
-            Number(formTemperature) || DEFAULT_TEMPERATURE;
-        provider.maxTokens =
-            Number(formMaxTokens) || getDefaultMaxTokens(activeProviderId);
 
         try {
-            savingAi = true;
+            savingBasic = true;
+            await storeProviderBaseUrl(provider.id, provider.baseUrl);
+            if (provider.model) {
+                await storeProviderModel(provider.id, provider.model);
+            }
+            await persistCurrentApiKey(provider);
             saveAiSettingsState(aiState);
-            statusBanner = { tone: "ok", text: "已保存" };
-            setTimeout(() => {
-                statusBanner = null;
-            }, 2000);
+            if (showBanner) {
+                statusBanner = { tone: "ok", text: "基础配置已保存" };
+                setTimeout(() => {
+                    statusBanner = null;
+                }, 2000);
+            }
         } catch (error) {
-            console.error("保存 AI 设置失败", error);
-            statusBanner = { tone: "error", text: "保存失败，请重试" };
+            console.error("保存基础配置失败", error);
+            if (showBanner) {
+                statusBanner = { tone: "error", text: "保存基础配置失败" };
+            }
         } finally {
-            savingAi = false;
+            savingBasic = false;
+        }
+    }
+
+    async function handleAdvancedSave(
+        showBanner = true,
+        message = "高级设置已保存",
+    ): Promise<void> {
+        if (savingAdvanced) return;
+        const provider = getCurrentProvider();
+        if (provider.id === "noai") {
+            statusBanner = { tone: "error", text: "当前已关闭 AI" };
+            return;
+        }
+
+        try {
+            savingAdvanced = true;
+            provider.prompt = formPrompt || DEFAULT_AI_PROMPT;
+            provider.temperature =
+                Number(formTemperature) || DEFAULT_TEMPERATURE;
+            provider.maxTokens =
+                Number(formMaxTokens) || getDefaultMaxTokens(activeProviderId);
+            saveAiSettingsState(aiState);
+            if (showBanner) {
+                statusBanner = { tone: "ok", text: message };
+                setTimeout(() => {
+                    statusBanner = null;
+                }, 2000);
+            }
+        } catch (error) {
+            console.error("保存高级设置失败", error);
+            if (showBanner) {
+                statusBanner = { tone: "error", text: "保存高级设置失败" };
+            }
+        } finally {
+            savingAdvanced = false;
         }
     }
 </script>
@@ -360,7 +479,7 @@
             <article class="surface-card surface-card--tight">
                 <h2>AI 服务</h2>
                 <p>选择提供商、配置凭据并设置默认模型。</p>
-                <form class="settings__form" on:submit={handleAiSubmit}>
+                <form class="settings__form" on:submit={handleFormSubmit}>
                     <label class="settings__field">
                         <span>API 类型</span>
                         <select
@@ -403,7 +522,11 @@
                             placeholder="sk-..."
                             bind:value={formApiKey}
                             on:input={handleApiKeyInput}
+                            disabled={currentProvider.id === "noai"}
                         />
+                        <small class="settings__hint">
+                            保存后密钥将加密存储于后端，不会在前端回显。
+                        </small>
                     </label>
 
                     <label class="settings__field">
@@ -412,7 +535,8 @@
                             <select
                                 bind:value={formModel}
                                 on:change={handleModelChange}
-                                disabled={modelOptions.length === 0}
+                                disabled={modelOptions.length === 0 ||
+                                    currentProvider.id === "noai"}
                             >
                                 {#if modelOptions.length === 0}
                                     <option value="">请先获取模型列表</option>
@@ -425,16 +549,15 @@
                                 type="button"
                                 class="btn btn--ghost"
                                 on:click={fetchModels}
-                                disabled={loadingModels || !formApiKey.trim()}
+                                disabled={loadingModels ||
+                                    currentProvider.id === "noai"}
                             >
                                 {loadingModels ? "拉取中..." : "刷新模型"}
                             </button>
                         </div>
-                        {#if !formApiKey.trim()}
-                            <small class="settings__hint">
-                                填写 API Key 后可获取模型列表
-                            </small>
-                        {/if}
+                        <small class="settings__hint">
+                            若未填写则复用已保存的密钥。
+                        </small>
                     </label>
 
                     <div class="settings__advanced-toggle">
@@ -487,25 +610,37 @@
                                 on:input={handleMaxTokensInput}
                             />
                             <small class="settings__hint">
-                                建议：Chat 模型约 60；推理模型约 2048（但多数场景并不值得启用推理模型）。
+                                建议：Chat 模型约 60；推理模型约
+                                2048（但多数场景并不值得启用推理模型）。
                             </small>
                         </label>
+                        <div class="settings__actions">
+                            <button
+                                type="button"
+                                class="btn btn--primary"
+                                on:click={() => handleAdvancedSave()}
+                                disabled={savingAdvanced}
+                            >
+                                {savingAdvanced ? "保存中..." : "保存高级设置"}
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn--ghost"
+                                on:click={resetAdvancedSettings}
+                            >
+                                恢复高级设置默认值并保存
+                            </button>
+                        </div>
                     {/if}
 
                     <div class="settings__actions">
                         <button
-                            type="submit"
-                            class="btn btn--primary"
-                            disabled={savingAi}
-                        >
-                            {savingAi ? "保存中..." : "保存配置"}
-                        </button>
-                        <button
                             type="button"
-                            class="btn btn--ghost"
-                            on:click={resetAdvancedSettings}
+                            class="btn btn--primary"
+                            on:click={() => handleBasicSave()}
+                            disabled={savingBasic}
                         >
-                            重置高级设置
+                            {savingBasic ? "保存中..." : "保存基础设置"}
                         </button>
                         {#if activeProviderId.startsWith("openai-custom-")}
                             <button
@@ -719,5 +854,4 @@
         gap: 0.75rem;
         align-items: end;
     }
-
 </style>

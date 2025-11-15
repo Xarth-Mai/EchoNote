@@ -76,3 +76,8 @@ serde_json = "1"
 serde_yaml = "0.9"
 reqwest = { version = "0.11", default-features = false, features = ["json", "gzip", "brotli", "rustls-tls"] }
 blake3 = "1"
+uuid = { version = "1", features = ["v4"] }
+rand = "0.8"
+aes-gcm = "0.10"
+ring = "0.17"
+base64 = "0.22"

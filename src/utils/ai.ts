@@ -13,12 +13,20 @@ export const DEFAULT_AI_PROMPT =
 export const DEFAULT_TEMPERATURE = 0.3;
 
 const BUILTIN_PROVIDERS: Record<
-  "chatgpt" | "deepseek",
+  "chatgpt" | "deepseek" | "noai",
   Pick<
     AiProviderConfig,
     "id" | "label" | "baseUrl" | "prompt" | "maxTokens" | "temperature"
   >
 > = {
+  noai: {
+    id: "noai",
+    label: "不使用 AI",
+    baseUrl: "",
+    prompt: DEFAULT_AI_PROMPT,
+    maxTokens: 0,
+    temperature: DEFAULT_TEMPERATURE,
+  },
   chatgpt: {
     id: "chatgpt",
     label: "ChatGPT",
@@ -38,6 +46,7 @@ const BUILTIN_PROVIDERS: Record<
 };
 
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
+  noai: "",
   chatgpt: "gpt-4o-mini",
   deepseek: "deepseek-chat",
 };
@@ -63,18 +72,19 @@ export function saveAiSettingsState(state: AiSettingsState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
 }
 
-export function getActiveAiInvokePayload(
+export async function getActiveAiInvokePayload(
   state?: AiSettingsState,
-): AiInvokePayload | null {
+): Promise<AiInvokePayload | null> {
+  if (!browser) return null;
   const snapshot = sanitizeState(state ?? loadAiSettingsState());
-  const provider = snapshot.providers[snapshot.activeProviderId];
-  if (!provider || !provider.apiKey || provider.apiKey.trim() === "") {
-    return null;
+  const providerId = snapshot.activeProviderId ?? "noai";
+  const provider = snapshot.providers[providerId];
+  if (!provider) {
+    return { providerId: "noai" };
   }
+
   return {
-    baseUrl: provider.baseUrl,
-    apiKey: provider.apiKey.trim(),
-    model: provider.model ?? null,
+    providerId,
     prompt: normalizePrompt(provider.prompt),
     maxTokens: normalizeMaxTokens(provider.maxTokens, provider.id),
     temperature: normalizeTemperature(provider.temperature),
@@ -93,7 +103,6 @@ export function createCustomProviderConfig(
     label,
     baseUrl: baseUrl.trim() || BUILTIN_PROVIDERS.chatgpt.baseUrl,
     editable: true,
-    apiKey: "",
     model: DEFAULT_MODEL_BY_PROVIDER.chatgpt,
     prompt: DEFAULT_AI_PROMPT,
     maxTokens: getDefaultMaxTokens("chatgpt"),
@@ -115,7 +124,6 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
       label: built.label,
       baseUrl: built.baseUrl,
       editable: false,
-      apiKey: existing?.apiKey ?? "",
       model:
         existing?.model ??
         DEFAULT_MODEL_BY_PROVIDER[key] ??
@@ -128,17 +136,16 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
   }
 
   Object.values(base.providers)
-    .filter((cfg) => cfg.type === "custom")
+    .filter((cfg): cfg is AiProviderConfig => Boolean(cfg && cfg.type === "custom"))
     .forEach((cfg) => {
-      if (!cfg.id.startsWith("openai-custom-")) {
+      if (!cfg || !cfg.id.startsWith("openai-custom-")) {
         return;
       }
-      let target_id = cfg.id as AiProviderId;
+      const target_id = cfg.id as AiProviderId;
       providers[target_id] = {
         ...cfg,
         editable: true,
         baseUrl: cfg.baseUrl.trim() || BUILTIN_PROVIDERS.chatgpt.baseUrl,
-        apiKey: cfg.apiKey ?? "",
         model: cfg.model ?? DEFAULT_MODEL_BY_PROVIDER.chatgpt,
         prompt: normalizePrompt(cfg.prompt),
         maxTokens: normalizeMaxTokens(cfg.maxTokens, target_id),
@@ -151,9 +158,12 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
       };
     });
 
-  const active = providers[base.activeProviderId]
-    ? base.activeProviderId
-    : ("chatgpt" as AiProviderId);
+  const active =
+    base.activeProviderId === "noai"
+      ? "noai"
+      : providers[base.activeProviderId]
+          ? base.activeProviderId
+          : ("chatgpt" as AiProviderId);
 
   return {
     activeProviderId: active,
@@ -163,14 +173,24 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
 
 export function createDefaultState(): AiSettingsState {
   return {
-    activeProviderId: "chatgpt",
+    activeProviderId: "noai",
     providers: {
+      noai: {
+        id: "noai",
+        label: BUILTIN_PROVIDERS.noai.label,
+        baseUrl: BUILTIN_PROVIDERS.noai.baseUrl,
+        editable: false,
+        model: DEFAULT_MODEL_BY_PROVIDER.noai,
+        prompt: BUILTIN_PROVIDERS.noai.prompt,
+        maxTokens: BUILTIN_PROVIDERS.noai.maxTokens,
+        temperature: BUILTIN_PROVIDERS.noai.temperature,
+        type: "builtin",
+      },
       chatgpt: {
         id: "chatgpt",
         label: BUILTIN_PROVIDERS.chatgpt.label,
         baseUrl: BUILTIN_PROVIDERS.chatgpt.baseUrl,
         editable: false,
-        apiKey: "",
         model: DEFAULT_MODEL_BY_PROVIDER.chatgpt,
         prompt: BUILTIN_PROVIDERS.chatgpt.prompt,
         maxTokens: BUILTIN_PROVIDERS.chatgpt.maxTokens,
@@ -182,7 +202,6 @@ export function createDefaultState(): AiSettingsState {
         label: BUILTIN_PROVIDERS.deepseek.label,
         baseUrl: BUILTIN_PROVIDERS.deepseek.baseUrl,
         editable: false,
-        apiKey: "",
         model: DEFAULT_MODEL_BY_PROVIDER.deepseek,
         prompt: BUILTIN_PROVIDERS.deepseek.prompt,
         maxTokens: BUILTIN_PROVIDERS.deepseek.maxTokens,
@@ -194,6 +213,9 @@ export function createDefaultState(): AiSettingsState {
 }
 
 export function getDefaultMaxTokens(providerId?: AiProviderId): number {
+  if (providerId === "noai") {
+    return 0;
+  }
   if (providerId === "deepseek") {
     return BUILTIN_PROVIDERS.deepseek.maxTokens ?? 2048;
   }

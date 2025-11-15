@@ -1,8 +1,10 @@
 //! EchoNote Tauri Core Lib
 
 mod commands;
+mod entry_service;
 mod models;
 mod openai;
+mod security;
 mod storage;
 
 /// Init and Run Tauri App
@@ -15,6 +17,15 @@ pub fn run() {
             commands::save_entry_by_date,
             commands::invoke_openai_chat,
             commands::list_ai_models,
+            commands::store_api_secret,
+            commands::load_api_secret,
+            commands::delete_api_secret,
+            commands::load_cached_models,
+            commands::load_provider_base_url,
+            commands::store_provider_base_url,
+            commands::delete_provider_slot,
+            commands::store_provider_model,
+            commands::load_provider_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

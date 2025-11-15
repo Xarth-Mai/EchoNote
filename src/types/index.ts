@@ -24,12 +24,10 @@ export interface OpenAiMessage {
 }
 
 export interface OpenAiChatRequest {
-  model: string;
+  providerId: AiProviderId;
   messages: OpenAiMessage[];
   temperature?: number;
   maxTokens?: number;
-  apiKey?: string;
-  apiBase?: string;
 }
 
 export interface OpenAiChatResponse {
@@ -43,14 +41,13 @@ export interface OpenAiChatResponse {
 
 export type BuiltinAiProvider = "chatgpt" | "deepseek";
 export type CustomAiProvider = `openai-custom-${string}`;
-export type AiProviderId = BuiltinAiProvider | CustomAiProvider;
+export type AiProviderId = BuiltinAiProvider | CustomAiProvider | "noai";
 
 export interface AiProviderConfig {
   id: AiProviderId;
   label: string;
   baseUrl: string;
   editable: boolean;
-  apiKey?: string;
   model?: string;
   prompt?: string;
   maxTokens?: number;
@@ -61,13 +58,11 @@ export interface AiProviderConfig {
 
 export interface AiSettingsState {
   activeProviderId: AiProviderId;
-  providers: Record<AiProviderId, AiProviderConfig>;
+  providers: Partial<Record<AiProviderId, AiProviderConfig>>;
 }
 
 export interface AiInvokePayload {
-  baseUrl: string;
-  apiKey: string;
-  model?: string | null;
+  providerId?: string | null;
   prompt?: string | null;
   maxTokens?: number | null;
   temperature?: number | null;
@@ -75,5 +70,5 @@ export interface AiInvokePayload {
 
 export interface AiModelQuery {
   baseUrl: string;
-  apiKey: string;
+  providerId: string;
 }

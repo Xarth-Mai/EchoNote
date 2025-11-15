@@ -125,7 +125,7 @@
         upsertSummary(optimistic);
         try {
             const aiConfig =
-                triggerAi && browser ? getActiveAiInvokePayload() : null;
+                triggerAi && browser ? await getActiveAiInvokePayload() : null;
             const savedSummary = await saveEntryByDate(
                 targetDate,
                 body,

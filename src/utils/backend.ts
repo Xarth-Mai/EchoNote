@@ -41,25 +41,25 @@ async function safeInvoke<T>(
         throw new Error("OpenAI API is unavailable during SSR");
       case "list_ai_models":
         return [] as T;
+      case "load_cached_models":
+        return [] as T;
+      case "load_provider_base_url":
+        return null as T;
+      case "store_provider_base_url":
+      case "delete_provider_slot":
+      case "store_api_secret":
+      case "delete_api_secret":
+        return undefined as T;
       default:
         return undefined as T;
     }
   }
 
   const invoke = await getInvoke();
-  if (browser) {
-    console.info("[EchoNote] invoke", cmd, args ?? {});
-  }
   try {
     const result = await invoke<T>(cmd, args);
-    if (browser) {
-      console.info("[EchoNote] result", cmd, result);
-    }
     return result;
   } catch (error) {
-    if (browser) {
-      console.error("[EchoNote] invoke failed", cmd, error);
-    }
     throw error;
   }
 }
@@ -97,4 +97,52 @@ export async function listAiModels(
   request: AiModelQuery,
 ): Promise<string[]> {
   return safeInvoke<string[]>("list_ai_models", { request });
+}
+
+export async function loadProviderModelCache(
+  providerId: string,
+): Promise<string[] | null> {
+  return safeInvoke<string[] | null>("load_cached_models", { providerId });
+}
+
+export async function loadProviderBaseUrl(
+  providerId: string,
+): Promise<string | null> {
+  return safeInvoke<string | null>("load_provider_base_url", { providerId });
+}
+
+export async function storeProviderBaseUrl(
+  providerId: string,
+  baseUrl: string,
+): Promise<void> {
+  await safeInvoke<void>("store_provider_base_url", { providerId, baseUrl });
+}
+
+export async function storeProviderModel(
+  providerId: string,
+  model: string,
+): Promise<void> {
+  await safeInvoke<void>("store_provider_model", { providerId, model });
+}
+
+export async function loadProviderModel(
+  providerId: string,
+): Promise<string | null> {
+  return safeInvoke<string | null>("load_provider_model", { providerId });
+}
+export async function storeProviderApiKey(
+  providerId: string,
+  apiKey: string,
+): Promise<void> {
+  await safeInvoke<void>("store_api_secret", { providerId, apiKey });
+}
+
+export async function deleteProviderApiKey(
+  providerId: string,
+): Promise<void> {
+  await safeInvoke<void>("delete_api_secret", { providerId });
+}
+
+export async function deleteProviderSlot(providerId: string): Promise<void> {
+  await safeInvoke<void>("delete_provider_slot", { providerId });
 }

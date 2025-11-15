@@ -19,16 +19,13 @@ pub struct OpenAiMessage {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpenAiChatRequest {
-    pub model: String,
+    #[serde(rename = "providerId")]
+    pub provider_id: String,
     pub messages: Vec<OpenAiMessage>,
     #[serde(default, rename = "temperature")]
     pub temperature: Option<f32>,
     #[serde(default, rename = "maxTokens")]
     pub max_tokens: Option<u32>,
-    #[serde(default, rename = "apiKey")]
-    pub api_key: Option<String>,
-    #[serde(default, rename = "apiBase")]
-    pub api_base: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -110,25 +107,18 @@ struct ModelDescription {
 
 pub async fn invoke_chat_completion(
     request: OpenAiChatRequest,
+    model: String,
+    api_key: &str,
+    api_base: &str,
 ) -> Result<OpenAiChatResult, String> {
     if request.messages.is_empty() {
         return Err("OpenAI request must contain at least one message".to_string());
     }
 
-    let api_key = request
-        .api_key
-        .clone()
-        .or_else(|| std::env::var("OPENAI_API_KEY").ok())
-        .ok_or_else(|| "missing OpenAI API key (set OPENAI_API_KEY or pass apiKey)".to_string())?;
-
-    let base = request
-        .api_base
-        .clone()
-        .unwrap_or_else(|| "https://api.openai.com/v1".to_string());
-    let endpoint = format!("{}/chat/completions", base.trim_end_matches('/'));
+    let endpoint = format!("{}/chat/completions", api_base.trim_end_matches('/'));
 
     let payload = ChatCompletionPayload {
-        model: request.model,
+        model,
         messages: request.messages,
         temperature: request.temperature,
         max_tokens: request.max_tokens,
