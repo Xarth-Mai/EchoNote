@@ -33,6 +33,11 @@
     ],
     "android": {
       "minSdkVersion": 35
+    },
+    "iOS": {
+      "developmentTeam": "",
+      "signingIdentity": null,
+      "automaticProvisioning": false
     }
   }
 }
