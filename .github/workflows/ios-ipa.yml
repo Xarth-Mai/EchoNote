@@ -1,0 +1,57 @@
+name: build-ios-ipa
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-latest
+    env:
+      CI: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build web assets
+        run: bun run build
+
+      - name: Ensure Tauri iOS project is initialized
+        run: |
+          if [ ! -d src-tauri/gen/apple ]; then
+            bunx tauri ios init
+          fi
+
+      - name: Build unsigned iOS IPA
+        env:
+          TAURI_SKIP_SIGNING: 'true'
+        run: |
+          bunx tauri ios build -- --no-sign
+
+      - name: Locate IPA artifact
+        id: ipa
+        run: |
+          IPA_PATH=$(find src-tauri -type f -name '*.ipa' | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "IPA artifact not found" >&2
+            exit 1
+          fi
+          echo "path=$IPA_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: echonote-ios-ipa
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
