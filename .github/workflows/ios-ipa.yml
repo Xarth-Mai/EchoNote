@@ -27,6 +27,12 @@ jobs:
       - name: Build web assets
         run: bun run build
 
+      - name: Ensure Tauri iOS project is initialized
+        run: |
+          if [ ! -d src-tauri/gen/apple ]; then
+            bunx tauri ios init
+          fi
+
       - name: Build unsigned iOS IPA
         env:
           TAURI_SKIP_SIGNING: 'true'
