@@ -32,6 +32,8 @@
     let textareaValue = "";
     let textareaRef: HTMLTextAreaElement | null = null;
     let shouldFocusEditor = true;
+    let initialLoadSettled = false;
+    let hasHydratedInitialBody = false;
     // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
     let lastRenderedDate = "";
@@ -61,13 +63,15 @@
         textareaValue = "";
         hasLocalEdits = false;
         lastLoadedDate = null;
+        hasHydratedInitialBody = false;
+        initialLoadSettled = false;
         setCurrentBody(null);
         shouldFocusEditor = true;
     }
     $: if (currentBody === null && currentDate) {
         void ensureBodyLoaded(currentDate);
     }
-    $: if (shouldFocusEditor && textareaRef) {
+    $: if (shouldFocusEditor && initialLoadSettled && textareaRef) {
         shouldFocusEditor = false;
         void focusTextarea();
     }
@@ -178,7 +182,10 @@
         const { force = false } = options;
         if (!browser || !date || loadingDate === date) return;
         const { currentBody: bodyInState } = getState();
-        if (!force && lastLoadedDate === date && bodyInState !== null) return;
+        if (!force && lastLoadedDate === date && bodyInState !== null) {
+            initialLoadSettled = true;
+            return;
+        }
 
         loadingDate = date;
         try {
@@ -186,13 +193,19 @@
             const body = await getEntryBody(date);
             lastLoadedDate = date;
             const bodyValue = body ?? "";
-            if (!hasLocalEdits) {
+            if (!hasHydratedInitialBody) {
+                textareaValue = bodyValue;
+                setCurrentBody(bodyValue);
+                hasHydratedInitialBody = true;
+                hasLocalEdits = false;
+            } else if (!hasLocalEdits) {
                 textareaValue = bodyValue;
                 setCurrentBody(bodyValue);
             }
         } catch (error) {
             console.error("加载正文失败:", error);
         } finally {
+            initialLoadSettled = true;
             loadingDate = null;
         }
     }
