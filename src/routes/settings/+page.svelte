@@ -47,6 +47,7 @@
     };
     const API_KEY_PLACEHOLDER = "sk-xxxxxxxxxxxxxxxx";
 
+    const appVersion: string = __APP_VERSION__ ?? "0.0.0";
     let aiState: AiSettingsState = sanitizeState(loadAiSettingsState());
     let activeProviderId: AiProviderId = aiState.activeProviderId;
     let providerOptions: AiProviderConfig[] = [];
@@ -649,6 +650,15 @@
 
         <div class="settings__grid scroll-fade">
             <article class="surface-card surface-card--tight">
+                <h2>{t("settingsAppInfoTitle")}</h2>
+                <p>{t("settingsAppInfoDescription")}</p>
+                <div class="settings__field settings__field--inline">
+                    <span>{t("settingsVersionLabel")}</span>
+                    <span class="settings__value">{appVersion}</span>
+                </div>
+            </article>
+
+            <article class="surface-card surface-card--tight">
                 <h2>{t("settingsLanguageTitle")}</h2>
                 <p>{t("settingsLanguageDescription")}</p>
                 <div class="settings__field">
@@ -991,6 +1001,26 @@
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
+        font-size: 0.95rem;
+    }
+
+    .settings__field--inline {
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .settings__value {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.65rem;
+        border-radius: var(--radius-sm);
+        background-color: var(
+            --color-surface-card,
+            rgba(0, 0, 0, 0.04)
+        );
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
         font-size: 0.95rem;
     }
 
