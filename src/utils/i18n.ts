@@ -567,7 +567,10 @@ export function getWeekdayLabels(
 ): string[] {
   const { weekStartsOnMonday = true, variant = "short" } = options;
   const targetLocale = localeOverride ?? get(localeStore);
-  const formatter = new Intl.DateTimeFormat(targetLocale, { weekday: variant });
+  const formatter = new Intl.DateTimeFormat(targetLocale, {
+    weekday: variant,
+    timeZone: "UTC",
+  });
   const start = weekStartsOnMonday ? MONDAY_ANCHOR : SUNDAY_ANCHOR;
   return Array.from({ length: 7 }, (_, index) =>
     formatter.format(new Date(start + index * 86_400_000)),
