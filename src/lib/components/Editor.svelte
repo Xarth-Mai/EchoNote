@@ -1,7 +1,7 @@
 <script lang="ts">
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy, onMount, tick } from "svelte";
     import {
         getEntryBody,
         listEntriesByMonth,
@@ -30,6 +30,8 @@
     let localeValue: Locale = "zh-CN";
 
     let textareaValue = "";
+    let textareaRef: HTMLTextAreaElement | null = null;
+    let shouldFocusEditor = true;
     // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
     let lastRenderedDate = "";
@@ -60,9 +62,14 @@
         hasLocalEdits = false;
         lastLoadedDate = null;
         setCurrentBody(null);
+        shouldFocusEditor = true;
     }
     $: if (currentBody === null && currentDate) {
         void ensureBodyLoaded(currentDate);
+    }
+    $: if (shouldFocusEditor && textareaRef) {
+        shouldFocusEditor = false;
+        void focusTextarea();
     }
 
     async function handleBack(): Promise<void> {
@@ -87,6 +94,16 @@
             autoSaveTimer = null;
             void save();
         }, 10000);
+    }
+
+    async function focusTextarea(): Promise<void> {
+        if (!browser || !textareaRef) return;
+        await tick();
+        textareaRef.focus();
+        textareaRef.setSelectionRange(
+            textareaRef.value.length,
+            textareaRef.value.length,
+        );
     }
 
     // 确保切换路由或组件卸载前队列中的自动保存已执行
@@ -174,6 +191,7 @@
         if (initialDate) {
             void ensureBodyLoaded(initialDate, { force: true });
         }
+        shouldFocusEditor = true;
     });
 
     onDestroy(() => {
@@ -245,6 +263,7 @@
     <textarea
         class="editor-shell__textarea"
         placeholder={t("editorPlaceholder")}
+        bind:this={textareaRef}
         bind:value={textareaValue}
         on:input={handleInput}
     ></textarea>
