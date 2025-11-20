@@ -1,9 +1,9 @@
 //! EchoNote Tauri Core Lib
 
+mod ai_provider;
 mod commands;
 mod entry_service;
 mod models;
-mod openai;
 mod security;
 mod storage;
 

@@ -2,9 +2,9 @@
 
 use tauri::AppHandle;
 
+use crate::ai_provider::{OpenAiChatRequest, OpenAiChatResult};
 use crate::entry_service::{self, AiInvokePayload, ModelListRequest};
 use crate::models::DiaryEntry;
-use crate::openai::{OpenAiChatRequest, OpenAiChatResult};
 use crate::security::secrets;
 
 #[tauri::command]

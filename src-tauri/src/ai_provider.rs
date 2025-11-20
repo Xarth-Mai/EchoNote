@@ -1,4 +1,4 @@
-//! OpenAI API client helpers.
+//! AI provider clients: OpenAI-compatible, Gemini, and Claude.
 
 use once_cell::sync::Lazy;
 use reqwest::StatusCode;
