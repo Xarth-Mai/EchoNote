@@ -14,7 +14,7 @@ export const DEFAULT_AI_PROMPT =
 export const DEFAULT_TEMPERATURE = 0.3;
 
 const BUILTIN_PROVIDERS: Record<
-  "chatgpt" | "deepseek" | "noai",
+  "chatgpt" | "deepseek" | "gemini" | "claude" | "noai",
   Pick<
     AiProviderConfig,
     "id" | "label" | "baseUrl" | "prompt" | "maxTokens" | "temperature"
@@ -44,12 +44,30 @@ const BUILTIN_PROVIDERS: Record<
     maxTokens: 60,
     temperature: DEFAULT_TEMPERATURE,
   },
+  gemini: {
+    id: "gemini",
+    label: "Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com",
+    prompt: DEFAULT_AI_PROMPT,
+    maxTokens: 1200,
+    temperature: DEFAULT_TEMPERATURE,
+  },
+  claude: {
+    id: "claude",
+    label: "Claude",
+    baseUrl: "https://api.anthropic.com",
+    prompt: DEFAULT_AI_PROMPT,
+    maxTokens: 1200,
+    temperature: DEFAULT_TEMPERATURE,
+  },
 };
 
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
   noai: "",
   chatgpt: "gpt-4o-mini",
   deepseek: "deepseek-chat",
+  gemini: "gemini-1.5-flash-latest",
+  claude: "claude-3-5-haiku-20241022",
 };
 
 export function loadAiSettingsState(): AiSettingsState {
@@ -226,6 +244,28 @@ export function createDefaultState(): AiSettingsState {
         temperature: BUILTIN_PROVIDERS.deepseek.temperature,
         type: "builtin",
       },
+      gemini: {
+        id: "gemini",
+        label: BUILTIN_PROVIDERS.gemini.label,
+        baseUrl: BUILTIN_PROVIDERS.gemini.baseUrl,
+        editable: false,
+        model: DEFAULT_MODEL_BY_PROVIDER.gemini,
+        prompt: BUILTIN_PROVIDERS.gemini.prompt,
+        maxTokens: BUILTIN_PROVIDERS.gemini.maxTokens,
+        temperature: BUILTIN_PROVIDERS.gemini.temperature,
+        type: "builtin",
+      },
+      claude: {
+        id: "claude",
+        label: BUILTIN_PROVIDERS.claude.label,
+        baseUrl: BUILTIN_PROVIDERS.claude.baseUrl,
+        editable: false,
+        model: DEFAULT_MODEL_BY_PROVIDER.claude,
+        prompt: BUILTIN_PROVIDERS.claude.prompt,
+        maxTokens: BUILTIN_PROVIDERS.claude.maxTokens,
+        temperature: BUILTIN_PROVIDERS.claude.temperature,
+        type: "builtin",
+      },
     },
     advanced: {
       prompt: DEFAULT_AI_PROMPT,
@@ -242,6 +282,12 @@ export function getDefaultMaxTokens(providerId?: AiProviderId): number {
   }
   if (providerId === "deepseek") {
     return BUILTIN_PROVIDERS.deepseek.maxTokens ?? 2048;
+  }
+  if (providerId === "gemini") {
+    return BUILTIN_PROVIDERS.gemini.maxTokens ?? 1024;
+  }
+  if (providerId === "claude") {
+    return BUILTIN_PROVIDERS.claude.maxTokens ?? 1024;
   }
   return BUILTIN_PROVIDERS.chatgpt.maxTokens ?? 60;
 }

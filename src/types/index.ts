@@ -39,7 +39,7 @@ export interface OpenAiChatResponse {
   totalTokens?: number;
 }
 
-export type BuiltinAiProvider = "chatgpt" | "deepseek";
+export type BuiltinAiProvider = "chatgpt" | "deepseek" | "gemini" | "claude";
 export type CustomAiProvider = `openai-custom-${string}`;
 export type AiProviderId = BuiltinAiProvider | CustomAiProvider | "noai";
 

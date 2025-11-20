@@ -44,6 +44,8 @@
         noai: -1,
         chatgpt: 0,
         deepseek: 1,
+        gemini: 2,
+        claude: 3,
     };
     const API_KEY_PLACEHOLDER = "sk-xxxxxxxxxxxxxxxx";
 
@@ -388,6 +390,8 @@
         if (provider.id === "noai") return t("providerNoAi");
         if (provider.id === "chatgpt") return t("providerChatgpt");
         if (provider.id === "deepseek") return t("providerDeepseek");
+        if (provider.id === "gemini") return t("providerGemini");
+        if (provider.id === "claude") return t("providerClaude");
         return provider.label;
     }
 
