@@ -22,7 +22,7 @@ const BUILTIN_PROVIDERS: Record<
 > = {
   noai: {
     id: "noai",
-    label: "不使用 AI",
+    label: "No AI",
     baseUrl: "",
     prompt: DEFAULT_AI_PROMPT,
     maxTokens: 0,

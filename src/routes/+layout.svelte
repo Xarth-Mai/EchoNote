@@ -6,11 +6,13 @@
         initThemeListener,
         upsertSummary,
     } from "$utils/state";
+    import { initLocale } from "$utils/i18n";
     import type { DiaryEntry } from "../types";
     import "../styles.css";
 
     onMount(() => {
         initThemeListener();
+        initLocale();
         initLayoutListener();
         let cleanup: (() => void) | null = null;
         if (browser) {
