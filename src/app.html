@@ -5,6 +5,49 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   %sveltekit.head%
+  <script>
+    (() => {
+      const storageKey = "echonote-locale";
+      const supported = ["zh-CN", "zh-TW", "en", "ja"];
+      const defaultLocale = "zh-CN";
+
+      const normalize = (value) => {
+        if (!value) return null;
+        const lower = value.toLowerCase();
+        const exact = supported.find((item) => item.toLowerCase() === lower);
+        if (exact) return exact;
+        const prefix = supported.find((item) =>
+          lower.startsWith(item.toLowerCase().split("-")[0]),
+        );
+        return prefix ?? null;
+      };
+
+      const stored = typeof localStorage !== "undefined"
+        ? normalize(localStorage.getItem(storageKey))
+        : null;
+      const navigatorLocales = typeof navigator !== "undefined"
+        ? navigator.languages ?? [navigator.language]
+        : [];
+
+      let resolved = stored;
+      if (!resolved) {
+        for (const candidate of navigatorLocales) {
+          const normalized = normalize(candidate);
+          if (normalized) {
+            resolved = normalized;
+            break;
+          }
+        }
+      }
+      if (!resolved) resolved = defaultLocale;
+
+      document.documentElement.lang = resolved;
+      const metaLang = document.head.querySelector('meta[name="language"]');
+      if (metaLang) {
+        metaLang.setAttribute("content", resolved);
+      }
+    })();
+  </script>
 </head>
 
 <body>
