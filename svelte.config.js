@@ -1,10 +1,9 @@
-import adapter from '@sveltejs/adapter-static';
+import adapter from '@eslym/sveltekit-adapter-bun';
 
 const config = {
   kit: {
     adapter: adapter({
-      fallback: 'index.html',
-      strict: false
+      precompress: true
     }),
     alias: {
       $utils: 'src/utils'

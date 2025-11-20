@@ -17,7 +17,7 @@
     "@tauri-apps/api": "^2"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "^3.0.6",
+    "@eslym/sveltekit-adapter-bun": "^2.0.5",
     "@sveltejs/kit": "^2.9.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tauri-apps/cli": "^2",
