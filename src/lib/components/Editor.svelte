@@ -78,8 +78,18 @@
         await goto("/");
     }
 
+    function syncDomValue(): void {
+        if (!textareaRef) return;
+        const domValue = textareaRef.value;
+        if (domValue !== textareaValue) {
+            textareaValue = domValue;
+            setCurrentBody(domValue);
+        }
+    }
+
     function handleInput(): void {
         hasLocalEdits = true;
+        syncDomValue();
         setCurrentBody(textareaValue);
         scheduleAutoSave();
     }
@@ -172,6 +182,7 @@
 
         loadingDate = date;
         try {
+            syncDomValue();
             const body = await getEntryBody(date);
             lastLoadedDate = date;
             const bodyValue = body ?? "";
