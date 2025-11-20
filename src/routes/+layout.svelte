@@ -6,11 +6,16 @@
         initThemeListener,
         upsertSummary,
     } from "$utils/state";
+    import { initLocale, locale } from "$utils/i18n";
     import type { DiaryEntry } from "../types";
     import "../styles.css";
 
+    $: currentLocale = $locale;
+    $: ogLocale = currentLocale.replace("-", "_");
+
     onMount(() => {
         initThemeListener();
+        initLocale();
         initLayoutListener();
         let cleanup: (() => void) | null = null;
         if (browser) {
@@ -30,6 +35,11 @@
         };
     });
 </script>
+
+<svelte:head>
+    <meta name="language" content={currentLocale} />
+    <meta property="og:locale" content={ogLocale} />
+</svelte:head>
 
 <div class="layout-shell">
     <main class="layout-shell__main">

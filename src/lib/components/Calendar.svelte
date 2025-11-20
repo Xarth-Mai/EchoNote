@@ -14,9 +14,18 @@
         setSummaries,
     } from "$utils/state";
     import type { DiaryEntry } from "../../types";
+    import {
+        formatMonthTitle,
+        getWeekdayLabels,
+        locale,
+        t,
+        type Locale,
+    } from "$utils/i18n";
 
     const state = appStateStore;
-    const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+    const localeStore = locale;
+    let weekdayLabels: string[] = [];
+    let localeValue: Locale = "zh-CN";
 
     let year = new Date().getFullYear();
     let month = new Date().getMonth();
@@ -25,6 +34,11 @@
     $: currentDate = $state.currentDate;
     $: calendarExpanded = $state.calendarExpanded;
     $: summaries = $state.summaries;
+    $: localeValue = $localeStore;
+    $: weekdayLabels = getWeekdayLabels(localeValue, {
+        weekStartsOnMonday: true,
+        variant: "short",
+    });
 
     $: gridDates = getMonthDates(year, month);
     $: weeks = chunkIntoWeeks(gridDates);
@@ -162,7 +176,7 @@
             <button
                 type="button"
                 class="icon-button"
-                aria-label="上一月"
+                aria-label={t("calendarPrevMonth")}
                 on:click={goToPrevMonth}
             >
                 <svg
@@ -182,12 +196,14 @@
                 </svg>
             </button>
 
-            <p class="calendar__title">{year}年{month + 1}月</p>
+            <p class="calendar__title">
+                {formatMonthTitle(year, month, localeValue)}
+            </p>
 
             <button
                 type="button"
                 class="icon-button"
-                aria-label="下一月"
+                aria-label={t("calendarNextMonth")}
                 on:click={goToNextMonth}
             >
                 <svg
@@ -214,7 +230,7 @@
             on:click={toggleCalendarView}
             aria-pressed={calendarExpanded}
         >
-            {calendarExpanded ? "收起月历" : "展开月历"}
+            {calendarExpanded ? t("calendarCollapse") : t("calendarExpand")}
         </button>
     </div>
 

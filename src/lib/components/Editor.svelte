@@ -17,6 +17,7 @@
         upsertSummary,
     } from "$utils/state";
     import type { DiaryEntry } from "../../types";
+    import { formatLongDate, locale, t, type Locale } from "$utils/i18n";
 
     type SaveOptions = {
         dateOverride?: string;
@@ -25,6 +26,8 @@
     };
 
     const state = appStateStore;
+    const localeStore = locale;
+    let localeValue: Locale = "zh-CN";
 
     let textareaValue = "";
     // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
@@ -36,7 +39,8 @@
 
     $: currentDate = $state.currentDate;
     $: currentBody = $state.currentBody;
-    $: dateMeta = buildDateMeta(currentDate);
+    $: localeValue = $localeStore;
+    $: dateMeta = buildDateMeta(currentDate, localeValue);
     $: if (
         !hasLocalEdits &&
         currentBody !== null &&
@@ -117,7 +121,7 @@
             ? { ...existing, date: targetDate }
             : { date: targetDate };
         if (triggerAi) {
-            optimistic.aiSummary = "AI 摘要生成中...";
+            optimistic.aiSummary = t("timelineAiPending");
         }
 
         setCurrentBody(body);
@@ -176,27 +180,18 @@
         void flushAutoSave();
     });
 
-    function buildDateMeta(dateValue?: string | null): {
+    function buildDateMeta(
+        dateValue?: string | null,
+        localeValue?: Locale,
+    ): {
         display: string;
         weekday: string;
     } {
         if (!dateValue) {
-            return { display: "未选择日期", weekday: "" };
+            return { display: t("editorNoDate"), weekday: "" };
         }
-        const date = new Date(dateValue);
-        const weekdayLabels = [
-            "周日",
-            "周一",
-            "周二",
-            "周三",
-            "周四",
-            "周五",
-            "周六",
-        ];
-        return {
-            display: `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`,
-            weekday: weekdayLabels[date.getDay()],
-        };
+        const { display, weekday } = formatLongDate(dateValue, localeValue);
+        return { display, weekday };
     }
 
     async function refreshMonthSummaries(date: string): Promise<void> {
@@ -219,7 +214,7 @@
             type="button"
             class="btn btn--ghost btn--compact"
             on:click={handleBack}
-            aria-label="返回主页"
+            aria-label={t("editorBackHome")}
         >
             <svg
                 fill="none"
@@ -236,7 +231,7 @@
                     d="M15 19l-7-7 7-7"
                 />
             </svg>
-            <span>完成</span>
+            <span>{t("editorComplete")}</span>
         </button>
 
         <p class="editor-shell__date">
@@ -249,7 +244,7 @@
 
     <textarea
         class="editor-shell__textarea"
-        placeholder="记录你的灵感、片刻与感悟..."
+        placeholder={t("editorPlaceholder")}
         bind:value={textareaValue}
         on:input={handleInput}
     ></textarea>

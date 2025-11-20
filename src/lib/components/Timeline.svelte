@@ -3,19 +3,20 @@
     import { flyAndBlur } from "$utils/animation";
     import { appStateStore, setCurrentDate } from "$utils/state";
     import type { DiaryEntry } from "../../types";
+    import {
+        formatMonthDay,
+        getWeekdayLabels,
+        locale,
+        t,
+        type Locale,
+    } from "$utils/i18n";
 
     type TimelineEntry = DiaryEntry & { __placeholder?: boolean };
 
     const state = appStateStore;
-    const weekdayLabels = [
-        "周日",
-        "周一",
-        "周二",
-        "周三",
-        "周四",
-        "周五",
-        "周六",
-    ];
+    const localeStore = locale;
+    let weekdayLabels: string[] = [];
+    let localeValue: Locale = "zh-CN";
 
     const entryRefs = new Map<string, HTMLLIElement>();
     let pendingScrollDate: string | null = null;
@@ -23,6 +24,10 @@
     $: summaries = $state.summaries;
     $: entries = toSortedEntries(summaries);
     $: currentDate = $state.currentDate;
+    $: localeValue = $localeStore;
+    $: weekdayLabels = getWeekdayLabels(localeValue, {
+        weekStartsOnMonday: false,
+    });
     $: displayEntries = deriveEntries(entries, currentDate);
     $: if (currentDate) {
         pendingScrollDate = currentDate;
@@ -61,7 +66,7 @@
     }
 
     function getSummary(content: string | null | undefined): string {
-        if (!content) return "AI 摘要生成中...";
+        if (!content) return t("timelineAiPending");
         const plain = content
             .replace(/^#+\s+/gm, "")
             .replace(/\*\*(.+?)\*\*/g, "$1")
@@ -78,8 +83,8 @@
         weekday: string;
     } {
         const date = new Date(entry.date);
-        const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日`;
-        const weekday = weekdayLabels[date.getDay()];
+        const dateLabel = formatMonthDay(date, localeValue);
+        const weekday = weekdayLabels[date.getDay()] ?? "";
         return { dateLabel, weekday };
     }
 
@@ -132,7 +137,7 @@
 
 <div class="timeline">
     {#if displayEntries.length === 0}
-        <div class="timeline__empty">暂无日记</div>
+        <div class="timeline__empty">{t("timelineEmpty")}</div>
     {:else}
         <ul class="timeline__list scroll-fade">
             {#each displayEntries as entry, index (entry.date)}
@@ -164,14 +169,14 @@
                     >
                         {#if entry.__placeholder}
                             <div class="timeline__placeholder">
-                                <p>当日暂无内容</p>
-                                <small>点击顶部按钮开始记录</small>
+                                <p>{t("timelinePlaceholderTitle")}</p>
+                                <small>{t("timelinePlaceholderHint")}</small>
                             </div>
                         {:else}
                             <p class="timeline__summary-line">
                                 <span
                                     class="timeline__emoji"
-                                    aria-label="每日Emoji"
+                                    aria-label={t("timelineEmojiLabel")}
                                     >{getEmojiSymbol(entry.emoji)}</span
                                 >
                                 <span class="timeline__summary-text">

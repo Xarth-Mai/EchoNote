@@ -3,9 +3,14 @@
     import { browser } from "$app/environment";
     import Editor from "$lib/components/Editor.svelte";
     import { setCurrentDate } from "$utils/state";
+    import { locale, t, type Locale } from "$utils/i18n";
     import { onMount } from "svelte";
 
+    const localeStore = locale;
+    let localeValue: Locale = "zh-CN";
     let lastSynced: string | null = null;
+    $: localeValue = $localeStore;
+    $: pageTitle = `${t("appName")} · ${t("editorHeadTitle")}${localeValue ? "" : ""}`;
 
     function syncDateFromUrl(url: URL) {
         const urlDate = url.searchParams.get("date");
@@ -23,7 +28,7 @@
 </script>
 
 <svelte:head>
-    <title>EchoNote · 编辑器</title>
+    <title>{pageTitle}</title>
 </svelte:head>
 
 <div class="editor-page page-shell">

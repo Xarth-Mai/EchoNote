@@ -27,13 +27,18 @@
         AiProviderId,
         AiSettingsState,
     } from "../../types";
+    import {
+        locale,
+        localeOptions,
+        setLocale,
+        t,
+        type Locale,
+    } from "$utils/i18n";
 
     const state = appStateStore;
-    const themes: Array<{ label: string; value: "auto" | "light" | "dark" }> = [
-        { label: "跟随系统", value: "auto" },
-        { label: "浅色", value: "light" },
-        { label: "深色", value: "dark" },
-    ];
+    const localeStore = locale;
+    let themes: Array<{ label: string; value: "auto" | "light" | "dark" }> = [];
+    let localeValue: Locale = "zh-CN";
 
     const BUILTIN_ORDER: Record<string, number> = {
         noai: -1,
@@ -67,8 +72,16 @@
     let advancedDirty = false;
     let unsafeConfirmTarget: { baseUrl: string; warnings: string[] } | null =
         null;
+    let selectedLocale: Locale = "zh-CN";
 
     $: aiState = sanitizeState(aiState);
+    $: localeValue = $localeStore;
+    $: selectedLocale = localeValue;
+    $: themes = [
+        { label: t("settingsThemeFollow"), value: "auto" },
+        { label: t("settingsThemeLight"), value: "light" },
+        { label: t("settingsThemeDark"), value: "dark" },
+    ];
     $: {
         if (!aiState.providers[activeProviderId]) {
             activeProviderId = "noai";
@@ -94,10 +107,10 @@
                 currentProvider.editable,
         ) && !savingBasic;
     $: basicSaveLabel = savingBasic
-        ? "保存中..."
+        ? t("saving")
         : unsafeConfirmActive
-          ? "确认风险后保存"
-          : "保存基础设置";
+          ? t("confirmRiskAndSave")
+          : t("saveBasic");
     $: showAiForm = activeProviderId !== "noai";
     $: if (!showAiForm) {
         advancedOpen = false;
@@ -105,7 +118,9 @@
     $: hasUnsavedChanges = basicDirty || advancedDirty || apiKeyDirty;
     $: displayedStatusBanner =
         statusBanner ??
-        (hasUnsavedChanges ? { tone: "info", text: "存在未保存的更改" } : null);
+        (hasUnsavedChanges
+            ? { tone: "info", text: t("statusUnsavedChanges") }
+            : null);
     $: if (!advancedDirty) {
         formPrompt = aiState.advanced.prompt;
         formTemperature = String(aiState.advanced.temperature);
@@ -193,13 +208,13 @@
             const parsed = new URL(normalized);
             const warnings: string[] = [];
             if (parsed.protocol !== "https:") {
-                warnings.push("使用非 HTTPS 协议");
+                warnings.push(t("statusBaseNonHttps"));
             }
             const hostname = parsed.hostname.toLowerCase();
             if (hostname === "localhost" || hostname.endsWith(".local")) {
-                warnings.push("指向本地主机");
+                warnings.push(t("statusBaseLocalhost"));
             } else if (isPrivateHost(hostname)) {
-                warnings.push("使用内网或回环地址");
+                warnings.push(t("statusBasePrivate"));
             }
             return { normalized, warnings, valid: true };
         } catch (_error) {
@@ -207,7 +222,7 @@
                 normalized,
                 warnings: [],
                 valid: false,
-                error: "Base URL 格式不正确",
+                error: t("baseUrlFormatError"),
             };
         }
     }
@@ -274,7 +289,7 @@
         if (!browser) return;
         const provider = getCurrentProvider();
         if (provider.id === "noai") {
-            statusBanner = { tone: "error", text: "当前已关闭 AI" };
+            statusBanner = { tone: "error", text: t("statusAiDisabled") };
             return;
         }
         loadingModels = true;
@@ -299,7 +314,7 @@
                 [provider.id]: models,
             };
             if (models.length === 0) {
-                statusBanner = { tone: "error", text: "未返回可用模型" };
+                statusBanner = { tone: "error", text: t("statusNoModels") };
             } else {
                 if (!models.includes(formModel)) {
                     formModel = models[0];
@@ -307,12 +322,12 @@
                 }
                 statusBanner = {
                     tone: "ok",
-                    text: `已识别 ${models.length} 个模型`,
+                    text: t("statusModelsFetched", { count: models.length }),
                 };
             }
         } catch (error) {
-            console.error("拉取模型失败", error);
-            statusBanner = { tone: "error", text: "无法获取模型，请检查配置" };
+            console.error("Failed to fetch models", error);
+            statusBanner = { tone: "error", text: t("statusFetchModelsFailed") };
         } finally {
             loadingModels = false;
         }
@@ -369,15 +384,29 @@
         markAdvancedDirty();
     }
 
+    function getProviderLabel(provider: AiProviderConfig): string {
+        if (provider.id === "noai") return t("providerNoAi");
+        if (provider.id === "chatgpt") return t("providerChatgpt");
+        if (provider.id === "deepseek") return t("providerDeepseek");
+        return provider.label;
+    }
+
+    function handleLocaleChange(event: Event): void {
+        const nextLocale = (event.currentTarget as HTMLSelectElement)
+            .value as Locale;
+        selectedLocale = nextLocale;
+        setLocale(nextLocale);
+    }
+
     function addCustomProvider(): void {
         const suffix = customSuffix.trim();
         if (!suffix) {
-            statusBanner = { tone: "error", text: "请填写自定义名称后缀" };
+            statusBanner = { tone: "error", text: t("statusSuffixRequired") };
             return;
         }
         const candidateId = `openai-custom-${suffix}` as AiProviderId;
         if (aiState.providers[candidateId]) {
-            statusBanner = { tone: "error", text: "该后缀已存在，请更换" };
+            statusBanner = { tone: "error", text: t("statusSuffixDuplicate") };
             return;
         }
         const provider = createCustomProviderConfig(
@@ -388,7 +417,7 @@
         customSuffix = "";
         customBaseUrl = "";
         unsafeConfirmTarget = null;
-        statusBanner = { tone: "ok", text: "已添加自定义接口" };
+        statusBanner = { tone: "ok", text: t("statusCustomAdded") };
         setActiveProvider(provider.id);
     }
 
@@ -396,7 +425,7 @@
         if (!activeProviderId.startsWith("openai-custom-")) {
             statusBanner = {
                 tone: "error",
-                text: "仅可删除自定义接口",
+                text: t("statusDeleteCustomOnly"),
             };
             return;
         }
@@ -405,7 +434,7 @@
             await deleteProviderApiKey(activeProviderId);
             await deleteProviderSlot(activeProviderId);
         } catch (error) {
-            console.error("删除自定义密钥失败", error);
+            console.error("Failed to delete stored secret", error);
         }
 
         const nextProviders = { ...aiState.providers };
@@ -423,7 +452,7 @@
         providerModels = {};
         syncFormWithProvider();
         saveAiSettingsState(aiState);
-        statusBanner = { tone: "ok", text: "已删除自定义接口" };
+        statusBanner = { tone: "ok", text: t("statusCustomDeleted") };
     }
 
     function resetAdvancedSettings(): void {
@@ -432,7 +461,7 @@
         formTemperature = String(DEFAULT_TEMPERATURE);
         formMaxTokens = String(defaults);
         markAdvancedDirty();
-        void handleAdvancedSave(true, "已恢复高级设置默认值");
+        void handleAdvancedSave(true, t("statusResetAdvanced"));
     }
 
     async function persistCurrentApiKey(
@@ -454,7 +483,7 @@
                 formApiKey = API_KEY_PLACEHOLDER;
                 return;
             }
-            statusBanner = { tone: "error", text: "请输入有效 API Key" };
+            statusBanner = { tone: "error", text: t("statusApiKeyInvalid") };
             formApiKey = "";
             apiKeyDirty = false;
             return;
@@ -480,12 +509,12 @@
                 saveAiSettingsState(aiState);
                 basicDirty = false;
                 if (showBanner) {
-                    statusBanner = { tone: "ok", text: "已关闭 AI" };
+                    statusBanner = { tone: "ok", text: t("statusAiOff") };
                 }
             } catch (error) {
-                console.error("关闭 AI 失败", error);
+                console.error("Failed to disable AI", error);
                 if (showBanner) {
-                    statusBanner = { tone: "error", text: "关闭失败，请重试" };
+                    statusBanner = { tone: "error", text: t("statusAiOffFailed") };
                 }
             } finally {
                 savingBasic = false;
@@ -493,7 +522,7 @@
             return;
         }
         if (!formModel.trim()) {
-            statusBanner = { tone: "error", text: "请选择模型类型" };
+            statusBanner = { tone: "error", text: t("statusModelRequired") };
             return;
         }
         let analyzedBase: ReturnType<typeof analyzeBaseUrlSafety> | null = null;
@@ -503,7 +532,7 @@
                 unsafeConfirmTarget = null;
                 statusBanner = {
                     tone: "error",
-                    text: analyzedBase.error ?? "Base URL 无效",
+                    text: analyzedBase.error ?? t("statusBaseInvalid"),
                 };
                 return;
             }
@@ -518,7 +547,7 @@
                 const warningText = analyzedBase.warnings.join("、");
                 statusBanner = {
                     tone: "error",
-                    text: `检测到潜在风险（${warningText}），请再次点击按钮确认保存`,
+                    text: t("statusBaseRisk", { warnings: warningText }),
                 };
                 return;
             }
@@ -540,12 +569,12 @@
             saveAiSettingsState(aiState);
             basicDirty = false;
             if (showBanner) {
-                statusBanner = { tone: "ok", text: "基础配置已保存" };
+                statusBanner = { tone: "ok", text: t("statusBasicSaved") };
             }
         } catch (error) {
-            console.error("保存基础配置失败", error);
+            console.error("Failed to save basic settings", error);
             if (showBanner) {
-                statusBanner = { tone: "error", text: "保存基础配置失败" };
+                statusBanner = { tone: "error", text: t("statusBasicSaveFailed") };
             }
         } finally {
             savingBasic = false;
@@ -554,12 +583,12 @@
 
     async function handleAdvancedSave(
         showBanner = true,
-        message = "高级设置已保存",
+        message = t("statusAdvancedSaved"),
     ): Promise<void> {
         if (savingAdvanced) return;
         const provider = getCurrentProvider();
         if (provider.id === "noai") {
-            statusBanner = { tone: "error", text: "当前已关闭 AI" };
+            statusBanner = { tone: "error", text: t("statusAdvancedSaveBlocked") };
             return;
         }
 
@@ -576,9 +605,9 @@
                 statusBanner = { tone: "ok", text: message };
             }
         } catch (error) {
-            console.error("保存高级设置失败", error);
+            console.error("Failed to save advanced settings", error);
             if (showBanner) {
-                statusBanner = { tone: "error", text: "保存高级设置失败" };
+                statusBanner = { tone: "error", text: t("statusAdvancedSaveFailed") };
             }
         } finally {
             savingAdvanced = false;
@@ -587,7 +616,7 @@
 </script>
 
 <svelte:head>
-    <title>EchoNote · 设置</title>
+    <title>{`${t("appName")} · ${t("settingsHeadTitle")}${localeValue ? "" : ""}`}</title>
 </svelte:head>
 
 <div class="settings page-shell">
@@ -596,7 +625,7 @@
             <a
                 href="/"
                 class="btn btn--ghost btn--compact settings__back-btn"
-                aria-label="返回主页"
+                aria-label={t("editorBackHome")}
             >
                 <svg
                     fill="none"
@@ -613,15 +642,31 @@
                         d="M15 19l-7-7 7-7"
                     />
                 </svg>
-                <span>返回</span>
+                <span>{t("settingsBack")}</span>
             </a>
-            <p class="settings__caption">设置中心</p>
+            <p class="settings__caption">{t("settingsCaption")}</p>
         </header>
 
         <div class="settings__grid scroll-fade">
             <article class="surface-card surface-card--tight">
-                <h2>主题模式</h2>
-                <p>选择与系统或个人偏好一致的外观。</p>
+                <h2>{t("settingsLanguageTitle")}</h2>
+                <p>{t("settingsLanguageDescription")}</p>
+                <div class="settings__field">
+                    <select
+                        class="settings__select"
+                        bind:value={selectedLocale}
+                        on:change={handleLocaleChange}
+                    >
+                        {#each localeOptions as option}
+                            <option value={option.value}>{option.label}</option>
+                        {/each}
+                    </select>
+                </div>
+            </article>
+
+            <article class="surface-card surface-card--tight">
+                <h2>{t("settingsThemeTitle")}</h2>
+                <p>{t("settingsThemeDescription")}</p>
                 <div class="settings__choices">
                     {#each themes as theme}
                         <button
@@ -638,18 +683,18 @@
             </article>
 
             <article class="surface-card surface-card--tight">
-                <h2>AI 服务</h2>
-                <p>选择提供商、配置凭据并设置默认模型。</p>
+                <h2>{t("settingsAiTitle")}</h2>
+                <p>{t("settingsAiDescription")}</p>
                 <form class="settings__form" on:submit={handleFormSubmit}>
                     <label class="settings__field">
-                        <span>API 类型</span>
+                        <span>{t("settingsApiType")}</span>
                         <select
                             bind:value={activeProviderId}
                             on:change={handleProviderSelect}
                         >
                             {#each providerOptions as provider}
                                 <option value={provider.id}>
-                                    {provider.label}
+                                    {getProviderLabel(provider)}
                                 </option>
                             {/each}
                         </select>
@@ -661,50 +706,50 @@
                             <input
                                 type="text"
                                 placeholder="https://api.openai.com/v1"
-                                bind:value={formBaseUrl}
-                                on:input={handleBaseInput}
-                                disabled={!currentProvider.editable}
-                            />
-                            {#if !currentProvider.editable}
-                                <small class="settings__hint">
-                                    该提供商使用固定 Base URL
-                                </small>
-                            {:else}
-                                <small class="settings__hint">
-                                    例如 https://api.openai.com/v1
-                                </small>
-                            {/if}
-                        </label>
+                            bind:value={formBaseUrl}
+                            on:input={handleBaseInput}
+                            disabled={!currentProvider.editable}
+                        />
+                        {#if !currentProvider.editable}
+                            <small class="settings__hint">
+                                {t("settingsFixedBaseUrl")}
+                            </small>
+                        {:else}
+                            <small class="settings__hint">
+                                {t("settingsBaseUrlExample")}
+                            </small>
+                        {/if}
+                    </label>
 
-                        <label class="settings__field">
-                            <span>API Key</span>
-                            <input
-                                type="password"
+                    <label class="settings__field">
+                        <span>API Key</span>
+                        <input
+                            type="password"
                                 autocomplete="off"
                                 placeholder="sk-..."
                                 bind:value={formApiKey}
                                 on:input={handleApiKeyInput}
-                            />
-                            <small class="settings__hint">
-                                保存后密钥将加密存储于后端，不会在前端回显。若未填写则复用已保存的密钥。
-                            </small>
-                        </label>
+                        />
+                        <small class="settings__hint">
+                            {t("settingsApiKeyHint")}
+                        </small>
+                    </label>
 
-                        <label class="settings__field">
-                            <span>默认模型</span>
-                            <div class="settings__model-row">
-                                <select
-                                    bind:value={formModel}
+                    <label class="settings__field">
+                        <span>{t("settingsDefaultModel")}</span>
+                        <div class="settings__model-row">
+                            <select
+                                bind:value={formModel}
                                     on:change={handleModelChange}
                                     disabled={modelOptions.length === 0}
-                                >
-                                    {#if modelOptions.length === 0}
+                            >
+                                {#if modelOptions.length === 0}
                                         <option value=""
-                                            >请先获取模型列表</option
+                                            >{t("settingsFetchModelsPlaceholder")}</option
                                         >
-                                    {/if}
-                                    {#each modelOptions as model}
-                                        <option value={model}>{model}</option>
+                                {/if}
+                                {#each modelOptions as model}
+                                    <option value={model}>{model}</option>
                                     {/each}
                                 </select>
                                 <button
@@ -713,72 +758,75 @@
                                     on:click={fetchModels}
                                     disabled={loadingModels}
                                 >
-                                    {loadingModels ? "拉取中..." : "刷新模型"}
+                                    {loadingModels
+                                        ? t("settingsRefreshingModels")
+                                        : t("settingsRefreshModels")}
                                 </button>
                             </div>
                             <small class="settings__hint">
-                                推荐使用 Chat 模型，如 gpt-5.1-mini
+                                {t("settingsModelTip")}
                             </small>
                         </label>
 
                         <div class="settings__advanced-toggle">
-                            <span>高级设置</span>
+                            <span>{t("settingsAdvancedTitle")}</span>
                             <button
                                 type="button"
                                 class="btn btn--ghost"
                                 on:click={() => (advancedOpen = !advancedOpen)}
                             >
-                                {advancedOpen ? "隐藏" : "显示"}高级设置
+                                {advancedOpen
+                                    ? t("settingsToggleAdvancedHide")
+                                    : t("settingsToggleAdvancedShow")}
                             </button>
                         </div>
 
                         {#if advancedOpen}
                             <label class="settings__field">
-                                <span>自定义 Prompt</span>
+                                <span>{t("settingsCustomPrompt")}</span>
                                 <textarea
                                     rows="4"
                                     bind:value={formPrompt}
                                     on:input={handlePromptInput}
                                 ></textarea>
                                 <small class="settings__hint">
-                                    推理模型通常耗时高且价值有限，可沿用该提示词。
+                                    {t("settingsPromptTip")}
                                 </small>
                             </label>
 
                             <label class="settings__field">
-                                <span>温度（0-1）</span>
+                                <span>{t("settingsTemperature")}</span>
                                 <input
                                     type="number"
                                     min="0"
                                     max="2"
                                     step="0.05"
-                                    placeholder="例如 0.3"
+                                    placeholder={t("settingsTemperaturePlaceholder")}
                                     bind:value={formTemperature}
                                     on:input={handleTemperatureInput}
                                 />
                                 <small class="settings__hint">
-                                    推荐值：Chat 模型约 0.3。温度越高越发散。
+                                    {t("settingsTemperatureTip")}
                                 </small>
                             </label>
 
                             <label class="settings__field">
-                                <span>最大输出 Tokens</span>
+                                <span>{t("settingsMaxTokens")}</span>
                                 <input
                                     type="number"
                                     min="1"
-                                    placeholder="例如 60 或 2048"
+                                    placeholder={t("settingsMaxTokensPlaceholder")}
                                     bind:value={formMaxTokens}
                                     on:input={handleMaxTokensInput}
                                 />
                                 <small class="settings__hint">
-                                    建议：Chat 模型约 60；推理模型约
-                                    2048（但多数场景并不值得启用推理模型）。
+                                    {t("settingsMaxTokensTip")}
                                 </small>
                             </label>
                         {/if}
                     {:else}
                         <p class="settings__placeholder">
-                            当前已关闭 AI，若需开启请在上方选择其他提供商。
+                            {t("settingsAiDisabledNote")}
                         </p>
                     {/if}
 
@@ -790,7 +838,9 @@
                                 on:click={() => handleAdvancedSave()}
                                 disabled={savingAdvanced}
                             >
-                                {savingAdvanced ? "保存中..." : "保存高级设置"}
+                                {savingAdvanced
+                                    ? t("saving")
+                                    : t("settingsSaveAdvanced")}
                             </button>
                             <button
                                 type="button"
@@ -798,7 +848,7 @@
                                 on:click={resetAdvancedSettings}
                                 disabled={savingAdvanced}
                             >
-                                恢复高级设置默认值并保存
+                                {t("settingsResetAdvanced")}
                             </button>
                         {/if}
                         <button
@@ -817,7 +867,7 @@
                                 class="btn btn--ghost"
                                 on:click={removeActiveCustom}
                             >
-                                删除当前自定义接口
+                                {t("settingsDeleteCustom")}
                             </button>
                         {/if}
                     </div>
@@ -839,13 +889,13 @@
                 </form>
 
                 <div class="settings__custom">
-                    <p>新增 OpenAI API Custom</p>
+                    <p>{t("settingsAddCustomTitle")}</p>
                     <div class="settings__custom-grid">
                         <label class="settings__field">
-                            <span>自定义名称后缀</span>
+                            <span>{t("settingsCustomSuffix")}</span>
                             <input
                                 type="text"
-                                placeholder="例如 team-a"
+                                placeholder={t("settingsCustomSuffixPlaceholder")}
                                 bind:value={customSuffix}
                             />
                         </label>
@@ -862,7 +912,7 @@
                             class="btn btn--ghost"
                             on:click={addCustomProvider}
                         >
-                            添加自定义接口
+                            {t("settingsAddCustom")}
                         </button>
                     </div>
                 </div>

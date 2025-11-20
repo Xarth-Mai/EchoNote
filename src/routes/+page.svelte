@@ -4,33 +4,44 @@
     import Calendar from "$lib/components/Calendar.svelte";
     import Timeline from "$lib/components/Timeline.svelte";
     import { appStateStore, setCurrentDate } from "$utils/state";
+    import {
+        formatFullDate,
+        formatMonthDay,
+        locale,
+        t,
+        type Locale,
+    } from "$utils/i18n";
 
     const state = appStateStore;
+    const localeStore = locale;
     const todayIso = new Date().toISOString().split("T")[0];
+    let localeValue: Locale = "zh-CN";
 
     $: greeting = buildGreeting();
-    $: subline = `${greeting}! 今天是 ${new Date().toLocaleDateString("zh-CN", {
-        month: "long",
-        day: "numeric",
-        weekday: "long",
-    })}`;
+    $: localeValue = $localeStore;
+    $: subline = t("homeSubline", {
+        greeting,
+        date: formatFullDate(new Date(), localeValue),
+    });
     $: selectedDate = $state.currentDate || todayIso;
     $: primaryCtaLabel = buildPrimaryCtaLabel(selectedDate);
 
     function buildGreeting(): string {
         const hour = new Date().getHours();
-        if (hour < 6) return "凌晨好";
-        if (hour < 12) return "早安";
-        if (hour < 18) return "下午好";
-        return "晚上好";
+        if (hour < 6) return t("greetingDawn");
+        if (hour < 12) return t("greetingMorning");
+        if (hour < 18) return t("greetingAfternoon");
+        return t("greetingEvening");
     }
 
     function buildPrimaryCtaLabel(target: string): string {
         if (target === todayIso) {
-            return "今日记录";
+            return t("homeTodayCta");
         }
         const label = formatMonthDayLabel(target);
-        return label ? `${label}-去编辑` : "去编辑";
+        return label
+            ? t("homeEditCtaWithDate", { date: label })
+            : t("homeEditCta");
     }
 
     function formatMonthDayLabel(value: string): string {
@@ -38,9 +49,7 @@
         if (Number.isNaN(date.getTime())) {
             return "";
         }
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${month}月${day}日`;
+        return formatMonthDay(date, localeValue);
     }
 
     function openSelectedDate(): void {
@@ -62,7 +71,7 @@
             <p class="muted-text">
                 {subline}
             </p>
-            <h1>记下你的灵感与情绪节奏</h1>
+            <h1>{t("homeTitle")}</h1>
         </div>
         <div class="home__actions">
             <button
@@ -72,7 +81,7 @@
             >
                 {primaryCtaLabel}
             </button>
-            <a class="btn btn--ghost" href="/settings"> 设置中心 </a>
+            <a class="btn btn--ghost" href="/settings">{t("homeSettings")}</a>
         </div>
     </section>
 
