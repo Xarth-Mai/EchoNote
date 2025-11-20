@@ -1,4 +1,5 @@
 /**
- * Pre-render the static chrome for faster startup; dynamic routes opt out locally.
+ * 禁用预渲染，确保应用始终以纯 CSR 形式运行。
  */
-export const prerender = true;
+export const prerender = false;
+export const ssr = false;
