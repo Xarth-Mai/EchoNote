@@ -14,20 +14,21 @@
 
     const state = appStateStore;
     const localeStore = locale;
-    const todayIso = new Date().toISOString().split("T")[0];
+    const today = new Date();
+    const todayIso = today.toISOString().split("T")[0];
     let localeValue: Locale = "zh-CN";
 
-    $: greeting = buildGreeting();
+    $: greeting = buildGreeting(today);
     $: localeValue = $localeStore;
     $: subline = t("homeSubline", {
         greeting,
-        date: formatFullDate(new Date(), localeValue),
+        date: formatFullDate(today, localeValue),
     });
     $: selectedDate = $state.currentDate || todayIso;
     $: primaryCtaLabel = buildPrimaryCtaLabel(selectedDate);
 
-    function buildGreeting(): string {
-        const hour = new Date().getHours();
+    function buildGreeting(reference: Date): string {
+        const hour = reference.getHours();
         if (hour < 6) return t("greetingDawn");
         if (hour < 12) return t("greetingMorning");
         if (hour < 18) return t("greetingAfternoon");
