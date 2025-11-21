@@ -1,7 +1,7 @@
 <script lang="ts">
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
-    import { onDestroy, onMount } from "svelte";
+    import { onDestroy, onMount, tick } from "svelte";
     import {
         getEntryBody,
         listEntriesByMonth,
@@ -30,6 +30,10 @@
     let localeValue: Locale = "zh-CN";
 
     let textareaValue = "";
+    let textareaRef: HTMLTextAreaElement | null = null;
+    let shouldFocusEditor = true;
+    let initialLoadSettled = false;
+    let hasHydratedInitialBody = false;
     // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
     let lastRenderedDate = "";
@@ -59,10 +63,17 @@
         textareaValue = "";
         hasLocalEdits = false;
         lastLoadedDate = null;
+        hasHydratedInitialBody = false;
+        initialLoadSettled = false;
         setCurrentBody(null);
+        shouldFocusEditor = true;
     }
     $: if (currentBody === null && currentDate) {
         void ensureBodyLoaded(currentDate);
+    }
+    $: if (shouldFocusEditor && initialLoadSettled && textareaRef) {
+        shouldFocusEditor = false;
+        void focusTextarea();
     }
 
     async function handleBack(): Promise<void> {
@@ -71,8 +82,18 @@
         await goto("/");
     }
 
+    function syncDomValue(): void {
+        if (!textareaRef) return;
+        const domValue = textareaRef.value;
+        if (domValue !== textareaValue) {
+            textareaValue = domValue;
+            setCurrentBody(domValue);
+        }
+    }
+
     function handleInput(): void {
         hasLocalEdits = true;
+        syncDomValue();
         setCurrentBody(textareaValue);
         scheduleAutoSave();
     }
@@ -87,6 +108,16 @@
             autoSaveTimer = null;
             void save();
         }, 10000);
+    }
+
+    async function focusTextarea(): Promise<void> {
+        if (!browser || !textareaRef) return;
+        await tick();
+        textareaRef.focus();
+        textareaRef.setSelectionRange(
+            textareaRef.value.length,
+            textareaRef.value.length,
+        );
     }
 
     // 确保切换路由或组件卸载前队列中的自动保存已执行
@@ -151,20 +182,30 @@
         const { force = false } = options;
         if (!browser || !date || loadingDate === date) return;
         const { currentBody: bodyInState } = getState();
-        if (!force && lastLoadedDate === date && bodyInState !== null) return;
+        if (!force && lastLoadedDate === date && bodyInState !== null) {
+            initialLoadSettled = true;
+            return;
+        }
 
         loadingDate = date;
         try {
+            syncDomValue();
             const body = await getEntryBody(date);
             lastLoadedDate = date;
             const bodyValue = body ?? "";
-            if (!hasLocalEdits) {
+            if (!hasHydratedInitialBody) {
+                textareaValue = bodyValue;
+                setCurrentBody(bodyValue);
+                hasHydratedInitialBody = true;
+                hasLocalEdits = false;
+            } else if (!hasLocalEdits) {
                 textareaValue = bodyValue;
                 setCurrentBody(bodyValue);
             }
         } catch (error) {
             console.error("加载正文失败:", error);
         } finally {
+            initialLoadSettled = true;
             loadingDate = null;
         }
     }
@@ -174,6 +215,7 @@
         if (initialDate) {
             void ensureBodyLoaded(initialDate, { force: true });
         }
+        shouldFocusEditor = true;
     });
 
     onDestroy(() => {
@@ -245,6 +287,7 @@
     <textarea
         class="editor-shell__textarea"
         placeholder={t("editorPlaceholder")}
+        bind:this={textareaRef}
         bind:value={textareaValue}
         on:input={handleInput}
     ></textarea>
