@@ -11,8 +11,8 @@ use reqwest::Url;
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 
+use crate::ai_provider::{self, OpenAiChatRequest, OpenAiChatResult, OpenAiMessage};
 use crate::models::{DiaryEntry, EntryRecord};
-use crate::openai::{self, OpenAiChatRequest, OpenAiChatResult, OpenAiMessage};
 use crate::security::{device, secrets};
 use crate::storage::{self, StorageLayout};
 
@@ -197,7 +197,7 @@ pub async fn invoke_openai_chat(
     let model = secrets::load_selected_model(app, provider_id)?
         .unwrap_or_else(|| DEFAULT_MODEL.to_string());
 
-    openai::invoke_chat_completion(request, model, &api_key, &api_base).await
+    ai_provider::invoke_provider_chat(provider_id, request, model, &api_key, &api_base).await
 }
 
 /// 查询指定 Base URL + API Key 的可用模型（API Key 来自本地后端存储）
@@ -218,7 +218,9 @@ pub async fn list_ai_models(
     let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required to list models".to_string())?;
 
-    match openai::list_models(base_url.trim_end_matches('/'), &api_key).await {
+    match ai_provider::list_provider_models(&provider_id, base_url.trim_end_matches('/'), &api_key)
+        .await
+    {
         Ok(models) => {
             secrets::save_model_cache(app, &provider_id, &models)?;
             Ok(models)
@@ -433,7 +435,8 @@ async fn request_ai_summary(
         max_tokens,
     };
 
-    let response = openai::invoke_chat_completion(request, model, &api_key, &api_base).await?;
+    let response =
+        ai_provider::invoke_provider_chat(provider_id, request, model, &api_key, &api_base).await?;
     Ok(parse_ai_summary_response(&response.content))
 }
 
