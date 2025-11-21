@@ -3,6 +3,7 @@
     import { goto } from "$app/navigation";
     import Calendar from "$lib/components/Calendar.svelte";
     import Timeline from "$lib/components/Timeline.svelte";
+    import { generateHeroGreeting } from "$utils/greeting";
     import { appStateStore, setCurrentDate } from "$utils/state";
     import {
         formatFullDate,
@@ -11,21 +12,30 @@
         t,
         type Locale,
     } from "$utils/i18n";
+    import type { DiaryEntry } from "../types";
 
     const state = appStateStore;
     const localeStore = locale;
     const today = new Date();
     const todayIso = today.toISOString().split("T")[0];
     let localeValue: Locale = "zh-CN";
+    let aiGreeting: string | null = null;
+    let greetingRequestId = 0;
+    let monthlyAiSummaries: DiaryEntry[] = [];
 
-    $: greeting = buildGreeting(today);
     $: localeValue = $localeStore;
+    $: monthlyAiSummaries = collectMonthlySummaries($state.summaries, today);
+    $: fallbackGreeting = buildGreeting(today);
+    $: greeting = aiGreeting?.trim() || fallbackGreeting;
     $: subline = t("homeSubline", {
         greeting,
         date: formatFullDate(today, localeValue),
     });
     $: selectedDate = $state.currentDate || todayIso;
     $: primaryCtaLabel = buildPrimaryCtaLabel(selectedDate);
+    $: if (browser) {
+        void updateHeroGreeting(localeValue, monthlyAiSummaries);
+    }
 
     function buildGreeting(reference: Date): string {
         const hour = reference.getHours();
@@ -58,6 +68,42 @@
         setCurrentDate(target);
         if (browser) {
             void goto(`/editor?date=${target}`);
+        }
+    }
+
+    function collectMonthlySummaries(
+        source: Map<string, DiaryEntry>,
+        reference: Date,
+    ): DiaryEntry[] {
+        const cutoff = new Date(reference);
+        cutoff.setDate(reference.getDate() - 30);
+
+        return Array.from(source.values())
+            .filter((entry) => {
+                if (!entry.aiSummary) return false;
+                const parsed = new Date(entry.date);
+                if (Number.isNaN(parsed.getTime())) return false;
+                return parsed >= cutoff && parsed <= reference;
+            })
+            .sort((a, b) => b.date.localeCompare(a.date));
+    }
+
+    async function updateHeroGreeting(
+        localeSnapshot: Locale,
+        entriesSnapshot: DiaryEntry[],
+    ): Promise<void> {
+        const requestId = ++greetingRequestId;
+        try {
+            const generated = await generateHeroGreeting({
+                today,
+                locale: localeSnapshot,
+                entries: entriesSnapshot,
+            });
+            if (requestId === greetingRequestId) {
+                aiGreeting = generated;
+            }
+        } catch (error) {
+            console.error("生成 AI 问候语失败:", error);
         }
     }
 </script>
