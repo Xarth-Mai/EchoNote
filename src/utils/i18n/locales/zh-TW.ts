@@ -52,7 +52,7 @@ const zhTWTranslations = {
   settingsFetchModelsPlaceholder: "請先獲取模型列表",
   settingsRefreshModels: "重新整理模型",
   settingsRefreshingModels: "拉取中...",
-  settingsModelTip: "推薦使用 Chat 模型，如 gpt-5.1-mini",
+  settingsModelTip: "建議使用快速模型，例如 gpt-5.1-nano。若使用推理模型，請在進階設定中提高 token 上限。",
   settingsAdvancedTitle: "進階設定",
   settingsToggleAdvancedShow: "顯示進階設定",
   settingsToggleAdvancedHide: "隱藏進階設定",

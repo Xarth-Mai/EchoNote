@@ -52,7 +52,7 @@ const zhCNTranslations = {
   settingsFetchModelsPlaceholder: "请先获取模型列表",
   settingsRefreshModels: "刷新模型",
   settingsRefreshingModels: "拉取中...",
-  settingsModelTip: "推荐使用 Chat 模型，如 gpt-5.1-mini",
+  settingsModelTip: "推荐使用快速模型，如 gpt-5.1-nano，如果使用了推理模型请在高级设置提高token上限",
   settingsAdvancedTitle: "高级设置",
   settingsToggleAdvancedShow: "显示高级设置",
   settingsToggleAdvancedHide: "隐藏高级设置",

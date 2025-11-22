@@ -54,7 +54,7 @@ const jaTranslations = {
   settingsFetchModelsPlaceholder: "まずモデル一覧を取得してください",
   settingsRefreshModels: "モデルを更新",
   settingsRefreshingModels: "取得中...",
-  settingsModelTip: "gpt-5.1-mini などのチャットモデルを推奨します。",
+  settingsModelTip: "高速モデル（例：gpt-5.1-nano）の使用を推奨します。推論モデルを使用する場合は、詳細設定でトークン上限を上げてください。",
   settingsAdvancedTitle: "詳細設定",
   settingsToggleAdvancedShow: "詳細設定を表示",
   settingsToggleAdvancedHide: "詳細設定を隠す",
