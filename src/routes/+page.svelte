@@ -17,7 +17,12 @@
     const state = appStateStore;
     const localeStore = locale;
     const today = new Date();
-    const todayIso = today.toISOString().split("T")[0];
+    const todayIso = (() => {
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    })();
     let localeValue: Locale = "zh-CN";
     let aiGreeting: string | null = null;
     let greetingRequestId = 0;
