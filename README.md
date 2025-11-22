@@ -56,30 +56,34 @@ EchoNote focuses on an elegant, distraction-free writing experience with **AI-as
 - **Desktop**: Windows, macOS, Linux
 - **Mobile**: Android, iOS, iPadOS
 
----
 
-## 🧠 Multiple AI API Providers
+## 🧠 Flexible AI API Integrations
 
-EchoNote works with multiple OpenAI-compatible APIs, and you can choose or disable AI as needed:
+EchoNote works with multiple mainstream and compatible AI APIs, and you can enable or disable them as you like:
 
-- [x] ChatGPT (OpenAI API)
-- [x] DeepSeek
-- [x] Custom OpenAI-compatible providers (configure `baseUrl` in Settings)
+- [x] [ChatGPT](https://openai.com/chatgpt) (OpenAI)
+- [x] [DeepSeek](https://www.deepseek.com/) (DeepSeek)
+- [x] [Claude](https://claude.ai/) (Anthropic)
+- [x] [Gemini](https://ai.google.dev/) (Google)
+- [ ] [Azure OpenAI](https://azure.microsoft.com/) (Microsoft)
+- [ ] [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/) (Cloudflare)
+- [ ] [Baidu ERNIE](https://yiyan.baidu.com/) (Baidu)
+- [ ] [Alibaba Qwen](https://qianwen.aliyun.com/) (Alibaba)
+- [ ] [ByteDance Doubao](https://www.doubao.com/) (ByteDance)
+- [ ] [Moonshot Kimi](https://kimi.moonshot.cn/) (Moonshot)
+- [ ] [xAI Grok](https://x.ai/) (xAI)
+- [ ] [Ollama](https://ollama.com/) (local multi-model runner)
+- [ ] [LM Studio](https://lmstudio.ai/) (local/remote model launcher)
 - [x] No AI (pure local Markdown writing mode)
-- [ ] Claude (Anthropic)
-- [ ] Azure OpenAI
-- [ ] Gemini (Google)
-- [ ] Cloudflare
-- [ ] Others
 
-> You can switch the active provider in **Settings**, or add custom configurations for any compatible service.
+> You can switch the default model in **Settings**, or add custom configurations for other compatible providers.
 
 ---
 
 ## 🧱 Tech Stack
 
-- **Frontend**: Bun + SvelteKit + Vite + CSS
-- **Backend**: Tauri + Rust
+- **Frontend**: [Bun](https://bun.sh/) + [SvelteKit](https://kit.svelte.dev/) + [Vite](https://vitejs.dev/) + CSS
+- **Backend**: [Tauri](https://tauri.app/) + [Rust](https://www.rust-lang.org/)
 
 ## 🚀 Development
 

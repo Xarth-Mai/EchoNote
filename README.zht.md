@@ -56,21 +56,25 @@ EchoNote 提供優雅、專注的寫作體驗，重點圍繞「AI 輔助寫作�
 - **桌面端**：Windows、macOS、Linux
 - **行動裝置**：Android、iOS、iPadOS
 
----
 
-## 🧠 多家 AI API 支援
+## 🧠 多家 AI API 彈性接入
 
-目前版本支援多家相容 OpenAI API 的模型服務，可以依需求選擇或關閉 AI：
+支援多家主流與相容的 AI API，可以依需求啟用或關閉（模型名稱 + 發行商）：
 
-- [x] ChatGPT（OpenAI API）
-- [x] DeepSeek
-- [x] 自訂任意相容 OpenAI API 的服務（在「設定」中配置 `baseUrl`）
+- [x] [ChatGPT](https://openai.com/chatgpt)（OpenAI）
+- [x] [DeepSeek](https://www.deepseek.com/)（DeepSeek）
+- [x] [Claude](https://claude.ai/)（Anthropic）
+- [x] [Gemini](https://ai.google.dev/)（Google）
+- [ ] [Azure OpenAI](https://azure.microsoft.com/)（Microsoft）
+- [ ] [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/)（Cloudflare）
+- [ ] [文心一言](https://yiyan.baidu.com/)（百度）
+- [ ] [通義千問](https://qianwen.aliyun.com/)（阿里巴巴）
+- [ ] [豆包](https://www.doubao.com/)（字節跳動）
+- [ ] [Kimi](https://kimi.moonshot.cn/)（月之暗面 Moonshot）
+- [ ] [Grok](https://x.ai/)（xAI）
+- [ ] [Ollama](https://ollama.com/)（本地多模型管理）
+- [ ] [LM Studio](https://lmstudio.ai/)（本地／遠端模型啟動器）
 - [x] 不使用 AI（純本地 Markdown 寫作模式）
-- [ ] Claude（Anthropic）
-- [ ] Azure OpenAI
-- [ ] Gemini（Google）
-- [ ] Cloudflare
-- [ ] 其他服務
 
 > 你可以在「設定」中切換預設模型，或為不同相容服務新增自訂配置。
 
@@ -78,8 +82,8 @@ EchoNote 提供優雅、專注的寫作體驗，重點圍繞「AI 輔助寫作�
 
 ## 🧱 技術堆疊
 
-- **前端**：Bun + SvelteKit + Vite + CSS
-- **後端**：Tauri + Rust
+- **前端**：[Bun](https://bun.sh/) + [SvelteKit](https://kit.svelte.dev/) + [Vite](https://vitejs.dev/) + CSS
+- **後端**：[Tauri](https://tauri.app/) + [Rust](https://www.rust-lang.org/)
 
 ## 🚀 開發方式
 
@@ -99,4 +103,3 @@ bun run tauri dev    # 啟動桌面端（需先執行 `bun run build`）
 ## 📄 授權條款
 
 詳情請參閱 [LICENSE](./LICENSE)。
-

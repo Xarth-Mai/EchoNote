@@ -58,19 +58,24 @@ EchoNote 提供优雅、专注的写作体验，重点围绕「AI 辅助写作�
 
 ---
 
-## 🧠 多家 AI API 支持
+## 🧠 多家 AI API 灵活接入
 
-当前版本支持多家兼容 OpenAI API 的模型服务，可以按需选择或关闭 AI：
+支持多家主流与兼容的 AI API，可以按需启用或关闭（模型名称 + 发行商）：
 
-- [x] ChatGPT（OpenAI API）
-- [x] DeepSeek
-- [x] 自定义任意兼容 OpenAI API 的服务（通过设置页配置 `baseUrl`）
+- [x] [ChatGPT](https://openai.com/chatgpt)（OpenAI）
+- [x] [DeepSeek](https://www.deepseek.com/)（DeepSeek）
+- [x] [Claude](https://claude.ai/)（Anthropic）
+- [x] [Gemini](https://gemini.google.com/)（Google）
+- [ ] [Azure OpenAI](https://azure.microsoft.com/)（Microsoft）
+- [ ] [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/)（Cloudflare）
+- [ ] [文心一言](https://yiyan.baidu.com/)（百度）
+- [ ] [通义千问](https://qianwen.aliyun.com/)（阿里巴巴）
+- [ ] [豆包](https://www.doubao.com/)（字节跳动）
+- [ ] [Kimi](https://kimi.moonshot.cn/)（月之暗面 Moonshot）
+- [ ] [Grok](https://x.ai/)（xAI）
+- [ ] [Ollama](https://ollama.com/)
+- [ ] [LM Studio](https://lmstudio.ai/)
 - [x] 不使用 AI（纯本地 Markdown 写作模式）
-- [ ] Claude（Anthropic）
-- [ ] Azure OpenAI
-- [ ] Gemini（Google）
-- [ ] Cloudflare
-- [ ] Others
 
 > 你可以在「设置」中切换默认模型，或为不同兼容服务添加自定义配置。
 
@@ -78,8 +83,8 @@ EchoNote 提供优雅、专注的写作体验，重点围绕「AI 辅助写作�
 
 ## 🧱 技术栈
 
-- **前端**：Bun + SvelteKit + Vite + CSS
-- **后端**：Tauri + Rust
+- **前端**：[Bun](https://bun.sh/) + [SvelteKit](https://kit.svelte.dev/) + [Vite](https://vitejs.dev/) + CSS
+- **后端**：[Tauri](https://tauri.app/) + [Rust](https://www.rust-lang.org/)
 
 ## 🚀 开发方式
 

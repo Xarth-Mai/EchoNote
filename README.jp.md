@@ -56,30 +56,34 @@ EchoNote は、**AI を活用した執筆と振り返り**にフォーカスし�
 - **デスクトップ**：Windows / macOS / Linux
 - **モバイル**：Android / iOS / iPadOS
 
----
 
-## 🧠 複数の AI API プロバイダ
+## 🧠 柔軟な AI API 連携
 
-EchoNote は複数の OpenAI 互換 API に対応しており、用途に応じて AI を選択・無効化できます。
+EchoNote は複数の主要・互換 AI API に対応しており、用途に応じて自由に有効化／無効化できます（モデル名 + プロバイダ）。
 
-- [x] ChatGPT（OpenAI API）
-  - [x] DeepSeek
-- [x] 任意の OpenAI 互換プロバイダ（設定画面で `baseUrl` を指定）
+- [x] [ChatGPT](https://openai.com/chatgpt)（OpenAI）
+- [x] [DeepSeek](https://www.deepseek.com/)（DeepSeek）
+- [x] [Claude](https://claude.ai/)（Anthropic）
+- [x] [Gemini](https://ai.google.dev/)（Google）
+- [ ] [Azure OpenAI](https://azure.microsoft.com/)（Microsoft）
+- [ ] [Cloudflare AI Gateway](https://developers.cloudflare.com/ai-gateway/)（Cloudflare）
+- [ ] [文心一言](https://yiyan.baidu.com/)（Baidu）
+- [ ] [通義千問](https://qianwen.aliyun.com/)（Alibaba）
+- [ ] [Doubao](https://www.doubao.com/)（ByteDance）
+- [ ] [Kimi](https://kimi.moonshot.cn/)（Moonshot）
+- [ ] [Grok](https://x.ai/)（xAI）
+- [ ] [Ollama](https://ollama.com/)（ローカルで複数モデルを実行）
+- [ ] [LM Studio](https://lmstudio.ai/)（ローカル／リモートモデル起動ツール）
 - [x] AI を使用しない（ローカル Markdown のみ）
-- [ ] Claude（Anthropic）
-- [ ] Azure OpenAI
-- [ ] Gemini（Google）
-- [ ] Cloudflare
-- [ ] その他
 
-> **設定** から利用するプロバイダを切り替えたり、互換サービスごとにカスタム設定を追加したりできます。
+> **設定** からデフォルトモデルを切り替えたり、互換サービスごとにカスタム設定を追加したりできます。
 
 ---
 
 ## 🧱 技術スタック
 
-- **フロントエンド**：Bun + SvelteKit + Vite + CSS
-- **バックエンド**：Tauri + Rust
+- **フロントエンド**：[Bun](https://bun.sh/) + [SvelteKit](https://kit.svelte.dev/) + [Vite](https://vitejs.dev/) + CSS
+- **バックエンド**：[Tauri](https://tauri.app/) + [Rust](https://www.rust-lang.org/)
 
 ## 🚀 開発
 
@@ -99,4 +103,3 @@ bun run tauri dev    # デスクトップアプリを起動（事前に `bun run
 ## 📄 ライセンス
 
 詳細は [LICENSE](./LICENSE) を参照してください。
-
