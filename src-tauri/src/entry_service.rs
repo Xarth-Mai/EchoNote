@@ -11,7 +11,7 @@ use reqwest::Url;
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter};
 
-use crate::ai_provider::{self, OpenAiChatRequest, OpenAiChatResult, OpenAiMessage};
+use crate::ai_provider::{self, AiChatRequest, AiChatResult, AiMessage};
 use crate::models::{DiaryEntry, EntryRecord};
 use crate::security::{device, secrets};
 use crate::storage::{self, StorageLayout};
@@ -25,13 +25,19 @@ static STORAGE_LAYOUT: OnceCell<StorageLayout> = OnceCell::new();
 const ENTRY_METADATA_EVENT: &str = "entry-metadata-updated";
 const EMPTY_ENTRY_SUMMARY: &str = "空白日记";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
-const DEFAULT_MODEL: &str = "gpt-5.1-mini";
 const DATE_FORMAT: &str = "%Y-%m-%d";
 const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules. You may adjust tone, focus, or preference here if needed.";
 const DEFAULT_TEMPERATURE: f32 = 0.3;
-const DEFAULT_API_BASE: &str = "https://api.openai.com/v1";
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
 const MAX_STORE_ENTRIES: usize = 500;
+const DEFAULT_MODEL_OPENAI: &str = "gpt-5.1";
+const DEFAULT_MODEL_DEEPSEEK: &str = "deepseek-chat";
+const DEFAULT_MODEL_GEMINI: &str = "gemini-flash-lite-latest";
+const DEFAULT_MODEL_CLAUDE: &str = "claude-haiku-4-5";
+const DEFAULT_API_BASE_OPENAI: &str = "https://api.openai.com/v1";
+const DEFAULT_API_BASE_DEEPSEEK: &str = "https://api.deepseek.com";
+const DEFAULT_API_BASE_GEMINI: &str = "https://generativelanguage.googleapis.com";
+const DEFAULT_API_BASE_CLAUDE: &str = "https://api.anthropic.com";
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AiInvokePayload {
@@ -44,7 +50,7 @@ pub struct AiInvokePayload {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ModelListRequest {
+pub struct AiModelListRequest {
     #[serde(rename = "baseUrl")]
     base_url: Option<String>,
     #[serde(rename = "providerId")]
@@ -181,29 +187,29 @@ pub fn save_entry_by_date(
     Ok(summary)
 }
 
-/// 统一调用 OpenAI Chat Completions 接口（凭据和模型从本地配置读取）
-pub async fn invoke_openai_chat(
+/// 统一调用各 AI Provider 的聊天接口（凭据和模型从本地配置读取）
+pub async fn invoke_ai_chat(
     app: &AppHandle,
-    request: OpenAiChatRequest,
-) -> Result<OpenAiChatResult, String> {
-    let provider_id = request.provider_id.trim();
+    request: AiChatRequest,
+) -> Result<AiChatResult, String> {
+    let provider_id = request.provider_id.trim().to_string();
     if provider_id.is_empty() || provider_id == "noai" {
         return Err("AI provider is required".to_string());
     }
 
-    let api_key = secrets::load_api_key(app, provider_id)?
+    let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?)?;
-    let model = secrets::load_selected_model(app, provider_id)?
-        .unwrap_or_else(|| DEFAULT_MODEL.to_string());
+    let api_base = sanitize_api_base_url(secrets::load_base_url(app, &provider_id)?, &provider_id)?;
+    let model = secrets::load_selected_model(app, &provider_id)?
+        .unwrap_or_else(|| default_model_for(&provider_id));
 
-    ai_provider::invoke_provider_chat(provider_id, request, model, &api_key, &api_base).await
+    ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await
 }
 
 /// 查询指定 Base URL + API Key 的可用模型（API Key 来自本地后端存储）
 pub async fn list_ai_models(
     app: &AppHandle,
-    request: ModelListRequest,
+    request: AiModelListRequest,
 ) -> Result<Vec<String>, String> {
     let provider_id = request.provider_id;
     if provider_id == "noai" {
@@ -214,6 +220,7 @@ pub async fn list_ai_models(
         request
             .base_url
             .or_else(|| secrets::load_base_url(app, &provider_id).ok().flatten()),
+        &provider_id,
     )?;
     let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required to list models".to_string())?;
@@ -234,7 +241,7 @@ pub async fn list_ai_models(
     }
 }
 
-fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<OpenAiMessage> {
+fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<AiMessage> {
     let user_custom = custom_prompt.unwrap_or(DEFAULT_PROMPT);
 
     let system_prompt = format!(
@@ -243,11 +250,11 @@ fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> V
     );
 
     vec![
-        OpenAiMessage {
+        AiMessage {
             role: "system".into(),
             content: system_prompt,
         },
-        OpenAiMessage {
+        AiMessage {
             role: "user".into(),
             content: user_custom.into(),
         },
@@ -346,6 +353,24 @@ fn sanitize_ai_payload(mut ai: AiInvokePayload) -> Option<AiInvokePayload> {
     Some(ai)
 }
 
+fn default_api_base_for(provider_id: &str) -> &'static str {
+    match provider_id {
+        "deepseek" => DEFAULT_API_BASE_DEEPSEEK,
+        "gemini" => DEFAULT_API_BASE_GEMINI,
+        "claude" => DEFAULT_API_BASE_CLAUDE,
+        _ => DEFAULT_API_BASE_OPENAI,
+    }
+}
+
+fn default_model_for(provider_id: &str) -> String {
+    match provider_id {
+        "deepseek" => DEFAULT_MODEL_DEEPSEEK.to_string(),
+        "gemini" => DEFAULT_MODEL_GEMINI.to_string(),
+        "claude" => DEFAULT_MODEL_CLAUDE.to_string(),
+        _ => DEFAULT_MODEL_OPENAI.to_string(),
+    }
+}
+
 fn spawn_metadata_refresh(
     app: &AppHandle,
     date: String,
@@ -417,10 +442,10 @@ async fn request_ai_summary(
         .ok_or_else(|| "AI provider is required".to_string())?;
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?)?;
+    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?, provider_id)?;
 
     let model = secrets::load_selected_model(app, provider_id)?
-        .unwrap_or_else(|| DEFAULT_MODEL.to_string());
+        .unwrap_or_else(|| default_model_for(provider_id));
     let prompt = ai
         .prompt
         .clone()
@@ -428,7 +453,7 @@ async fn request_ai_summary(
     let max_tokens = ai.max_tokens.or(Some(200));
     let temperature = ai.temperature.unwrap_or(DEFAULT_TEMPERATURE);
 
-    let request = OpenAiChatRequest {
+    let request = AiChatRequest {
         provider_id: provider_id.to_string(),
         messages: build_summary_prompt(body, Some(&prompt)),
         temperature: Some(temperature),
@@ -436,7 +461,7 @@ async fn request_ai_summary(
     };
 
     let response =
-        ai_provider::invoke_provider_chat(provider_id, request, model, &api_key, &api_base).await?;
+        ai_provider::invoke_ai_chat(provider_id, request, model, &api_key, &api_base).await?;
     Ok(parse_ai_summary_response(&response.content))
 }
 
@@ -597,10 +622,10 @@ fn detect_language(body: &str) -> Option<String> {
     }
 }
 
-fn sanitize_api_base_url(raw: Option<String>) -> Result<String, String> {
-    let value = raw.unwrap_or_default();
+fn sanitize_api_base_url(raw: Option<String>, provider_id: &str) -> Result<String, String> {
+    let value = raw.unwrap_or_else(|| default_api_base_for(provider_id).to_string());
     if value.trim().is_empty() {
-        return Ok(DEFAULT_API_BASE.to_string());
+        return Ok(default_api_base_for(provider_id).to_string());
     }
 
     let parsed = Url::parse(value.trim()).map_err(|err| format!("invalid AI base URL: {err}"))?;

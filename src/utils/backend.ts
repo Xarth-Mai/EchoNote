@@ -1,8 +1,8 @@
 import { browser } from "$app/environment";
 import type {
   DiaryEntry as EntrySummary,
-  OpenAiChatRequest,
-  OpenAiChatResponse,
+  AiChatRequest,
+  AiChatResult,
   AiInvokePayload,
   AiModelQuery,
 } from "../types";
@@ -39,8 +39,8 @@ async function safeInvoke<T>(
         return [] as T;
       case "get_entry_body_by_date":
         return null as T;
-      case "invoke_openai_chat":
-        throw new Error("OpenAI API is unavailable outside the browser");
+      case "invoke_ai_chat":
+        throw new Error("AI chat is unavailable outside the browser");
       case "list_ai_models":
         return [] as T;
       case "load_cached_models":
@@ -89,10 +89,10 @@ export async function saveEntryByDate(
   });
 }
 
-export async function invokeOpenAiChat(
-  request: OpenAiChatRequest,
-): Promise<OpenAiChatResponse> {
-  return safeInvoke<OpenAiChatResponse>("invoke_openai_chat", { request });
+export async function invokeAiChat(
+  request: AiChatRequest,
+): Promise<AiChatResult> {
+  return safeInvoke<AiChatResult>("invoke_ai_chat", { request });
 }
 
 export async function listAiModels(

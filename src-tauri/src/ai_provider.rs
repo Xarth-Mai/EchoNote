@@ -20,16 +20,16 @@ enum ProviderKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OpenAiMessage {
+pub struct AiMessage {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct OpenAiChatRequest {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiChatRequest {
     #[serde(rename = "providerId")]
     pub provider_id: String,
-    pub messages: Vec<OpenAiMessage>,
+    pub messages: Vec<AiMessage>,
     #[serde(default, rename = "temperature")]
     pub temperature: Option<f32>,
     #[serde(default, rename = "maxTokens")]
@@ -37,7 +37,7 @@ pub struct OpenAiChatRequest {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct OpenAiChatResult {
+pub struct AiChatResult {
     pub content: String,
     #[serde(rename = "finishReason", skip_serializing_if = "Option::is_none")]
     pub finish_reason: Option<String>,
@@ -51,16 +51,16 @@ pub struct OpenAiChatResult {
     pub total_tokens: Option<u32>,
 }
 
-pub async fn invoke_provider_chat(
+pub async fn invoke_ai_chat(
     provider_id: &str,
-    request: OpenAiChatRequest,
+    request: AiChatRequest,
     model: String,
     api_key: &str,
     api_base: &str,
-) -> Result<OpenAiChatResult, String> {
+) -> Result<AiChatResult, String> {
     match resolve_provider_kind(provider_id) {
         ProviderKind::OpenAiCompatible => {
-            invoke_chat_completion(request, model, api_key, api_base).await
+            invoke_openai_completion(request, model, api_key, api_base).await
         }
         ProviderKind::Gemini => invoke_gemini_completion(request, model, api_key, api_base).await,
         ProviderKind::Claude => invoke_claude_completion(request, model, api_key, api_base).await,
@@ -73,7 +73,7 @@ pub async fn list_provider_models(
     api_key: &str,
 ) -> Result<Vec<String>, String> {
     match resolve_provider_kind(provider_id) {
-        ProviderKind::OpenAiCompatible => list_models(api_base, api_key).await,
+        ProviderKind::OpenAiCompatible => list_openai_models(api_base, api_key).await,
         ProviderKind::Gemini => list_gemini_models(api_base, api_key).await,
         ProviderKind::Claude => list_claude_models(api_base, api_key).await,
     }
@@ -82,7 +82,7 @@ pub async fn list_provider_models(
 #[derive(Debug, Serialize)]
 struct ChatCompletionPayload {
     model: String,
-    messages: Vec<OpenAiMessage>,
+    messages: Vec<AiMessage>,
     #[serde(skip_serializing_if = "Option::is_none")]
     temperature: Option<f32>,
     #[serde(rename = "max_tokens", skip_serializing_if = "Option::is_none")]
@@ -159,14 +159,14 @@ fn resolve_provider_kind(provider_id: &str) -> ProviderKind {
     ProviderKind::OpenAiCompatible
 }
 
-pub async fn invoke_chat_completion(
-    request: OpenAiChatRequest,
+async fn invoke_openai_completion(
+    request: AiChatRequest,
     model: String,
     api_key: &str,
     api_base: &str,
-) -> Result<OpenAiChatResult, String> {
+) -> Result<AiChatResult, String> {
     if request.messages.is_empty() {
-        return Err("OpenAI request must contain at least one message".to_string());
+        return Err("AI request must contain at least one message".to_string());
     }
 
     let endpoint = format!("{}/chat/completions", api_base.trim_end_matches('/'));
@@ -189,10 +189,10 @@ pub async fn invoke_chat_completion(
         .await
         .map_err(|err| format!("failed to reach OpenAI API: {err}"))?;
 
-    handle_response(response).await
+    handle_openai_response(response).await
 }
 
-pub async fn list_models(api_base: &str, api_key: &str) -> Result<Vec<String>, String> {
+pub async fn list_openai_models(api_base: &str, api_key: &str) -> Result<Vec<String>, String> {
     let endpoint = format!("{}/models", api_base.trim_end_matches('/'));
     let response = HTTP_CLIENT
         .get(endpoint)
@@ -204,13 +204,13 @@ pub async fn list_models(api_base: &str, api_key: &str) -> Result<Vec<String>, S
 }
 
 async fn invoke_gemini_completion(
-    request: OpenAiChatRequest,
+    request: AiChatRequest,
     model: String,
     api_key: &str,
     api_base: &str,
-) -> Result<OpenAiChatResult, String> {
+) -> Result<AiChatResult, String> {
     if request.messages.is_empty() {
-        return Err("OpenAI request must contain at least one message".to_string());
+        return Err("AI request must contain at least one message".to_string());
     }
 
     let (system_messages, conversation): (Vec<_>, Vec<_>) = request
@@ -313,13 +313,13 @@ pub async fn list_gemini_models(api_base: &str, api_key: &str) -> Result<Vec<Str
 }
 
 async fn invoke_claude_completion(
-    request: OpenAiChatRequest,
+    request: AiChatRequest,
     model: String,
     api_key: &str,
     api_base: &str,
-) -> Result<OpenAiChatResult, String> {
+) -> Result<AiChatResult, String> {
     if request.messages.is_empty() {
-        return Err("OpenAI request must contain at least one message".to_string());
+        return Err("AI request must contain at least one message".to_string());
     }
 
     let (system_messages, conversation): (Vec<_>, Vec<_>) = request
@@ -472,7 +472,17 @@ struct GeminiUsage {
     total_tokens: Option<u32>,
 }
 
-async fn handle_gemini_response(response: reqwest::Response) -> Result<OpenAiChatResult, String> {
+#[derive(Debug, Deserialize)]
+struct GeminiModelList {
+    models: Option<Vec<GeminiModelEntry>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GeminiModelEntry {
+    name: String,
+}
+
+async fn handle_gemini_response(response: reqwest::Response) -> Result<AiChatResult, String> {
     let status = response.status();
     if !status.is_success() {
         let text = response
@@ -501,7 +511,7 @@ async fn handle_gemini_response(response: reqwest::Response) -> Result<OpenAiCha
         .ok_or_else(|| "Gemini API returned no completion candidates".to_string())?;
 
     let (content, finish_reason) = candidate_text;
-    Ok(OpenAiChatResult {
+    Ok(AiChatResult {
         content,
         finish_reason,
         model: None,
@@ -563,7 +573,7 @@ struct AnthropicModelEntry {
     id: String,
 }
 
-async fn handle_claude_response(response: reqwest::Response) -> Result<OpenAiChatResult, String> {
+async fn handle_claude_response(response: reqwest::Response) -> Result<AiChatResult, String> {
     let status = response.status();
     if !status.is_success() {
         let text = response
@@ -596,7 +606,7 @@ async fn handle_claude_response(response: reqwest::Response) -> Result<OpenAiCha
                 .map(|(input, output)| input + output)
         });
 
-    Ok(OpenAiChatResult {
+    Ok(AiChatResult {
         content,
         finish_reason: parsed.stop_reason,
         model: parsed.model,
@@ -606,7 +616,7 @@ async fn handle_claude_response(response: reqwest::Response) -> Result<OpenAiCha
     })
 }
 
-async fn handle_response(response: reqwest::Response) -> Result<OpenAiChatResult, String> {
+async fn handle_openai_response(response: reqwest::Response) -> Result<AiChatResult, String> {
     let status = response.status();
     if !status.is_success() {
         let text = response
@@ -626,7 +636,7 @@ async fn handle_response(response: reqwest::Response) -> Result<OpenAiChatResult
         .next()
         .ok_or_else(|| "OpenAI API returned no completion choices".to_string())?;
 
-    Ok(OpenAiChatResult {
+    Ok(AiChatResult {
         content: first_choice.message.content,
         finish_reason: first_choice.finish_reason,
         model: parsed.model,

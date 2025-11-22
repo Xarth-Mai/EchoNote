@@ -18,19 +18,19 @@ export interface AppState {
   theme: "light" | "dark" | "auto"; // 主题模式：light=浅色，dark=深色，auto=跟随系统
 }
 
-export interface OpenAiMessage {
+export interface AiMessage {
   role: string;
   content: string;
 }
 
-export interface OpenAiChatRequest {
+export interface AiChatRequest {
   providerId: AiProviderId;
-  messages: OpenAiMessage[];
+  messages: AiMessage[];
   temperature?: number;
   maxTokens?: number;
 }
 
-export interface OpenAiChatResponse {
+export interface AiChatResult {
   content: string;
   finishReason?: string;
   model?: string;

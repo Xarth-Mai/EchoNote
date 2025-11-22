@@ -16,7 +16,7 @@ pub fn run() {
             commands::list_entries_by_month,
             commands::get_entry_body_by_date,
             commands::save_entry_by_date,
-            commands::invoke_openai_chat,
+            commands::invoke_ai_chat,
             commands::list_ai_models,
             commands::store_api_secret,
             commands::load_api_secret,

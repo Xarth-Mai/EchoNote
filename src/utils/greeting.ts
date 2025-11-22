@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import { invokeOpenAiChat } from "$utils/backend";
+import { invokeAiChat } from "$utils/backend";
 import { getActiveAiInvokePayload } from "$utils/ai";
 import type { AiProviderId, DiaryEntry } from "../types";
 import type { Locale } from "./i18n";
@@ -48,7 +48,7 @@ export async function generateHeroGreeting(
   const system = buildSystemPrompt(locale, aiConfig.prompt);
   const user = buildUserPrompt(todayIso, locale, context);
 
-  const response = await invokeOpenAiChat({
+  const response = await invokeAiChat({
     providerId,
     messages: [
       { role: "system", content: system },

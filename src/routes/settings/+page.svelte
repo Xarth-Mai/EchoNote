@@ -301,11 +301,9 @@
             ? normalizedBaseUrl(formBaseUrl)
             : provider.baseUrl;
         try {
-            const apiKey = formApiKey.trim();
-            if (apiKey) {
-                await storeProviderApiKey(provider.id, apiKey);
-                apiKeyDirty = false;
-            }
+            await persistCurrentApiKey(provider);
+            provider.baseUrl = baseUrl;
+            saveAiSettingsState(aiState);
             await storeProviderBaseUrl(provider.id, baseUrl);
             const models = await listAiModels({
                 baseUrl,
@@ -323,6 +321,7 @@
                     formModel = models[0];
                     provider.model = formModel;
                 }
+                saveAiSettingsState(aiState);
                 statusBanner = {
                     tone: "ok",
                     text: t("statusModelsFetched", { count: models.length }),
