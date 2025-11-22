@@ -91,7 +91,7 @@ function buildSystemPrompt(locale: Locale, preference?: string | null): string {
   const language = resolveLanguage(locale);
   const lines = [
     "You write a single warm hero greeting for a personal diary app.",
-    "Keep it concise (ideally within 24 characters), optimistic, and free of emoji or markdown.",
+    "Keep it concise (ideally within 24 characters), optimistic, add emoji.",
     `Respond in ${language} only.`,
   ];
   if (preference?.trim()) {

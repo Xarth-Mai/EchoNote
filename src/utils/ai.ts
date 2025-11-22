@@ -64,10 +64,10 @@ const BUILTIN_PROVIDERS: Record<
 
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
   noai: "",
-  chatgpt: "gpt-4o-mini",
+  chatgpt: "gpt-5-mini",
   deepseek: "deepseek-chat",
-  gemini: "gemini-1.5-flash-latest",
-  claude: "claude-3-5-haiku-20241022",
+  gemini: "gemini-flash-lite-latest",
+  claude: "claude-haiku-4.5",
 };
 
 export function loadAiSettingsState(): AiSettingsState {

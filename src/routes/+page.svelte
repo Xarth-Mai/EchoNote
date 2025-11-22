@@ -28,7 +28,6 @@
     $: fallbackGreeting = buildGreeting(today);
     $: greeting = aiGreeting?.trim() || fallbackGreeting;
     $: subline = t("homeSubline", {
-        greeting,
         date: formatFullDate(today, localeValue),
     });
     $: selectedDate = $state.currentDate || todayIso;
@@ -118,7 +117,7 @@
             <p class="muted-text">
                 {subline}
             </p>
-            <h1>{t("homeTitle")}</h1>
+            <h1>{greeting}</h1>
         </div>
         <div class="home__actions">
             <button
