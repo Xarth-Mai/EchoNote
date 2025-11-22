@@ -7,6 +7,7 @@ EchoNote combines a SvelteKit front end with a Rust/Tauri shell. UI entry points
 - `bun install` — install JS dependencies; rerun after changing `package.json` or `bun.lock`.
 - `bun run dev` — start Vite/SvelteKit for browser development.
 - `bun run check` or `bun run check:watch` — execute `svelte-check` with the repo `tsconfig.json`.
+- `python script/check_i18n.py` — validate locale strings stay in sync across language packs.
 - `bun run build` followed by `bun run preview` — compile and locally serve the production bundle before packaging.
 - `bun run tauri dev` / `bun run tauri build` — open the desktop shell or create release binaries; both assume the web bundle already passes `bun run build`.
 - `bash script/android-build.sh [debug|release]` — cross-compile the Android flavor with the Tauri CLI installed.
