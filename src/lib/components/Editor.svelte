@@ -20,10 +20,12 @@
     import { formatLongDate, locale, t, type Locale } from "$utils/i18n";
 
     type SaveOptions = {
-        dateOverride?: string;
+        dateOverride?: string | null;
         contentOverride?: string;
         triggerAi?: boolean;
     };
+
+    const AUTO_SAVE_DELAY = 10000;
 
     const state = appStateStore;
     const localeStore = locale;
@@ -33,48 +35,54 @@
     let textareaRef: HTMLTextAreaElement | null = null;
     let shouldFocusEditor = true;
     let initialLoadSettled = false;
-    let hasHydratedInitialBody = false;
-    // 延迟触发的自动保存定时器，避免每次敲击立刻写盘
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastRenderedDate = "";
+    let pendingStateSync = 0;
+    let activeDate: string | null = getState().currentDate;
     let loadingDate: string | null = null;
-    let lastLoadedDate: string | null = null;
-    let hasLocalEdits = false;
+    let loadedDate: string | null = null;
+    let hasDirtyEdits = false;
 
     $: currentDate = $state.currentDate;
     $: currentBody = $state.currentBody;
     $: localeValue = $localeStore;
     $: dateMeta = buildDateMeta(currentDate, localeValue);
+
     $: if (
-        !hasLocalEdits &&
+        !hasDirtyEdits &&
         currentBody !== null &&
         textareaValue !== currentBody
     ) {
-        textareaValue = currentBody;
+        applyTextareaValue(currentBody, { markPristine: true });
     }
 
-    $: if (!lastRenderedDate && currentDate) {
-        lastRenderedDate = currentDate;
+    $: if (currentDate && currentDate !== activeDate) {
+        void handleDateChange(currentDate);
     }
 
-    $: if (currentDate && currentDate !== lastRenderedDate) {
-        void flushAutoSave();
-        lastRenderedDate = currentDate;
-        textareaValue = "";
-        hasLocalEdits = false;
-        lastLoadedDate = null;
-        hasHydratedInitialBody = false;
-        initialLoadSettled = false;
-        setCurrentBody(null);
-        shouldFocusEditor = true;
+    $: if (activeDate && currentBody === null) {
+        void ensureBodyLoaded(activeDate);
     }
-    $: if (currentBody === null && currentDate) {
-        void ensureBodyLoaded(currentDate);
-    }
+
     $: if (shouldFocusEditor && initialLoadSettled && textareaRef) {
         shouldFocusEditor = false;
         void focusTextarea();
     }
+
+    onMount(() => {
+        const initialDate = activeDate || currentDate || getState().currentDate;
+        if (initialDate) {
+            activeDate = initialDate;
+            void ensureBodyLoaded(initialDate, { force: true });
+        }
+        shouldFocusEditor = true;
+    });
+
+    onDestroy(() => {
+        void flushAutoSave();
+        if (pendingStateSync && browser) {
+            cancelAnimationFrame(pendingStateSync);
+        }
+    });
 
     async function handleBack(): Promise<void> {
         await flushAutoSave();
@@ -82,20 +90,22 @@
         await goto("/");
     }
 
-    function syncDomValue(): void {
-        if (!textareaRef) return;
-        const domValue = textareaRef.value;
-        if (domValue !== textareaValue) {
-            textareaValue = domValue;
-            setCurrentBody(domValue);
-        }
+    function handleInput(): void {
+        hasDirtyEdits = true;
+        scheduleStateSync();
+        scheduleAutoSave();
     }
 
-    function handleInput(): void {
-        hasLocalEdits = true;
-        syncDomValue();
-        setCurrentBody(textareaValue);
-        scheduleAutoSave();
+    function scheduleStateSync(): void {
+        if (!browser) {
+            pushBodyToState(textareaValue);
+            return;
+        }
+        if (pendingStateSync) return;
+        pendingStateSync = requestAnimationFrame(() => {
+            pendingStateSync = 0;
+            pushBodyToState(textareaValue);
+        });
     }
 
     function scheduleAutoSave(): void {
@@ -107,7 +117,7 @@
         autoSaveTimer = window.setTimeout(() => {
             autoSaveTimer = null;
             void save();
-        }, 10000);
+        }, AUTO_SAVE_DELAY);
     }
 
     async function focusTextarea(): Promise<void> {
@@ -121,32 +131,35 @@
     }
 
     // 确保切换路由或组件卸载前队列中的自动保存已执行
-    async function flushAutoSave(triggerAi = true): Promise<void> {
+    async function flushAutoSave(options: {
+        targetDate?: string | null;
+        triggerAi?: boolean;
+    } = {}): Promise<void> {
+        const { targetDate = activeDate, triggerAi = true } = options;
         if (autoSaveTimer) {
             clearTimeout(autoSaveTimer);
             autoSaveTimer = null;
-            const targetDate = lastRenderedDate || currentDate;
-            if (targetDate) {
-                await save({
-                    dateOverride: targetDate,
-                    contentOverride: textareaValue,
-                    triggerAi,
-                });
-                return;
-            }
+            await save({
+                dateOverride: targetDate,
+                contentOverride: textareaValue,
+                triggerAi,
+            });
+            return;
         }
-        if (hasLocalEdits) {
-            await save({ triggerAi });
+        if (hasDirtyEdits) {
+            await save({ dateOverride: targetDate, triggerAi });
         }
     }
 
     // 将草稿写入状态后再调用后端保存，保证乐观 UI 不阻塞
     async function save(options: SaveOptions = {}): Promise<void> {
         const { dateOverride, contentOverride, triggerAi = false } = options;
-        const targetDate = dateOverride ?? currentDate;
+        const targetDate = dateOverride ?? activeDate ?? currentDate;
         if (!targetDate) return;
 
         const body = contentOverride ?? textareaValue;
+        pushBodyToState(body);
+
         const existing = getSummary(targetDate);
         const optimistic: DiaryEntry = existing
             ? { ...existing, date: targetDate }
@@ -155,7 +168,6 @@
             optimistic.aiSummary = t("timelineAiPending");
         }
 
-        setCurrentBody(body);
         upsertSummary(optimistic);
         try {
             const aiConfig =
@@ -169,6 +181,7 @@
             );
             upsertSummary(savedSummary);
             await refreshMonthSummaries(targetDate);
+            hasDirtyEdits = false;
         } catch (error) {
             console.error("保存日记失败:", error);
         }
@@ -180,47 +193,64 @@
         options: { force?: boolean } = {},
     ): Promise<void> {
         const { force = false } = options;
-        if (!browser || !date || loadingDate === date) return;
-        const { currentBody: bodyInState } = getState();
-        if (!force && lastLoadedDate === date && bodyInState !== null) {
+        if (!browser || !date) return;
+        if (!force && loadedDate === date) {
             initialLoadSettled = true;
             return;
         }
+        if (loadingDate === date) return;
 
         loadingDate = date;
         try {
-            syncDomValue();
             const body = await getEntryBody(date);
-            lastLoadedDate = date;
-            const bodyValue = body ?? "";
-            if (!hasHydratedInitialBody) {
-                textareaValue = bodyValue;
-                setCurrentBody(bodyValue);
-                hasHydratedInitialBody = true;
-                hasLocalEdits = false;
-            } else if (!hasLocalEdits) {
-                textareaValue = bodyValue;
-                setCurrentBody(bodyValue);
+            loadedDate = date;
+            if (activeDate === date && !hasDirtyEdits) {
+                applyTextareaValue(body ?? "", { markPristine: true });
             }
         } catch (error) {
             console.error("加载正文失败:", error);
         } finally {
-            initialLoadSettled = true;
+            if (activeDate === date) {
+                initialLoadSettled = true;
+            }
             loadingDate = null;
         }
     }
 
-    onMount(() => {
-        const initialDate = currentDate || getState().currentDate;
-        if (initialDate) {
-            void ensureBodyLoaded(initialDate, { force: true });
-        }
-        shouldFocusEditor = true;
-    });
+    async function handleDateChange(nextDate: string): Promise<void> {
+        const previousDate = activeDate;
+        await flushAutoSave({ targetDate: previousDate, triggerAi: false });
+        resetEditorForDate(nextDate);
+        await ensureBodyLoaded(nextDate, { force: true });
+    }
 
-    onDestroy(() => {
-        void flushAutoSave();
-    });
+    function resetEditorForDate(date: string): void {
+        activeDate = date;
+        textareaValue = "";
+        loadedDate = null;
+        loadingDate = null;
+        hasDirtyEdits = false;
+        initialLoadSettled = false;
+        setCurrentBody(null);
+        shouldFocusEditor = true;
+    }
+
+    function applyTextareaValue(
+        value: string,
+        options: { markPristine?: boolean } = {},
+    ): void {
+        textareaValue = value;
+        pushBodyToState(value);
+        if (options.markPristine) {
+            hasDirtyEdits = false;
+        }
+    }
+
+    function pushBodyToState(value: string): void {
+        if (getState().currentBody !== value) {
+            setCurrentBody(value);
+        }
+    }
 
     function buildDateMeta(
         dateValue?: string | null,
