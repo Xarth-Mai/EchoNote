@@ -16,7 +16,7 @@
     const state = appStateStore;
     const localeStore = locale;
     let weekdayLabels: string[] = [];
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
 
     const entryRefs = new Map<string, HTMLLIElement>();
     let pendingScrollDate: string | null = null;

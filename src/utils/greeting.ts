@@ -193,9 +193,9 @@ function resolveLanguage(locale: Locale): string {
       return "English";
     case "ja":
       return "Japanese";
-    case "zh-TW":
+    case "zh-Hant":
       return "Traditional Chinese";
-    case "zh-CN":
+    case "zh-Hans":
     default:
       return "Simplified Chinese";
   }

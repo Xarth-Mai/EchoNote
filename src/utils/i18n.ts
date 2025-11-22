@@ -3,18 +3,18 @@ import { get, writable, type Readable } from "svelte/store";
 
 import enTranslations from "./i18n/locales/en";
 import jaTranslations from "./i18n/locales/ja";
-import zhCNTranslations from "./i18n/locales/zh-CN";
-import zhTWTranslations from "./i18n/locales/zh-TW";
+import zhHansTranslations from "./i18n/locales/zh-Hans";
+import zhHantTranslations from "./i18n/locales/zh-Hant";
 
-export type Locale = "zh-CN" | "zh-TW" | "en" | "ja";
+export type Locale = "zh-Hans" | "zh-Hant" | "en" | "ja";
 
-const SUPPORTED_LOCALES: Locale[] = ["zh-CN", "zh-TW", "en", "ja"];
+const SUPPORTED_LOCALES: Locale[] = ["zh-Hans", "zh-Hant", "en", "ja"];
 const LOCALE_STORAGE_KEY = "echonote-locale";
-const DEFAULT_LOCALE: Locale = "zh-CN";
+const DEFAULT_LOCALE: Locale = "zh-Hans";
 
 export const localeOptions: Array<{ value: Locale; label: string }> = [
-  { value: "zh-CN", label: "简体中文" },
-  { value: "zh-TW", label: "繁體中文" },
+  { value: "zh-Hans", label: "简体中文" },
+  { value: "zh-Hant", label: "繁體中文" },
   { value: "en", label: "English" },
   { value: "ja", label: "日本語" },
 ];
@@ -24,8 +24,8 @@ type TranslationDictionary = Record<TranslationKey, string>;
 
 const translations: Record<Locale, TranslationDictionary> = {
   en: enTranslations,
-  "zh-CN": zhCNTranslations,
-  "zh-TW": zhTWTranslations,
+  "zh-Hans": zhHansTranslations,
+  "zh-Hant": zhHantTranslations,
   ja: jaTranslations,
 };
 

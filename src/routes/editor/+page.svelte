@@ -7,7 +7,7 @@
     import { onMount } from "svelte";
 
     const localeStore = locale;
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
     let lastSynced: string | null = null;
     $: localeValue = $localeStore;
     $: pageTitle = `${t("appName")} · ${t("editorHeadTitle")}${localeValue ? "" : ""}`;

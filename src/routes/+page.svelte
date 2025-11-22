@@ -23,7 +23,7 @@
         const day = String(today.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     })();
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
     let aiGreeting: string | null = null;
     let greetingRequestId = 0;
     let monthlyAiSummaries: DiaryEntry[] = [];

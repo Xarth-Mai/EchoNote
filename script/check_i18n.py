@@ -9,7 +9,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Iterable, List, Sequence
 
-BASE_LOCALE = "en"
+BASE_LOCALE = "zh-Hans"
 SCRIPT_DIR = Path(__file__).resolve().parent
 LOCALES_DIR = (
     SCRIPT_DIR

@@ -25,7 +25,7 @@
     const state = appStateStore;
     const localeStore = locale;
     let weekdayLabels: string[] = [];
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
 
     let year = new Date().getFullYear();
     let month = new Date().getMonth();

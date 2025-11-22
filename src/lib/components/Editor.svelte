@@ -27,7 +27,7 @@
 
     const state = appStateStore;
     const localeStore = locale;
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
 
     let textareaValue = "";
     let textareaRef: HTMLTextAreaElement | null = null;

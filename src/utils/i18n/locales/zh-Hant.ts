@@ -1,4 +1,4 @@
-const zhTWTranslations = {
+const zhHantTranslations = {
   appName: "EchoNote",
   providerNoAi: "不使用 AI",
   providerChatgpt: "ChatGPT",
@@ -108,4 +108,4 @@ const zhTWTranslations = {
   confirmRiskAndSave: "確認風險後保存",
 } as const;
 
-export default zhTWTranslations;
+export default zhHantTranslations;

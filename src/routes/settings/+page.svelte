@@ -39,7 +39,7 @@
     const state = appStateStore;
     const localeStore = locale;
     let themes: Array<{ label: string; value: "auto" | "light" | "dark" }> = [];
-    let localeValue: Locale = "zh-CN";
+    let localeValue: Locale = "zh-Hans";
 
     const BUILTIN_ORDER: Record<string, number> = {
         noai: -1,
@@ -77,7 +77,7 @@
     let advancedDirty = false;
     let unsafeConfirmTarget: { baseUrl: string; warnings: string[] } | null =
         null;
-    let selectedLocale: Locale = "zh-CN";
+    let selectedLocale: Locale = "zh-Hans";
 
     $: aiState = sanitizeState(aiState);
     $: localeValue = $localeStore;
