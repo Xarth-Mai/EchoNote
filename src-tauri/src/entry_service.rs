@@ -26,8 +26,8 @@ const ENTRY_METADATA_EVENT: &str = "entry-metadata-updated";
 const EMPTY_ENTRY_SUMMARY: &str = "空白日记";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
 const DATE_FORMAT: &str = "%Y-%m-%d";
-const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules. You may adjust tone, focus, or preference here if needed.";
-const DEFAULT_TEMPERATURE: f32 = 0.3;
+const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules.";
+const DEFAULT_TEMPERATURE: f32 = 1.0;
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
 const MAX_STORE_ENTRIES: usize = 500;
 const DEFAULT_MODEL_OPENAI: &str = "gpt-5.1";
@@ -245,7 +245,7 @@ fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> V
     let user_custom = custom_prompt.unwrap_or(DEFAULT_PROMPT);
 
     let system_prompt = format!(
-        r#"Output only JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.Rules: emoji = 1 symbol; summary must use the diary author's language and writing style; no fabrication; JSON only.Diary: {}"#,
+        r#"Output only JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.Rules: emoji = 1 symbol; summary must use the diary author's language and writing style; no fabrication; avoid chain-of-thought or explanations; JSON only.Diary: {}"#,
         body.as_ref()
     );
 

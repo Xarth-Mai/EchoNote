@@ -59,6 +59,7 @@ export interface AiProviderConfig {
 export interface AiAdvancedSettings {
   prompt: string;
   temperature: number;
+  greetingPrompt: string;
   maxTokens: number;
 }
 
@@ -74,6 +75,7 @@ export interface AiInvokePayload {
   prompt?: string | null;
   maxTokens?: number | null;
   temperature?: number | null;
+  greetingPrompt?: string | null;
 }
 
 export interface AiModelQuery {

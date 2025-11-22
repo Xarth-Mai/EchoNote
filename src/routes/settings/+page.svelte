@@ -20,6 +20,7 @@
         sanitizeState,
         DEFAULT_AI_PROMPT,
         DEFAULT_TEMPERATURE,
+        DEFAULT_GREETING_PROMPT,
         getDefaultMaxTokens,
     } from "$utils/ai";
     import type {
@@ -59,6 +60,7 @@
     let formApiKey = getStoredApiKeyPlaceholder(activeProviderId);
     let formModel = "";
     let formPrompt = aiState.advanced.prompt;
+    let formGreetingPrompt = aiState.advanced.greetingPrompt;
     let formTemperature = String(aiState.advanced.temperature);
     let formMaxTokens = String(aiState.advanced.maxTokens);
     let statusBanner: { text: string; tone: "ok" | "error" | "info" } | null =
@@ -126,6 +128,7 @@
             : null);
     $: if (!advancedDirty) {
         formPrompt = aiState.advanced.prompt;
+        formGreetingPrompt = aiState.advanced.greetingPrompt;
         formTemperature = String(aiState.advanced.temperature);
         formMaxTokens = String(aiState.advanced.maxTokens);
     }
@@ -374,6 +377,12 @@
         markAdvancedDirty();
     }
 
+    function handleGreetingPromptInput(event: Event): void {
+        const value = (event.currentTarget as HTMLTextAreaElement).value;
+        formGreetingPrompt = value;
+        markAdvancedDirty();
+    }
+
     function handleTemperatureInput(event: Event): void {
         const value = (event.currentTarget as HTMLInputElement).value;
         formTemperature = value;
@@ -384,6 +393,10 @@
         const value = (event.currentTarget as HTMLInputElement).value;
         formMaxTokens = value;
         markAdvancedDirty();
+    }
+
+    function resolveDefaultMaxTokens(): number {
+        return getDefaultMaxTokens();
     }
 
     function getProviderLabel(provider: AiProviderConfig): string {
@@ -460,8 +473,9 @@
     }
 
     function resetAdvancedSettings(): void {
-        const defaults = getDefaultMaxTokens(activeProviderId);
+        const defaults = resolveDefaultMaxTokens();
         formPrompt = DEFAULT_AI_PROMPT;
+        formGreetingPrompt = DEFAULT_GREETING_PROMPT;
         formTemperature = String(DEFAULT_TEMPERATURE);
         formMaxTokens = String(defaults);
         markAdvancedDirty();
@@ -599,10 +613,12 @@
         try {
             savingAdvanced = true;
             aiState.advanced.prompt = formPrompt || DEFAULT_AI_PROMPT;
+            aiState.advanced.greetingPrompt =
+                formGreetingPrompt || DEFAULT_GREETING_PROMPT;
             aiState.advanced.temperature =
                 Number(formTemperature) || DEFAULT_TEMPERATURE;
             aiState.advanced.maxTokens =
-                Number(formMaxTokens) || getDefaultMaxTokens(activeProviderId);
+                Number(formMaxTokens) || resolveDefaultMaxTokens();
             saveAiSettingsState(aiState);
             advancedDirty = false;
             if (showBanner) {
@@ -793,6 +809,9 @@
                                     : t("settingsToggleAdvancedShow")}
                             </button>
                         </div>
+                        <p class="settings__hint settings__hint--inline">
+                            {t("settingsAdvancedJsonNotice")}
+                        </p>
 
                         {#if advancedOpen}
                             <label class="settings__field">
@@ -804,6 +823,18 @@
                                 ></textarea>
                                 <small class="settings__hint">
                                     {t("settingsPromptTip")}
+                                </small>
+                            </label>
+
+                            <label class="settings__field">
+                                <span>{t("settingsGreetingPrompt")}</span>
+                                <textarea
+                                    rows="3"
+                                    bind:value={formGreetingPrompt}
+                                    on:input={handleGreetingPromptInput}
+                                ></textarea>
+                                <small class="settings__hint">
+                                    {t("settingsGreetingPromptTip")}
                                 </small>
                             </label>
 
@@ -1105,6 +1136,10 @@
     .settings__hint {
         font-size: 0.8rem;
         color: var(--color-text-muted);
+    }
+
+    .settings__hint--inline {
+        margin-top: -0.25rem;
     }
 
     .settings__custom {

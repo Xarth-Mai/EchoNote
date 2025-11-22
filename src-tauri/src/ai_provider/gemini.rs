@@ -29,6 +29,8 @@ struct GeminiGenerationConfig {
     temperature: Option<f32>,
     #[serde(rename = "maxOutputTokens", skip_serializing_if = "Option::is_none")]
     max_output_tokens: Option<u32>,
+    #[serde(rename = "responseMimeType", skip_serializing_if = "Option::is_none")]
+    response_mime_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -126,6 +128,7 @@ pub async fn invoke_gemini_completion(
         generation_config: Some(GeminiGenerationConfig {
             temperature: request.temperature,
             max_output_tokens: request.max_tokens,
+            response_mime_type: Some("application/json".to_string()),
         }),
     };
 

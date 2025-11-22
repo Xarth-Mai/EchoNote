@@ -58,17 +58,22 @@ const jaTranslations = {
   settingsAdvancedTitle: "詳細設定",
   settingsToggleAdvancedShow: "詳細設定を表示",
   settingsToggleAdvancedHide: "詳細設定を隠す",
+  settingsAdvancedJsonNotice:
+    "システムで思考モードを無効化し JSON 出力を強制しています。ここでのプロンプトは口調微調整のみです。",
   settingsCustomPrompt: "カスタムプロンプト",
   settingsPromptTip:
-    "推論モデルは時間がかかるため、デフォルトのプロンプトで十分な場合が多いです。",
+    "デフォルトで十分な場合が多く、口調を変えたい時だけ調整してください。",
+  settingsGreetingPrompt: "挨拶プロンプト",
+  settingsGreetingPromptTip:
+    "エディター上部に表示される短い挨拶文の調子や内容を調整します。",
   settingsTemperature: "温度 (0-1)",
-  settingsTemperaturePlaceholder: "例: 0.3",
+  settingsTemperaturePlaceholder: "例: 1.0",
   settingsTemperatureTip:
-    "目安: チャットモデルは約 0.3。値が高いほど出力は多様になります。",
+    "目安: まずは 1.0 前後から。低いほど安定し、高いほど多様になります。",
   settingsMaxTokens: "最大出力トークン",
-  settingsMaxTokensPlaceholder: "例: 60 または 2048",
+  settingsMaxTokensPlaceholder: "例: 60",
   settingsMaxTokensTip:
-    "目安: チャットモデルは約 60。推論モデルは約 2048 (用途に応じて)。",
+    "目安: 出力をコンパクトに保ち、60 トークン前後を推奨します。",
   settingsAiDisabledNote:
     "AI は無効です。上部で別のプロバイダーを選ぶと有効になります。",
   settingsSaveAdvanced: "詳細設定を保存",

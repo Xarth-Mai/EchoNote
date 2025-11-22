@@ -58,17 +58,20 @@ const enTranslations = {
   settingsAdvancedTitle: "Advanced settings",
   settingsToggleAdvancedShow: "Show advanced settings",
   settingsToggleAdvancedHide: "Hide advanced settings",
+  settingsAdvancedJsonNotice:
+  "System enforces JSON output and disables model \"thinking\"; prompts here only fine-tune tone.",
   settingsCustomPrompt: "Custom prompt",
   settingsPromptTip:
-  "Reasoning models are usually slow; the default prompt often suffices.",
+  "Default prompt is often enough; tune only if you want different tone or style.",
+  settingsGreetingPrompt: "Hero greeting prompt",
+  settingsGreetingPromptTip:
+  "Tweak the short greeting shown on the home banner before you start writing.",
   settingsTemperature: "Temperature (0-1)",
-  settingsTemperaturePlaceholder: "e.g. 0.3",
-  settingsTemperatureTip:
-  "Suggested: ~0.3 for chat models. Higher values generate more variety.",
+  settingsTemperaturePlaceholder: "e.g. 1.0",
+  settingsTemperatureTip: "Suggested: start around 1.0; lower for stability, higher for variety.",
   settingsMaxTokens: "Max output tokens",
-  settingsMaxTokensPlaceholder: "e.g. 60 or 2048",
-  settingsMaxTokensTip:
-  "Suggestion: ~60 for chat models; ~2048 for reasoning when necessary.",
+  settingsMaxTokensPlaceholder: "e.g. 60",
+  settingsMaxTokensTip: "Suggestion: keep compact outputs (around 60 tokens) for greetings and summaries.",
   settingsAiDisabledNote:
   "AI is disabled. Choose another provider above to enable it.",
   settingsSaveAdvanced: "Save advanced settings",

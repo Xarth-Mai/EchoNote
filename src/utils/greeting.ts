@@ -1,6 +1,6 @@
 import { browser } from "$app/environment";
 import { invokeAiChat } from "$utils/backend";
-import { getActiveAiInvokePayload } from "$utils/ai";
+import { DEFAULT_GREETING_PROMPT, getActiveAiInvokePayload } from "$utils/ai";
 import type { AiProviderId, DiaryEntry } from "../types";
 import type { Locale } from "./i18n";
 
@@ -45,8 +45,8 @@ export async function generateHeroGreeting(
   if (!aiConfig || !providerId || providerId === "noai") return null;
 
   const context = buildContext(entries);
-  const system = buildSystemPrompt(locale, aiConfig.prompt);
-  const user = buildUserPrompt(todayIso, locale, context);
+  const system = buildSystemPrompt(todayIso, locale, context);
+  const user = buildUserPrompt(aiConfig.greetingPrompt ?? aiConfig.prompt);
 
   const response = await invokeAiChat({
     providerId,
@@ -58,7 +58,7 @@ export async function generateHeroGreeting(
     maxTokens: Math.min(aiConfig.maxTokens ?? 60, 80),
   });
 
-  const greeting = response.content?.trim();
+  const greeting = extractGreetingFromResponse(response.content);
   if (!greeting) return null;
 
   persistGreeting({
@@ -87,28 +87,22 @@ function buildContext(entries: DiaryEntry[]): string {
     .join("\n");
 }
 
-function buildSystemPrompt(locale: Locale, preference?: string | null): string {
+function buildSystemPrompt(todayIso: string, locale: Locale, context: string): string {
   const language = resolveLanguage(locale);
-  const lines = [
-    "You write a single warm hero greeting for a personal diary app.",
-    "Keep it concise (ideally within 24 characters), optimistic, add emoji.",
-    `Respond in ${language} only.`,
-  ];
-  if (preference?.trim()) {
-    lines.push(`User preference: ${preference.trim()}`);
-  }
-  return lines.join("\n");
+  const trimmedContext =
+    context || "No AI summaries were provided in the past month.";
+  return [
+    'Output only JSON: {"greeting":"<≤24 chars>"}',
+    "Rules: greeting must be warm, concise, add emoji, reflect recent diary tone, no chain-of-thought or explanations, JSON only.",
+    `Language: ${language}`,
+    `Date: ${todayIso}`,
+    "Recent summaries:",
+    trimmedContext,
+  ].join("\n");
 }
 
-function buildUserPrompt(todayIso: string, locale: Locale, context: string): string {
-  const trimmedContext = context || "No AI summaries were provided in the past month.";
-  return [
-    `Today's date: ${todayIso}`,
-    `Locale: ${locale}`,
-    "Recent AI summaries for the past month:",
-    trimmedContext,
-    "Generate a greeting that reflects the tone of these summaries while encouraging today's writing.",
-  ].join("\n");
+function buildUserPrompt(preference?: string | null): string {
+  return preference?.trim() || DEFAULT_GREETING_PROMPT;
 }
 
 function formatIsoDate(value: Date): string {
@@ -166,6 +160,31 @@ function normalizeSummary(value: string): string {
   const compacted = value.replace(/\s+/g, " ").trim();
   if (compacted.length <= MAX_SUMMARY_LENGTH) return compacted;
   return `${compacted.slice(0, MAX_SUMMARY_LENGTH)}…`;
+}
+
+function extractGreetingFromResponse(content?: string | null): string | null {
+  if (!content) return null;
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === "string") {
+      return parsed.trim() || null;
+    }
+    if (parsed && typeof parsed === "object") {
+      const candidate =
+        (parsed as Record<string, unknown>).greeting ??
+        (parsed as Record<string, unknown>).message ??
+        (parsed as Record<string, unknown>).text;
+      if (typeof candidate === "string" && candidate.trim()) {
+        return candidate.trim();
+      }
+    }
+  } catch (_error) {
+    const match = trimmed.match(/"greeting"\s*:\s*"([^"]+)"/i);
+    if (match) return match[1].trim();
+  }
+  return trimmed;
 }
 
 function resolveLanguage(locale: Locale): string {

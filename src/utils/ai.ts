@@ -9,56 +9,41 @@ import type {
 
 const STORAGE_KEY = "echonote-ai-settings";
 export const DEFAULT_AI_PROMPT =
-  `Provide the summary exactly according to the system rules. You may adjust tone, focus, or preference here if needed.`;
+  `Provide the summary exactly according to the system rules.`;
 
-export const DEFAULT_TEMPERATURE = 0.3;
+export const DEFAULT_TEMPERATURE = 1;
+export const DEFAULT_GREETING_PROMPT =
+  "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
+const DEFAULT_MAX_TOKENS = 60;
 
 const BUILTIN_PROVIDERS: Record<
   "chatgpt" | "deepseek" | "gemini" | "claude" | "noai",
-  Pick<
-    AiProviderConfig,
-    "id" | "label" | "baseUrl" | "prompt" | "maxTokens" | "temperature"
-  >
+  Pick<AiProviderConfig, "id" | "label" | "baseUrl">
 > = {
   noai: {
     id: "noai",
     label: "No AI",
     baseUrl: "",
-    prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 0,
-    temperature: DEFAULT_TEMPERATURE,
   },
   chatgpt: {
     id: "chatgpt",
     label: "ChatGPT",
     baseUrl: "https://api.openai.com/v1",
-    prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 60,
-    temperature: DEFAULT_TEMPERATURE,
   },
   deepseek: {
     id: "deepseek",
     label: "DeepSeek",
     baseUrl: "https://api.deepseek.com",
-    prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 60,
-    temperature: DEFAULT_TEMPERATURE,
   },
   gemini: {
     id: "gemini",
     label: "Gemini",
     baseUrl: "https://generativelanguage.googleapis.com",
-    prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 1200,
-    temperature: DEFAULT_TEMPERATURE,
   },
   claude: {
     id: "claude",
     label: "Claude",
     baseUrl: "https://api.anthropic.com",
-    prompt: DEFAULT_AI_PROMPT,
-    maxTokens: 1200,
-    temperature: DEFAULT_TEMPERATURE,
   },
 };
 
@@ -108,6 +93,7 @@ export async function getActiveAiInvokePayload(
     prompt: advanced.prompt,
     maxTokens: advanced.maxTokens,
     temperature: advanced.temperature,
+    greetingPrompt: advanced.greetingPrompt,
   };
 }
 
@@ -125,7 +111,7 @@ export function createCustomProviderConfig(
     editable: true,
     model: DEFAULT_MODEL_BY_PROVIDER.chatgpt,
     prompt: DEFAULT_AI_PROMPT,
-    maxTokens: getDefaultMaxTokens("chatgpt"),
+    maxTokens: getDefaultMaxTokens(),
     temperature: DEFAULT_TEMPERATURE,
     type: "custom",
     suffix: normalizedSuffix || "default",
@@ -148,9 +134,9 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         existing?.model ??
         DEFAULT_MODEL_BY_PROVIDER[key] ??
         DEFAULT_MODEL_BY_PROVIDER.chatgpt,
-      prompt: normalizePrompt(existing?.prompt ?? built.prompt),
-      maxTokens: normalizeMaxTokens(existing?.maxTokens, id),
-      temperature: normalizeTemperature(existing?.temperature ?? built.temperature),
+      prompt: normalizePrompt(existing?.prompt),
+      maxTokens: normalizeMaxTokens(existing?.maxTokens),
+      temperature: normalizeTemperature(existing?.temperature),
       type: "builtin",
     };
   }
@@ -168,7 +154,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         baseUrl: cfg.baseUrl.trim() || BUILTIN_PROVIDERS.chatgpt.baseUrl,
         model: cfg.model ?? DEFAULT_MODEL_BY_PROVIDER.chatgpt,
         prompt: normalizePrompt(cfg.prompt),
-        maxTokens: normalizeMaxTokens(cfg.maxTokens, target_id),
+        maxTokens: normalizeMaxTokens(cfg.maxTokens),
         temperature: normalizeTemperature(cfg.temperature),
         type: "custom",
         suffix: cfg.suffix ?? cfg.id.replace("openai-custom-", ""),
@@ -185,11 +171,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         ? base.activeProviderId
         : ("chatgpt" as AiProviderId);
 
-  const advanced = sanitizeAdvancedSettings(
-    base.advanced,
-    providers[active],
-    active,
-  );
+  const advanced = sanitizeAdvancedSettings(base.advanced);
   const apiKeyHints = sanitizeApiKeyHints(base.apiKeyHints, providers);
 
   for (const cfg of Object.values(providers)) {
@@ -217,9 +199,9 @@ export function createDefaultState(): AiSettingsState {
         baseUrl: BUILTIN_PROVIDERS.noai.baseUrl,
         editable: false,
         model: DEFAULT_MODEL_BY_PROVIDER.noai,
-        prompt: BUILTIN_PROVIDERS.noai.prompt,
-        maxTokens: BUILTIN_PROVIDERS.noai.maxTokens,
-        temperature: BUILTIN_PROVIDERS.noai.temperature,
+        prompt: DEFAULT_AI_PROMPT,
+        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
       },
       chatgpt: {
@@ -228,9 +210,9 @@ export function createDefaultState(): AiSettingsState {
         baseUrl: BUILTIN_PROVIDERS.chatgpt.baseUrl,
         editable: false,
         model: DEFAULT_MODEL_BY_PROVIDER.chatgpt,
-        prompt: BUILTIN_PROVIDERS.chatgpt.prompt,
-        maxTokens: BUILTIN_PROVIDERS.chatgpt.maxTokens,
-        temperature: BUILTIN_PROVIDERS.chatgpt.temperature,
+        prompt: DEFAULT_AI_PROMPT,
+        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
       },
       deepseek: {
@@ -239,9 +221,9 @@ export function createDefaultState(): AiSettingsState {
         baseUrl: BUILTIN_PROVIDERS.deepseek.baseUrl,
         editable: false,
         model: DEFAULT_MODEL_BY_PROVIDER.deepseek,
-        prompt: BUILTIN_PROVIDERS.deepseek.prompt,
-        maxTokens: BUILTIN_PROVIDERS.deepseek.maxTokens,
-        temperature: BUILTIN_PROVIDERS.deepseek.temperature,
+        prompt: DEFAULT_AI_PROMPT,
+        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
       },
       gemini: {
@@ -250,9 +232,9 @@ export function createDefaultState(): AiSettingsState {
         baseUrl: BUILTIN_PROVIDERS.gemini.baseUrl,
         editable: false,
         model: DEFAULT_MODEL_BY_PROVIDER.gemini,
-        prompt: BUILTIN_PROVIDERS.gemini.prompt,
-        maxTokens: BUILTIN_PROVIDERS.gemini.maxTokens,
-        temperature: BUILTIN_PROVIDERS.gemini.temperature,
+        prompt: DEFAULT_AI_PROMPT,
+        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
       },
       claude: {
@@ -261,35 +243,24 @@ export function createDefaultState(): AiSettingsState {
         baseUrl: BUILTIN_PROVIDERS.claude.baseUrl,
         editable: false,
         model: DEFAULT_MODEL_BY_PROVIDER.claude,
-        prompt: BUILTIN_PROVIDERS.claude.prompt,
-        maxTokens: BUILTIN_PROVIDERS.claude.maxTokens,
-        temperature: BUILTIN_PROVIDERS.claude.temperature,
+        prompt: DEFAULT_AI_PROMPT,
+        maxTokens: DEFAULT_MAX_TOKENS,
+        temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
       },
     },
     advanced: {
       prompt: DEFAULT_AI_PROMPT,
       temperature: DEFAULT_TEMPERATURE,
-      maxTokens: getDefaultMaxTokens("chatgpt"),
+      maxTokens: getDefaultMaxTokens(),
+      greetingPrompt: DEFAULT_GREETING_PROMPT,
     },
     apiKeyHints: {},
   };
 }
 
-export function getDefaultMaxTokens(providerId?: AiProviderId): number {
-  if (providerId === "noai") {
-    return 0;
-  }
-  if (providerId === "deepseek") {
-    return BUILTIN_PROVIDERS.deepseek.maxTokens ?? 2048;
-  }
-  if (providerId === "gemini") {
-    return BUILTIN_PROVIDERS.gemini.maxTokens ?? 1024;
-  }
-  if (providerId === "claude") {
-    return BUILTIN_PROVIDERS.claude.maxTokens ?? 1024;
-  }
-  return BUILTIN_PROVIDERS.chatgpt.maxTokens ?? 60;
+export function getDefaultMaxTokens(): number {
+  return DEFAULT_MAX_TOKENS;
 }
 
 function normalizePrompt(value?: string): string {
@@ -297,12 +268,9 @@ function normalizePrompt(value?: string): string {
   return trimmed && trimmed.length > 0 ? trimmed : DEFAULT_AI_PROMPT;
 }
 
-function normalizeMaxTokens(
-  value?: number,
-  providerId?: AiProviderId,
-): number {
+function normalizeMaxTokens(value?: number): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return getDefaultMaxTokens(providerId);
+    return getDefaultMaxTokens();
   }
   return Math.floor(value);
 }
@@ -316,20 +284,22 @@ function normalizeTemperature(value?: number): number {
 }
 
 function sanitizeAdvancedSettings(
-  input: AiAdvancedSettings | undefined,
-  fallback?: AiProviderConfig,
-  providerId?: AiProviderId,
+  input?: AiAdvancedSettings,
 ): AiAdvancedSettings {
-  const prompt = normalizePrompt(input?.prompt ?? fallback?.prompt);
-  const temperature = normalizeTemperature(
-    input?.temperature ?? fallback?.temperature,
-  );
-  const maxTokens = normalizeMaxTokens(
-    input?.maxTokens ?? fallback?.maxTokens,
-    providerId ?? fallback?.id,
-  );
+  const prompt = normalizePrompt(input?.prompt);
+  const temperature = normalizeTemperature(input?.temperature);
+  const maxTokens = normalizeMaxTokens(input?.maxTokens);
+  const greetingPrompt = normalizeGreetingPrompt(input?.greetingPrompt);
 
-  return { prompt, temperature, maxTokens };
+  return { prompt, temperature, maxTokens, greetingPrompt };
+}
+
+function normalizeGreetingPrompt(value?: string): string {
+  const trimmed = value?.trim();
+  if (trimmed && trimmed.length > 0) {
+    return trimmed;
+  }
+  return DEFAULT_GREETING_PROMPT;
 }
 
 function sanitizeApiKeyHints(

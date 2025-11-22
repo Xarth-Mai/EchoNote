@@ -13,6 +13,8 @@ struct ChatCompletionPayload {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<ResponseFormatPayload>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning_effort: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -93,6 +95,7 @@ pub async fn invoke_openai_completion(
         response_format: Some(ResponseFormatPayload {
             kind: "json_object".to_string(),
         }),
+        reasoning_effort: Some("minimal".to_string()),
     };
 
     let response = HTTP_CLIENT

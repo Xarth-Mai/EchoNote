@@ -65,8 +65,12 @@ pub async fn invoke_ai_chat(
         ProviderKind::OpenAiCompatible => {
             openai::invoke_openai_completion(request, model, api_key, api_base).await
         }
-        ProviderKind::Gemini => gemini::invoke_gemini_completion(request, model, api_key, api_base).await,
-        ProviderKind::Claude => claude::invoke_claude_completion(request, model, api_key, api_base).await,
+        ProviderKind::Gemini => {
+            gemini::invoke_gemini_completion(request, model, api_key, api_base).await
+        }
+        ProviderKind::Claude => {
+            claude::invoke_claude_completion(request, model, api_key, api_base).await
+        }
     }
 }
 

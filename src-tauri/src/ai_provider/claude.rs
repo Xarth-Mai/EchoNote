@@ -12,12 +12,20 @@ struct AnthropicMessagePayload {
     temperature: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     system: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "response_format")]
+    response_format: Option<AnthropicResponseFormat>,
 }
 
 #[derive(Debug, Serialize)]
 struct AnthropicMessage {
     role: String,
     content: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AnthropicResponseFormat {
+    #[serde(rename = "type")]
+    kind: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -104,6 +112,9 @@ pub async fn invoke_claude_completion(
         max_tokens,
         temperature: request.temperature,
         system,
+        response_format: Some(AnthropicResponseFormat {
+            kind: "json_object".to_string(),
+        }),
     };
 
     let endpoint = format!("{}/v1/messages", api_base.trim_end_matches('/'));
