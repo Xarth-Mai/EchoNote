@@ -12,6 +12,8 @@
         setCalendarExpanded,
         setCurrentDate,
         setSummaries,
+        isMonthLoaded,
+        markMonthAsLoaded,
     } from "$utils/state";
     import type { DiaryEntry } from "../../types";
     import {
@@ -151,18 +153,45 @@
         lastLoadedKey = loadKey;
 
         try {
-            if (hasPrevMonthDates) {
-                const [prevSummaries, currSummaries] = await Promise.all([
-                    listEntriesByMonth(prevYear, prevMonth1Based),
-                    listEntriesByMonth(currentYear, currentMonth1Based),
-                ]);
-                setSummaries([...prevSummaries, ...currSummaries]);
-            } else {
-                const currSummaries = await listEntriesByMonth(
-                    currentYear,
-                    currentMonth1Based,
+            const promises: Promise<DiaryEntry[]>[] = [];
+
+            if (
+                hasPrevMonthDates &&
+                !isMonthLoaded(prevYear, prevMonth1Based)
+            ) {
+                promises.push(
+                    listEntriesByMonth(prevYear, prevMonth1Based).then(
+                        (entries) => {
+                            markMonthAsLoaded(prevYear, prevMonth1Based);
+                            return entries;
+                        },
+                    ),
                 );
-                setSummaries(currSummaries);
+            } else if (hasPrevMonthDates) {
+                // Already loaded, push empty to keep structure if needed, or just handle logic below
+                // Actually, if it's loaded, we don't need to fetch.
+                // But setSummaries expects a list.
+                // If we don't fetch, we don't update summaries?
+                // Wait, setSummaries merges into the map. So if it's already loaded, we don't need to do anything for that month.
+            }
+
+            if (!isMonthLoaded(currentYear, currentMonth1Based)) {
+                promises.push(
+                    listEntriesByMonth(currentYear, currentMonth1Based).then(
+                        (entries) => {
+                            markMonthAsLoaded(currentYear, currentMonth1Based);
+                            return entries;
+                        },
+                    ),
+                );
+            }
+
+            if (promises.length > 0) {
+                const results = await Promise.all(promises);
+                const allEntries = results.flat();
+                if (allEntries.length > 0) {
+                    setSummaries(allEntries);
+                }
             }
         } catch (error) {
             console.error("加载月度摘要失败:", error);
@@ -251,7 +280,8 @@
                 {#each topWeeks as week, index (getWeekKey(week, index))}
                     <div class="calendar__grid">
                         {#each week as date (formatDate(date))}
-                            {@const entry = summaries.get(formatDate(date)) ?? null}
+                            {@const entry =
+                                summaries.get(formatDate(date)) ?? null}
                             <button
                                 type="button"
                                 class={getCellClasses(date, entry, currentDate)}
@@ -301,7 +331,8 @@
                 {#each bottomWeeks as week, index (getWeekKey(week, index + topWeeks.length + 1))}
                     <div class="calendar__grid">
                         {#each week as date (formatDate(date))}
-                            {@const entry = summaries.get(formatDate(date)) ?? null}
+                            {@const entry =
+                                summaries.get(formatDate(date)) ?? null}
                             <button
                                 type="button"
                                 class={getCellClasses(date, entry, currentDate)}

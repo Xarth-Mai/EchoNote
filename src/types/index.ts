@@ -16,6 +16,7 @@ export interface AppState {
   layoutMode: "portrait" | "landscape"; // 布局模式
   calendarExpanded: boolean; // 日历是否展开
   theme: "light" | "dark" | "auto"; // 主题模式：light=浅色，dark=深色，auto=跟随系统
+  loadedMonths?: Set<string>; // 已加载的月份缓存，格式 "YYYY-M"
 }
 
 export interface AiMessage {

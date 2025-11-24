@@ -83,23 +83,31 @@
         source: Map<string, DiaryEntry>,
         reference: Date,
     ): DiaryEntry[] {
-        const cutoff = new Date(reference);
-        cutoff.setDate(reference.getDate() - 30);
         const pendingSummary = t("timelineAiPending");
+        const result: DiaryEntry[] = [];
 
-        return Array.from(source.values())
-            .filter((entry) => {
-                if (
-                    !entry.aiSummary ||
-                    entry.aiSummary.trim() === pendingSummary
-                ) {
-                    return false;
-                }
-                const parsed = new Date(entry.date);
-                if (Number.isNaN(parsed.getTime())) return false;
-                return parsed >= cutoff && parsed <= reference;
-            })
-            .sort((a, b) => b.date.localeCompare(a.date));
+        // Optimize: Iterate 30 days back instead of filtering all entries
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(reference);
+            d.setDate(reference.getDate() - i);
+            const dateStr = (() => {
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, "0");
+                const day = String(d.getDate()).padStart(2, "0");
+                return `${y}-${m}-${day}`;
+            })();
+
+            const entry = source.get(dateStr);
+            if (
+                entry &&
+                entry.aiSummary &&
+                entry.aiSummary.trim() !== pendingSummary
+            ) {
+                result.push(entry);
+            }
+        }
+
+        return result; // Already sorted by date descending because we iterated backwards
     }
 
     async function updateHeroGreeting(

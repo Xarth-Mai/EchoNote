@@ -33,6 +33,7 @@ const initialState: AppState = {
   layoutMode: initialLayoutMode,
   calendarExpanded: initialLayoutMode === "landscape",
   theme: loadThemePreference(),
+  loadedMonths: new Set(),
 };
 
 const internalStore = writable<AppState>(initialState);
@@ -151,4 +152,18 @@ export function initThemeListener(): void {
   } else {
     mediaQuery.addListener(handleChange);
   }
+}
+
+export function markMonthAsLoaded(year: number, month: number): void {
+  const key = `${year}-${month}`;
+  const currentLoaded = currentState.loadedMonths || new Set();
+  if (currentLoaded.has(key)) return;
+
+  const updated = new Set(currentLoaded);
+  updated.add(key);
+  setState({ loadedMonths: updated });
+}
+
+export function isMonthLoaded(year: number, month: number): boolean {
+  return currentState.loadedMonths?.has(`${year}-${month}`) ?? false;
 }

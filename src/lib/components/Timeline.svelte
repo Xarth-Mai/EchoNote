@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { tick } from "svelte";
+    import { tick, onMount, onDestroy } from "svelte";
+    import { browser } from "$app/environment";
     import { flyAndBlur } from "$utils/animation";
     import { appStateStore, setCurrentDate } from "$utils/state";
     import type { DiaryEntry } from "../../types";
@@ -21,6 +22,11 @@
     const entryRefs = new Map<string, HTMLLIElement>();
     let pendingScrollDate: string | null = null;
 
+    const PAGE_SIZE = 20;
+    let visibleCount = PAGE_SIZE;
+    let observer: IntersectionObserver | null = null;
+    let loadMoreTrigger: HTMLElement | null = null;
+
     $: summaries = $state.summaries;
     $: entries = toSortedEntries(summaries);
     $: currentDate = $state.currentDate;
@@ -28,12 +34,67 @@
     $: weekdayLabels = getWeekdayLabels(localeValue, {
         weekStartsOnMonday: false,
     });
-    $: displayEntries = deriveEntries(entries, currentDate);
+    $: fullEntries = deriveEntries(entries, currentDate);
+    $: visibleEntries = fullEntries.slice(0, visibleCount);
+    $: hasMore = visibleCount < fullEntries.length;
+
     $: if (currentDate) {
+        ensureDateVisible(currentDate);
         pendingScrollDate = currentDate;
     }
-    $: if (pendingScrollDate && displayEntries) {
+    $: if (pendingScrollDate && visibleEntries) {
         void scrollToEntry(pendingScrollDate);
+    }
+
+    $: if (browser && hasMore && loadMoreTrigger) {
+        setupObserver();
+    }
+
+    onMount(() => {
+        if (browser && hasMore) {
+            setupObserver();
+        }
+    });
+
+    onDestroy(() => {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
+    });
+
+    function setupObserver() {
+        if (observer) observer.disconnect();
+
+        observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMore();
+                }
+            },
+            {
+                root: null,
+                rootMargin: "100px",
+                threshold: 0.1,
+            },
+        );
+
+        if (loadMoreTrigger) {
+            observer.observe(loadMoreTrigger);
+        }
+    }
+
+    function loadMore() {
+        if (visibleCount < fullEntries.length) {
+            visibleCount += PAGE_SIZE;
+        }
+    }
+
+    function ensureDateVisible(date: string) {
+        const index = fullEntries.findIndex((e) => e.date === date);
+        if (index !== -1 && index >= visibleCount) {
+            visibleCount = index + PAGE_SIZE;
+        }
     }
 
     function toSortedEntries(map: Map<string, DiaryEntry>): TimelineEntry[] {
@@ -136,11 +197,11 @@
 </script>
 
 <div class="timeline">
-    {#if displayEntries.length === 0}
+    {#if visibleEntries.length === 0}
         <div class="timeline__empty">{t("timelineEmpty")}</div>
     {:else}
         <ul class="timeline__list scroll-fade">
-            {#each displayEntries as entry, index (entry.date)}
+            {#each visibleEntries as entry, index (entry.date)}
                 {@const preview = getSummary(entry.aiSummary)}
                 {@const parts = formatDateParts(entry)}
                 <li
@@ -187,6 +248,12 @@
                     </button>
                 </li>
             {/each}
+
+            {#if hasMore}
+                <li class="timeline__loader" bind:this={loadMoreTrigger}>
+                    <span class="timeline__loader-dots">...</span>
+                </li>
+            {/if}
         </ul>
     {/if}
 </div>
@@ -339,5 +406,13 @@
     .timeline__emoji {
         font-size: 1.5rem;
         line-height: 1;
+    }
+
+    .timeline__loader {
+        padding: 1rem;
+        text-align: center;
+        color: var(--color-text-muted);
+        font-weight: bold;
+        letter-spacing: 2px;
     }
 </style>
