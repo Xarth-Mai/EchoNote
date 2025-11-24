@@ -8,7 +8,7 @@
         formatMonthDay,
         getWeekdayLabels,
         locale,
-        t,
+        translator,
         type Locale,
     } from "$utils/i18n";
 
@@ -16,6 +16,7 @@
 
     const state = appStateStore;
     const localeStore = locale;
+    const t = translator;
     let weekdayLabels: string[] = [];
     let localeValue: Locale = "zh-Hans";
 
@@ -127,7 +128,7 @@
     }
 
     function getSummary(content: string | null | undefined): string {
-        if (!content) return t("timelineAiPending");
+        if (!content) return $t("timelineAiPending");
         const plain = content
             .replace(/^#+\s+/gm, "")
             .replace(/\*\*(.+?)\*\*/g, "$1")
@@ -198,7 +199,7 @@
 
 <div class="timeline">
     {#if visibleEntries.length === 0}
-        <div class="timeline__empty">{t("timelineEmpty")}</div>
+        <div class="timeline__empty">{$t("timelineEmpty")}</div>
     {:else}
         <ul class="timeline__list scroll-fade">
             {#each visibleEntries as entry, index (entry.date)}
@@ -230,14 +231,14 @@
                     >
                         {#if entry.__placeholder}
                             <div class="timeline__placeholder">
-                                <p>{t("timelinePlaceholderTitle")}</p>
-                                <small>{t("timelinePlaceholderHint")}</small>
+                                <p>{$t("timelinePlaceholderTitle")}</p>
+                                <small>{$t("timelinePlaceholderHint")}</small>
                             </div>
                         {:else}
                             <p class="timeline__summary-line">
                                 <span
                                     class="timeline__emoji"
-                                    aria-label={t("timelineEmojiLabel")}
+                                    aria-label={$t("timelineEmojiLabel")}
                                     >{getEmojiSymbol(entry.emoji)}</span
                                 >
                                 <span class="timeline__summary-text">

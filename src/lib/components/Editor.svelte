@@ -17,7 +17,7 @@
         upsertSummary,
     } from "$utils/state";
     import type { DiaryEntry } from "../../types";
-    import { formatLongDate, locale, t, type Locale } from "$utils/i18n";
+    import { formatLongDate, locale, translator, type Locale } from "$utils/i18n";
 
     type SaveOptions = {
         dateOverride?: string | null;
@@ -29,6 +29,7 @@
 
     const state = appStateStore;
     const localeStore = locale;
+    const t = translator;
     let localeValue: Locale = "zh-Hans";
 
     let textareaValue = "";
@@ -165,7 +166,7 @@
             ? { ...existing, date: targetDate }
             : { date: targetDate };
         if (triggerAi) {
-            optimistic.aiSummary = t("timelineAiPending");
+            optimistic.aiSummary = $t("timelineAiPending");
         }
 
         upsertSummary(optimistic);
@@ -260,7 +261,7 @@
         weekday: string;
     } {
         if (!dateValue) {
-            return { display: t("editorNoDate"), weekday: "" };
+            return { display: $t("editorNoDate"), weekday: "" };
         }
         const { display, weekday } = formatLongDate(dateValue, localeValue);
         return { display, weekday };
@@ -286,7 +287,7 @@
             type="button"
             class="btn btn--ghost btn--compact"
             on:click={handleBack}
-            aria-label={t("editorBackHome")}
+            aria-label={$t("editorBackHome")}
         >
             <svg
                 fill="none"
@@ -303,7 +304,7 @@
                     d="M15 19l-7-7 7-7"
                 />
             </svg>
-            <span>{t("editorComplete")}</span>
+            <span>{$t("editorComplete")}</span>
         </button>
 
         <p class="editor-shell__date">
@@ -316,7 +317,7 @@
 
     <textarea
         class="editor-shell__textarea"
-        placeholder={t("editorPlaceholder")}
+        placeholder={$t("editorPlaceholder")}
         bind:this={textareaRef}
         bind:value={textareaValue}
         on:input={handleInput}

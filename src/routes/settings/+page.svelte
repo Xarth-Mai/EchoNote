@@ -32,12 +32,13 @@
         locale,
         localeOptions,
         setLocale,
-        t,
+        translator,
         type Locale,
     } from "$utils/i18n";
 
     const state = appStateStore;
     const localeStore = locale;
+    const t = translator;
     let themes: Array<{ label: string; value: "auto" | "light" | "dark" }> = [];
     let localeValue: Locale = "zh-Hans";
 
@@ -83,9 +84,9 @@
     $: localeValue = $localeStore;
     $: selectedLocale = localeValue;
     $: themes = [
-        { label: t("settingsThemeFollow"), value: "auto" },
-        { label: t("settingsThemeLight"), value: "light" },
-        { label: t("settingsThemeDark"), value: "dark" },
+        { label: $t("settingsThemeFollow"), value: "auto" },
+        { label: $t("settingsThemeLight"), value: "light" },
+        { label: $t("settingsThemeDark"), value: "dark" },
     ];
     $: {
         if (!aiState.providers[activeProviderId]) {
@@ -112,10 +113,10 @@
                 currentProvider.editable,
         ) && !savingBasic;
     $: basicSaveLabel = savingBasic
-        ? t("saving")
+        ? $t("saving")
         : unsafeConfirmActive
-          ? t("confirmRiskAndSave")
-          : t("saveBasic");
+          ? $t("confirmRiskAndSave")
+          : $t("saveBasic");
     $: showAiForm = activeProviderId !== "noai";
     $: if (!showAiForm) {
         advancedOpen = false;
@@ -124,7 +125,7 @@
     $: displayedStatusBanner =
         statusBanner ??
         (hasUnsavedChanges
-            ? { tone: "info", text: t("statusUnsavedChanges") }
+            ? { tone: "info", text: $t("statusUnsavedChanges") }
             : null);
     $: if (!advancedDirty) {
         formPrompt = aiState.advanced.prompt;
@@ -214,13 +215,13 @@
             const parsed = new URL(normalized);
             const warnings: string[] = [];
             if (parsed.protocol !== "https:") {
-                warnings.push(t("statusBaseNonHttps"));
+                warnings.push($t("statusBaseNonHttps"));
             }
             const hostname = parsed.hostname.toLowerCase();
             if (hostname === "localhost" || hostname.endsWith(".local")) {
-                warnings.push(t("statusBaseLocalhost"));
+                warnings.push($t("statusBaseLocalhost"));
             } else if (isPrivateHost(hostname)) {
-                warnings.push(t("statusBasePrivate"));
+                warnings.push($t("statusBasePrivate"));
             }
             return { normalized, warnings, valid: true };
         } catch (_error) {
@@ -228,7 +229,7 @@
                 normalized,
                 warnings: [],
                 valid: false,
-                error: t("baseUrlFormatError"),
+                error: $t("baseUrlFormatError"),
             };
         }
     }
@@ -295,7 +296,7 @@
         if (!browser) return;
         const provider = getCurrentProvider();
         if (provider.id === "noai") {
-            statusBanner = { tone: "error", text: t("statusAiDisabled") };
+            statusBanner = { tone: "error", text: $t("statusAiDisabled") };
             return;
         }
         loadingModels = true;
@@ -318,7 +319,7 @@
                 [provider.id]: models,
             };
             if (models.length === 0) {
-                statusBanner = { tone: "error", text: t("statusNoModels") };
+                statusBanner = { tone: "error", text: $t("statusNoModels") };
             } else {
                 if (!models.includes(formModel)) {
                     formModel = models[0];
@@ -327,12 +328,12 @@
                 saveAiSettingsState(aiState);
                 statusBanner = {
                     tone: "ok",
-                    text: t("statusModelsFetched", { count: models.length }),
+                    text: $t("statusModelsFetched", { count: models.length }),
                 };
             }
         } catch (error) {
             console.error("Failed to fetch models", error);
-            statusBanner = { tone: "error", text: t("statusFetchModelsFailed") };
+            statusBanner = { tone: "error", text: $t("statusFetchModelsFailed") };
         } finally {
             loadingModels = false;
         }
@@ -400,11 +401,11 @@
     }
 
     function getProviderLabel(provider: AiProviderConfig): string {
-        if (provider.id === "noai") return t("providerNoAi");
-        if (provider.id === "chatgpt") return t("providerChatgpt");
-        if (provider.id === "deepseek") return t("providerDeepseek");
-        if (provider.id === "gemini") return t("providerGemini");
-        if (provider.id === "claude") return t("providerClaude");
+        if (provider.id === "noai") return $t("providerNoAi");
+        if (provider.id === "chatgpt") return $t("providerChatgpt");
+        if (provider.id === "deepseek") return $t("providerDeepseek");
+        if (provider.id === "gemini") return $t("providerGemini");
+        if (provider.id === "claude") return $t("providerClaude");
         return provider.label;
     }
 
@@ -418,12 +419,12 @@
     function addCustomProvider(): void {
         const suffix = customSuffix.trim();
         if (!suffix) {
-            statusBanner = { tone: "error", text: t("statusSuffixRequired") };
+            statusBanner = { tone: "error", text: $t("statusSuffixRequired") };
             return;
         }
         const candidateId = `openai-custom-${suffix}` as AiProviderId;
         if (aiState.providers[candidateId]) {
-            statusBanner = { tone: "error", text: t("statusSuffixDuplicate") };
+            statusBanner = { tone: "error", text: $t("statusSuffixDuplicate") };
             return;
         }
         const provider = createCustomProviderConfig(
@@ -434,7 +435,7 @@
         customSuffix = "";
         customBaseUrl = "";
         unsafeConfirmTarget = null;
-        statusBanner = { tone: "ok", text: t("statusCustomAdded") };
+        statusBanner = { tone: "ok", text: $t("statusCustomAdded") };
         setActiveProvider(provider.id);
     }
 
@@ -442,7 +443,7 @@
         if (!activeProviderId.startsWith("openai-custom-")) {
             statusBanner = {
                 tone: "error",
-                text: t("statusDeleteCustomOnly"),
+                text: $t("statusDeleteCustomOnly"),
             };
             return;
         }
@@ -469,7 +470,7 @@
         providerModels = {};
         syncFormWithProvider();
         saveAiSettingsState(aiState);
-        statusBanner = { tone: "ok", text: t("statusCustomDeleted") };
+        statusBanner = { tone: "ok", text: $t("statusCustomDeleted") };
     }
 
     function resetAdvancedSettings(): void {
@@ -479,7 +480,7 @@
         formTemperature = String(DEFAULT_TEMPERATURE);
         formMaxTokens = String(defaults);
         markAdvancedDirty();
-        void handleAdvancedSave(true, t("statusResetAdvanced"));
+        void handleAdvancedSave(true, $t("statusResetAdvanced"));
     }
 
     async function persistCurrentApiKey(
@@ -501,7 +502,7 @@
                 formApiKey = API_KEY_PLACEHOLDER;
                 return;
             }
-            statusBanner = { tone: "error", text: t("statusApiKeyInvalid") };
+            statusBanner = { tone: "error", text: $t("statusApiKeyInvalid") };
             formApiKey = "";
             apiKeyDirty = false;
             return;
@@ -527,12 +528,12 @@
                 saveAiSettingsState(aiState);
                 basicDirty = false;
                 if (showBanner) {
-                    statusBanner = { tone: "ok", text: t("statusAiOff") };
+                    statusBanner = { tone: "ok", text: $t("statusAiOff") };
                 }
             } catch (error) {
                 console.error("Failed to disable AI", error);
                 if (showBanner) {
-                    statusBanner = { tone: "error", text: t("statusAiOffFailed") };
+                    statusBanner = { tone: "error", text: $t("statusAiOffFailed") };
                 }
             } finally {
                 savingBasic = false;
@@ -540,7 +541,7 @@
             return;
         }
         if (!formModel.trim()) {
-            statusBanner = { tone: "error", text: t("statusModelRequired") };
+            statusBanner = { tone: "error", text: $t("statusModelRequired") };
             return;
         }
         let analyzedBase: ReturnType<typeof analyzeBaseUrlSafety> | null = null;
@@ -550,7 +551,7 @@
                 unsafeConfirmTarget = null;
                 statusBanner = {
                     tone: "error",
-                    text: analyzedBase.error ?? t("statusBaseInvalid"),
+                    text: analyzedBase.error ?? $t("statusBaseInvalid"),
                 };
                 return;
             }
@@ -565,7 +566,7 @@
                 const warningText = analyzedBase.warnings.join("、");
                 statusBanner = {
                     tone: "error",
-                    text: t("statusBaseRisk", { warnings: warningText }),
+                    text: $t("statusBaseRisk", { warnings: warningText }),
                 };
                 return;
             }
@@ -587,12 +588,12 @@
             saveAiSettingsState(aiState);
             basicDirty = false;
             if (showBanner) {
-                statusBanner = { tone: "ok", text: t("statusBasicSaved") };
+                statusBanner = { tone: "ok", text: $t("statusBasicSaved") };
             }
         } catch (error) {
             console.error("Failed to save basic settings", error);
             if (showBanner) {
-                statusBanner = { tone: "error", text: t("statusBasicSaveFailed") };
+                statusBanner = { tone: "error", text: $t("statusBasicSaveFailed") };
             }
         } finally {
             savingBasic = false;
@@ -601,12 +602,12 @@
 
     async function handleAdvancedSave(
         showBanner = true,
-        message = t("statusAdvancedSaved"),
+        message = $t("statusAdvancedSaved"),
     ): Promise<void> {
         if (savingAdvanced) return;
         const provider = getCurrentProvider();
         if (provider.id === "noai") {
-            statusBanner = { tone: "error", text: t("statusAdvancedSaveBlocked") };
+            statusBanner = { tone: "error", text: $t("statusAdvancedSaveBlocked") };
             return;
         }
 
@@ -627,7 +628,7 @@
         } catch (error) {
             console.error("Failed to save advanced settings", error);
             if (showBanner) {
-                statusBanner = { tone: "error", text: t("statusAdvancedSaveFailed") };
+                statusBanner = { tone: "error", text: $t("statusAdvancedSaveFailed") };
             }
         } finally {
             savingAdvanced = false;
@@ -636,7 +637,7 @@
 </script>
 
 <svelte:head>
-    <title>{`${t("appName")} · ${t("settingsHeadTitle")}${localeValue ? "" : ""}`}</title>
+    <title>{`${$t("appName")} · ${$t("settingsHeadTitle")}${localeValue ? "" : ""}`}</title>
 </svelte:head>
 
 <div class="settings page-shell">
@@ -645,7 +646,7 @@
             <a
                 href="/"
                 class="btn btn--ghost btn--compact settings__back-btn"
-                aria-label={t("editorBackHome")}
+                aria-label={$t("editorBackHome")}
             >
                 <svg
                     fill="none"
@@ -662,24 +663,24 @@
                         d="M15 19l-7-7 7-7"
                     />
                 </svg>
-                <span>{t("settingsBack")}</span>
+                <span>{$t("settingsBack")}</span>
             </a>
-            <p class="settings__caption">{t("settingsCaption")}</p>
+            <p class="settings__caption">{$t("settingsCaption")}</p>
         </header>
 
         <div class="settings__grid scroll-fade">
             <article class="surface-card surface-card--tight">
-                <h2>{t("settingsAppInfoTitle")}</h2>
-                <p>{t("settingsAppInfoDescription")}</p>
+                <h2>{$t("settingsAppInfoTitle")}</h2>
+                <p>{$t("settingsAppInfoDescription")}</p>
                 <div class="settings__field settings__field--inline">
-                    <span>{t("settingsVersionLabel")}</span>
+                    <span>{$t("settingsVersionLabel")}</span>
                     <span class="settings__value">{appVersion}</span>
                 </div>
             </article>
 
             <article class="surface-card surface-card--tight">
-                <h2>{t("settingsLanguageTitle")}</h2>
-                <p>{t("settingsLanguageDescription")}</p>
+                <h2>{$t("settingsLanguageTitle")}</h2>
+                <p>{$t("settingsLanguageDescription")}</p>
                 <div class="settings__field">
                     <select
                         class="settings__select"
@@ -694,8 +695,8 @@
             </article>
 
             <article class="surface-card surface-card--tight">
-                <h2>{t("settingsThemeTitle")}</h2>
-                <p>{t("settingsThemeDescription")}</p>
+                <h2>{$t("settingsThemeTitle")}</h2>
+                <p>{$t("settingsThemeDescription")}</p>
                 <div class="settings__choices">
                     {#each themes as theme}
                         <button
@@ -712,11 +713,11 @@
             </article>
 
             <article class="surface-card surface-card--tight">
-                <h2>{t("settingsAiTitle")}</h2>
-                <p>{t("settingsAiDescription")}</p>
+                <h2>{$t("settingsAiTitle")}</h2>
+                <p>{$t("settingsAiDescription")}</p>
                 <form class="settings__form" on:submit={handleFormSubmit}>
                     <label class="settings__field">
-                        <span>{t("settingsApiType")}</span>
+                        <span>{$t("settingsApiType")}</span>
                         <select
                             bind:value={activeProviderId}
                             on:change={handleProviderSelect}
@@ -741,11 +742,11 @@
                         />
                         {#if !currentProvider.editable}
                             <small class="settings__hint">
-                                {t("settingsFixedBaseUrl")}
+                                {$t("settingsFixedBaseUrl")}
                             </small>
                         {:else}
                             <small class="settings__hint">
-                                {t("settingsBaseUrlExample")}
+                                {$t("settingsBaseUrlExample")}
                             </small>
                         {/if}
                     </label>
@@ -760,12 +761,12 @@
                                 on:input={handleApiKeyInput}
                         />
                         <small class="settings__hint">
-                            {t("settingsApiKeyHint")}
+                            {$t("settingsApiKeyHint")}
                         </small>
                     </label>
 
                     <label class="settings__field">
-                        <span>{t("settingsDefaultModel")}</span>
+                        <span>{$t("settingsDefaultModel")}</span>
                         <div class="settings__model-row">
                             <select
                                 bind:value={formModel}
@@ -774,7 +775,7 @@
                             >
                                 {#if modelOptions.length === 0}
                                         <option value=""
-                                            >{t("settingsFetchModelsPlaceholder")}</option
+                                            >{$t("settingsFetchModelsPlaceholder")}</option
                                         >
                                 {/if}
                                 {#each modelOptions as model}
@@ -788,89 +789,89 @@
                                     disabled={loadingModels}
                                 >
                                     {loadingModels
-                                        ? t("settingsRefreshingModels")
-                                        : t("settingsRefreshModels")}
+                                        ? $t("settingsRefreshingModels")
+                                        : $t("settingsRefreshModels")}
                                 </button>
                             </div>
                             <small class="settings__hint">
-                                {t("settingsModelTip")}
+                                {$t("settingsModelTip")}
                             </small>
                         </label>
 
                         <div class="settings__advanced-toggle">
-                            <span>{t("settingsAdvancedTitle")}</span>
+                            <span>{$t("settingsAdvancedTitle")}</span>
                             <button
                                 type="button"
                                 class="btn btn--ghost"
                                 on:click={() => (advancedOpen = !advancedOpen)}
                             >
                                 {advancedOpen
-                                    ? t("settingsToggleAdvancedHide")
-                                    : t("settingsToggleAdvancedShow")}
+                                    ? $t("settingsToggleAdvancedHide")
+                                    : $t("settingsToggleAdvancedShow")}
                             </button>
                         </div>
                         <p class="settings__hint settings__hint--inline">
-                            {t("settingsAdvancedJsonNotice")}
+                            {$t("settingsAdvancedJsonNotice")}
                         </p>
 
                         {#if advancedOpen}
                             <label class="settings__field">
-                                <span>{t("settingsCustomPrompt")}</span>
+                                <span>{$t("settingsCustomPrompt")}</span>
                                 <textarea
                                     rows="4"
                                     bind:value={formPrompt}
                                     on:input={handlePromptInput}
                                 ></textarea>
                                 <small class="settings__hint">
-                                    {t("settingsPromptTip")}
+                                    {$t("settingsPromptTip")}
                                 </small>
                             </label>
 
                             <label class="settings__field">
-                                <span>{t("settingsGreetingPrompt")}</span>
+                                <span>{$t("settingsGreetingPrompt")}</span>
                                 <textarea
                                     rows="3"
                                     bind:value={formGreetingPrompt}
                                     on:input={handleGreetingPromptInput}
                                 ></textarea>
                                 <small class="settings__hint">
-                                    {t("settingsGreetingPromptTip")}
+                                    {$t("settingsGreetingPromptTip")}
                                 </small>
                             </label>
 
                             <label class="settings__field">
-                                <span>{t("settingsTemperature")}</span>
+                                <span>{$t("settingsTemperature")}</span>
                                 <input
                                     type="number"
                                     min="0"
                                     max="2"
                                     step="0.05"
-                                    placeholder={t("settingsTemperaturePlaceholder")}
+                                    placeholder={$t("settingsTemperaturePlaceholder")}
                                     bind:value={formTemperature}
                                     on:input={handleTemperatureInput}
                                 />
                                 <small class="settings__hint">
-                                    {t("settingsTemperatureTip")}
+                                    {$t("settingsTemperatureTip")}
                                 </small>
                             </label>
 
                             <label class="settings__field">
-                                <span>{t("settingsMaxTokens")}</span>
+                                <span>{$t("settingsMaxTokens")}</span>
                                 <input
                                     type="number"
                                     min="1"
-                                    placeholder={t("settingsMaxTokensPlaceholder")}
+                                    placeholder={$t("settingsMaxTokensPlaceholder")}
                                     bind:value={formMaxTokens}
                                     on:input={handleMaxTokensInput}
                                 />
                                 <small class="settings__hint">
-                                    {t("settingsMaxTokensTip")}
+                                    {$t("settingsMaxTokensTip")}
                                 </small>
                             </label>
                         {/if}
                     {:else}
                         <p class="settings__placeholder">
-                            {t("settingsAiDisabledNote")}
+                            {$t("settingsAiDisabledNote")}
                         </p>
                     {/if}
 
@@ -883,8 +884,8 @@
                                 disabled={savingAdvanced}
                             >
                                 {savingAdvanced
-                                    ? t("saving")
-                                    : t("settingsSaveAdvanced")}
+                                    ? $t("saving")
+                                    : $t("settingsSaveAdvanced")}
                             </button>
                             <button
                                 type="button"
@@ -892,7 +893,7 @@
                                 on:click={resetAdvancedSettings}
                                 disabled={savingAdvanced}
                             >
-                                {t("settingsResetAdvanced")}
+                                {$t("settingsResetAdvanced")}
                             </button>
                         {/if}
                         <button
@@ -911,7 +912,7 @@
                                 class="btn btn--ghost"
                                 on:click={removeActiveCustom}
                             >
-                                {t("settingsDeleteCustom")}
+                                {$t("settingsDeleteCustom")}
                             </button>
                         {/if}
                     </div>
@@ -933,13 +934,13 @@
                 </form>
 
                 <div class="settings__custom">
-                    <p>{t("settingsAddCustomTitle")}</p>
+                    <p>{$t("settingsAddCustomTitle")}</p>
                     <div class="settings__custom-grid">
                         <label class="settings__field">
-                            <span>{t("settingsCustomSuffix")}</span>
+                            <span>{$t("settingsCustomSuffix")}</span>
                             <input
                                 type="text"
-                                placeholder={t("settingsCustomSuffixPlaceholder")}
+                                placeholder={$t("settingsCustomSuffixPlaceholder")}
                                 bind:value={customSuffix}
                             />
                         </label>
@@ -956,7 +957,7 @@
                             class="btn btn--ghost"
                             on:click={addCustomProvider}
                         >
-                            {t("settingsAddCustom")}
+                            {$t("settingsAddCustom")}
                         </button>
                     </div>
                 </div>

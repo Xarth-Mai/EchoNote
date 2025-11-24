@@ -9,13 +9,14 @@
         formatFullDate,
         formatMonthDay,
         locale,
-        t,
+        translator,
         type Locale,
     } from "$utils/i18n";
     import type { DiaryEntry } from "../types";
 
     const state = appStateStore;
     const localeStore = locale;
+    const t = translator;
     const today = new Date();
     const todayIso = (() => {
         const year = today.getFullYear();
@@ -33,7 +34,7 @@
     $: monthlyAiSummaries = collectMonthlySummaries($state.summaries, today);
     $: fallbackGreeting = buildGreeting(today);
     $: greeting = aiGreeting?.trim() || fallbackGreeting;
-    $: subline = t("homeSubline", {
+    $: subline = $t("homeSubline", {
         date: formatFullDate(today, localeValue),
     });
     $: selectedDate = $state.currentDate || todayIso;
@@ -47,20 +48,20 @@
 
     function buildGreeting(reference: Date): string {
         const hour = reference.getHours();
-        if (hour < 6) return t("greetingDawn");
-        if (hour < 12) return t("greetingMorning");
-        if (hour < 18) return t("greetingAfternoon");
-        return t("greetingEvening");
+        if (hour < 6) return $t("greetingDawn");
+        if (hour < 12) return $t("greetingMorning");
+        if (hour < 18) return $t("greetingAfternoon");
+        return $t("greetingEvening");
     }
 
     function buildPrimaryCtaLabel(target: string): string {
         if (target === todayIso) {
-            return t("homeTodayCta");
+            return $t("homeTodayCta");
         }
         const label = formatMonthDayLabel(target);
         return label
-            ? t("homeEditCtaWithDate", { date: label })
-            : t("homeEditCta");
+            ? $t("homeEditCtaWithDate", { date: label })
+            : $t("homeEditCta");
     }
 
     function formatMonthDayLabel(value: string): string {
@@ -83,7 +84,7 @@
         source: Map<string, DiaryEntry>,
         reference: Date,
     ): DiaryEntry[] {
-        const pendingSummary = t("timelineAiPending");
+        const pendingSummary = $t("timelineAiPending");
         const result: DiaryEntry[] = [];
 
         // Optimize: Iterate 30 days back instead of filtering all entries
@@ -150,7 +151,7 @@
             >
                 {primaryCtaLabel}
             </button>
-            <a class="btn btn--ghost" href="/settings">{t("homeSettings")}</a>
+            <a class="btn btn--ghost" href="/settings">{$t("homeSettings")}</a>
         </div>
     </section>
 

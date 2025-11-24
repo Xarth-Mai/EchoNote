@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import { get, writable, type Readable } from "svelte/store";
+import { derived, get, writable, type Readable } from "svelte/store";
 
 import enTranslations from "./i18n/locales/en";
 import jaTranslations from "./i18n/locales/ja";
@@ -21,6 +21,10 @@ export const localeOptions: Array<{ value: Locale; label: string }> = [
 
 export type TranslationKey = keyof typeof enTranslations;
 type TranslationDictionary = Record<TranslationKey, string>;
+type Translator = (
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+) => string;
 
 const translations: Record<Locale, TranslationDictionary> = {
   en: enTranslations,
@@ -31,6 +35,22 @@ const translations: Record<Locale, TranslationDictionary> = {
 
 const localeStore = writable<Locale>(DEFAULT_LOCALE);
 let initialized = false;
+
+const translatorStore = derived<typeof localeStore, Translator>(
+  localeStore,
+  (currentLocale) => {
+    const dict = translations[currentLocale] ?? translations[DEFAULT_LOCALE];
+    const fallback = translations[DEFAULT_LOCALE];
+    return (key: TranslationKey, params?: Record<string, string | number>) => {
+      const template = (dict[key] ?? fallback[key]) as string;
+      if (!params) return template;
+      return Object.entries(params).reduce((acc, [paramKey, paramValue]) => {
+        const pattern = new RegExp(`{${paramKey}}`, "g");
+        return acc.replace(pattern, String(paramValue));
+      }, template);
+    };
+  },
+);
 
 localeStore.subscribe((value) => {
   if (browser) {
@@ -83,17 +103,13 @@ export function setLocale(value: Locale): void {
 }
 
 export const locale: Readable<Locale> = { subscribe: localeStore.subscribe };
+export const translator: Readable<Translator> = {
+  subscribe: translatorStore.subscribe,
+};
 
 export function t(key: TranslationKey, params?: Record<string, string | number>): string {
-  const currentLocale = get(localeStore);
-  const dict = translations[currentLocale] ?? translations[DEFAULT_LOCALE];
-  const fallback = translations[DEFAULT_LOCALE];
-  const template = (dict[key] ?? fallback[key]) as string;
-  if (!params) return template;
-  return Object.entries(params).reduce((acc, [paramKey, paramValue]) => {
-    const pattern = new RegExp(`{${paramKey}}`, "g");
-    return acc.replace(pattern, String(paramValue));
-  }, template);
+  const translate = get(translatorStore);
+  return translate(key, params);
 }
 
 export function formatFullDate(date: Date, localeOverride?: Locale): string {

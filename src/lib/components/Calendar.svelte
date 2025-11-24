@@ -20,12 +20,13 @@
         formatMonthTitle,
         getWeekdayLabels,
         locale,
-        t,
+        translator,
         type Locale,
     } from "$utils/i18n";
 
     const state = appStateStore;
     const localeStore = locale;
+    const t = translator;
     let weekdayLabels: string[] = [];
     let localeValue: Locale = "zh-Hans";
 
@@ -205,7 +206,7 @@
             <button
                 type="button"
                 class="icon-button"
-                aria-label={t("calendarPrevMonth")}
+                aria-label={$t("calendarPrevMonth")}
                 on:click={goToPrevMonth}
             >
                 <svg
@@ -232,7 +233,7 @@
             <button
                 type="button"
                 class="icon-button"
-                aria-label={t("calendarNextMonth")}
+                aria-label={$t("calendarNextMonth")}
                 on:click={goToNextMonth}
             >
                 <svg
@@ -259,7 +260,7 @@
             on:click={toggleCalendarView}
             aria-pressed={calendarExpanded}
         >
-            {calendarExpanded ? t("calendarCollapse") : t("calendarExpand")}
+            {calendarExpanded ? $t("calendarCollapse") : $t("calendarExpand")}
         </button>
     </div>
 

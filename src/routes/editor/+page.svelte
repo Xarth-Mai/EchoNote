@@ -3,14 +3,15 @@
     import { browser } from "$app/environment";
     import Editor from "$lib/components/Editor.svelte";
     import { setCurrentDate } from "$utils/state";
-    import { locale, t, type Locale } from "$utils/i18n";
+    import { locale, translator, type Locale } from "$utils/i18n";
     import { onMount } from "svelte";
 
     const localeStore = locale;
+    const t = translator;
     let localeValue: Locale = "zh-Hans";
     let lastSynced: string | null = null;
     $: localeValue = $localeStore;
-    $: pageTitle = `${t("appName")} · ${t("editorHeadTitle")}${localeValue ? "" : ""}`;
+    $: pageTitle = `${$t("appName")} · ${$t("editorHeadTitle")}${localeValue ? "" : ""}`;
 
     function syncDateFromUrl(url: URL) {
         const urlDate = url.searchParams.get("date");
