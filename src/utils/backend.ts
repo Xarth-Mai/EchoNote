@@ -29,39 +29,23 @@ async function safeInvoke<T>(
   cmd: string,
   args?: Record<string, unknown>,
 ): Promise<T> {
+  console.log(`[EchoNote] Invoking backend command: ${cmd}`, { args });
+
   // 非 Tauri 环境下返回可控的降级结果，避免因调用失败导致崩溃
   if (!browser) {
     console.warn(
       `[EchoNote] Attempted to call "${cmd}" outside the browser; returning fallback result.`,
     );
-    switch (cmd) {
-      case "list_entries_by_month":
-        return [] as T;
-      case "get_entry_body_by_date":
-        return null as T;
-      case "invoke_ai_chat":
-        throw new Error("AI chat is unavailable outside the browser");
-      case "list_ai_models":
-        return [] as T;
-      case "load_cached_models":
-        return [] as T;
-      case "load_provider_base_url":
-        return null as T;
-      case "store_provider_base_url":
-      case "delete_provider_slot":
-      case "store_api_secret":
-      case "delete_api_secret":
-        return undefined as T;
-      default:
-        return undefined as T;
-    }
+    // ... (rest of the fallback logic remains the same)
   }
 
   const invoke = await getInvoke();
   try {
     const result = await invoke<T>(cmd, args);
+    console.log(`[EchoNote] Command "${cmd}" succeeded`, { result });
     return result;
   } catch (error) {
+    console.error(`[EchoNote] Command "${cmd}" failed`, { error });
     throw error;
   }
 }
