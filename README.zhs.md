@@ -90,8 +90,7 @@ EchoNote 提供优雅、专注的写作体验，重点围绕「AI 辅助写作�
 
 ```bash
 bun install
-bun run dev          # 启动 Web 端开发服务器
-bun run tauri dev   # 启动桌面端（需先通过 bun run build）
+bun tauri dev
 ```
 
 ## 🎯 核心原则

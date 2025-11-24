@@ -89,8 +89,7 @@ EchoNote works with multiple mainstream and compatible AI APIs, and you can enab
 
 ```bash
 bun install
-bun run dev          # Start web dev server
-bun run tauri dev    # Start desktop shell (after `bun run build`)
+bun tauri dev
 ```
 
 ## 🎯 Principles
