@@ -395,11 +395,41 @@ async fn regenerate_entry_metadata(
     expected_hash: String,
 ) -> Result<(), String> {
     let layout = storage_layout(&app)?;
-    let summary_payload = request_ai_summary(&app, &ai, &body).await?;
+
+    // Retry logic: try up to 3 times (initial + 2 retries)
+    let mut attempts = 0;
+    let max_attempts = 3;
+    let mut summary_result = Err("Initial".to_string());
+
+    while attempts < max_attempts {
+        summary_result = request_ai_summary(&app, &ai, &body).await;
+        if summary_result.is_ok() {
+            break;
+        }
+        attempts += 1;
+        if attempts < max_attempts {
+            eprintln!(
+                "[EchoNote] AI summary failed (attempt {}/{}), retrying...",
+                attempts, max_attempts
+            );
+        }
+    }
+
     let AiSummaryResult {
         summary: ai_summary,
         emoji: ai_emoji,
-    } = summary_payload;
+    } = match summary_result {
+        Ok(res) => res,
+        Err(err) => {
+            eprintln!("[EchoNote] AI summary failed after {} attempts: {}. Falling back to local summary.", attempts, err);
+            let local_summary =
+                summarize_body(&body).unwrap_or_else(|| EMPTY_ENTRY_SUMMARY.to_string());
+            AiSummaryResult {
+                summary: local_summary,
+                emoji: None,
+            }
+        }
+    };
 
     let (updated_summary, persisted_body) = {
         let mut store = STORE
