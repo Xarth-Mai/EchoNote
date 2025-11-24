@@ -195,7 +195,7 @@
     }
 
     onMount(() => {
-        syncFormWithProvider();
+        // syncFormWithProvider is handled by reactive statement
     });
 
     function normalizedBaseUrl(value: string): string {

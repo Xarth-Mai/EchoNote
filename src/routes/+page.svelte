@@ -27,6 +27,7 @@
     let aiGreeting: string | null = null;
     let greetingRequestId = 0;
     let monthlyAiSummaries: DiaryEntry[] = [];
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     $: localeValue = $localeStore;
     $: monthlyAiSummaries = collectMonthlySummaries($state.summaries, today);
@@ -38,7 +39,10 @@
     $: selectedDate = $state.currentDate || todayIso;
     $: primaryCtaLabel = buildPrimaryCtaLabel(selectedDate);
     $: if (browser) {
-        void updateHeroGreeting(localeValue, monthlyAiSummaries);
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            void updateHeroGreeting(localeValue, monthlyAiSummaries);
+        }, 500);
     }
 
     function buildGreeting(reference: Date): string {
@@ -76,27 +80,27 @@
     }
 
     function collectMonthlySummaries(
-    source: Map<string, DiaryEntry>,
-    reference: Date,
-): DiaryEntry[] {
-    const cutoff = new Date(reference);
-    cutoff.setDate(reference.getDate() - 30);
-    const pendingSummary = t("timelineAiPending");
+        source: Map<string, DiaryEntry>,
+        reference: Date,
+    ): DiaryEntry[] {
+        const cutoff = new Date(reference);
+        cutoff.setDate(reference.getDate() - 30);
+        const pendingSummary = t("timelineAiPending");
 
-    return Array.from(source.values())
-        .filter((entry) => {
-            if (
-                !entry.aiSummary ||
-                entry.aiSummary.trim() === pendingSummary
-            ) {
-                return false;
-            }
-            const parsed = new Date(entry.date);
-            if (Number.isNaN(parsed.getTime())) return false;
-            return parsed >= cutoff && parsed <= reference;
-        })
-        .sort((a, b) => b.date.localeCompare(a.date));
-}
+        return Array.from(source.values())
+            .filter((entry) => {
+                if (
+                    !entry.aiSummary ||
+                    entry.aiSummary.trim() === pendingSummary
+                ) {
+                    return false;
+                }
+                const parsed = new Date(entry.date);
+                if (Number.isNaN(parsed.getTime())) return false;
+                return parsed >= cutoff && parsed <= reference;
+            })
+            .sort((a, b) => b.date.localeCompare(a.date));
+    }
 
     async function updateHeroGreeting(
         localeSnapshot: Locale,
