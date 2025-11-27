@@ -1,6 +1,6 @@
 [package]
 name = "echonote"
-version = "0.1.0"
+version = "0.2.0"
 description = "A minimal intelligent bilingual diary & writing app powered by LLM"
 authors = ["Xarth-Mai"]
 edition = "2021"
