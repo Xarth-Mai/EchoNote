@@ -13,7 +13,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
 use crate::ai_prefs;
-use crate::ai_provider::{self, AiChatRequest, AiChatResult, AiMessage};
+use crate::ai_provider::{self, AiChatRequest, AiMessage};
 use crate::models::{DiaryEntry, EntryRecord};
 use crate::security::{device, secrets};
 use crate::storage::{self, StorageLayout};
