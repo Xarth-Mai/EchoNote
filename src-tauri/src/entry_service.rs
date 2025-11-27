@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
+use crate::ai_prefs;
 use crate::ai_provider::{self, AiChatRequest, AiChatResult, AiMessage};
 use crate::models::{DiaryEntry, EntryRecord};
 use crate::security::{device, secrets};
@@ -27,20 +28,8 @@ const ENTRY_METADATA_EVENT: &str = "entry-metadata-updated";
 const EMPTY_ENTRY_SUMMARY: &str = "空白日记";
 const AI_PENDING_SUMMARY: &str = "AI 摘要生成中...";
 const DATE_FORMAT: &str = "%Y-%m-%d";
-const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules.";
-const DEFAULT_TEMPERATURE: f32 = 1.0;
 // 软上限：在内存中保留的本文+摘要记录数量，避免长时间运行占用过大内存。
 const MAX_STORE_ENTRIES: usize = 500;
-const DEFAULT_MODEL_OPENAI: &str = "gpt-5.1";
-const DEFAULT_MODEL_DEEPSEEK: &str = "deepseek-chat";
-const DEFAULT_MODEL_GEMINI: &str = "gemini-flash-lite-latest";
-const DEFAULT_MODEL_CLAUDE: &str = "claude-haiku-4-5";
-const DEFAULT_API_BASE_OPENAI: &str = "https://api.openai.com/v1";
-const DEFAULT_API_BASE_DEEPSEEK: &str = "https://api.deepseek.com";
-const DEFAULT_API_BASE_GEMINI: &str = "https://generativelanguage.googleapis.com";
-const DEFAULT_API_BASE_CLAUDE: &str = "https://api.anthropic.com";
-const DEFAULT_GREETING_PROMPT: &str =
-    "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
 const GREETING_MAX_CONTEXT_ENTRIES: usize = 30;
 const GREETING_MAX_SUMMARY_LENGTH: usize = 180;
 const GREETING_MAX_TOKENS: u32 = 80;
@@ -57,8 +46,6 @@ pub struct AiInvokePayload {
 
 #[derive(Debug, Deserialize)]
 pub struct AiModelListRequest {
-    #[serde(rename = "baseUrl")]
-    base_url: Option<String>,
     #[serde(rename = "providerId")]
     provider_id: String,
 }
@@ -220,13 +207,14 @@ pub async fn invoke_ai_chat(
         return Err("AI provider is required".to_string());
     }
 
+    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
     let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = sanitize_api_base_url(secrets::load_base_url(app, &provider_id)?, &provider_id)?;
-    let model = secrets::load_selected_model(app, &provider_id)?
-        .unwrap_or_else(|| default_model_for(&provider_id));
+    let api_base =
+        sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
 
-    ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await
+    ai_provider::invoke_ai_chat(&provider_id, request, provider_ctx.model, &api_key, &api_base)
+        .await
 }
 
 /// 生成首页 Hero Greeting，由后端拼接上下文与系统提示词，前端仅传递用户偏好。
@@ -239,29 +227,34 @@ pub async fn generate_hero_greeting(
         return Err("AI provider is required".to_string());
     }
 
+    let provider_ctx = ai_prefs::resolve_provider_context(app, provider_id)?;
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?, provider_id)?;
-    let model = secrets::load_selected_model(app, provider_id)?
-        .unwrap_or_else(|| default_model_for(provider_id));
+    let api_base = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), provider_id)?;
+    let model = provider_ctx.model.clone();
 
     let target_date = resolve_greeting_date(request.date.as_deref())?;
     let timezone = resolve_timezone_label(request.timezone.as_deref());
     let language = resolve_language_label(request.locale.as_deref());
     let layout = storage_layout(app)?;
-    let context = collect_recent_ai_summaries(&layout, target_date)?;
+    let history_context = collect_recent_ai_summaries(&layout, target_date)?;
 
     let system_prompt =
-        build_greeting_system_prompt(target_date, &timezone, language, context.as_slice());
-    let user_prompt = build_greeting_user_prompt(request.user_prompt.as_deref());
+        build_greeting_system_prompt(target_date, &timezone, language, history_context.as_slice());
+    let user_prompt = build_greeting_user_prompt(
+        request
+            .user_prompt
+            .as_deref()
+            .or_else(|| Some(provider_ctx.greeting_prompt.as_str())),
+    );
     let temperature = request
         .temperature
         .map(|value| value.clamp(0.0, 2.0))
-        .unwrap_or(DEFAULT_TEMPERATURE);
+        .unwrap_or(provider_ctx.temperature);
     let max_tokens = request
         .max_tokens
         .filter(|value| *value > 0)
-        .unwrap_or(60)
+        .unwrap_or(provider_ctx.max_tokens)
         .min(GREETING_MAX_TOKENS);
 
     let ai_request = AiChatRequest {
@@ -299,12 +292,8 @@ pub async fn list_ai_models(
         return Err("AI provider is disabled".to_string());
     }
 
-    let base_url = sanitize_api_base_url(
-        request
-            .base_url
-            .or_else(|| secrets::load_base_url(app, &provider_id).ok().flatten()),
-        &provider_id,
-    )?;
+    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
+    let base_url = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
     let api_key = secrets::load_api_key(app, &provider_id)?
         .ok_or_else(|| "API Key is required to list models".to_string())?;
 
@@ -312,11 +301,16 @@ pub async fn list_ai_models(
         .await
     {
         Ok(models) => {
-            secrets::save_model_cache(app, &provider_id, &models)?;
+            ai_prefs::persist_model_list(app, &provider_id, &models)?;
             Ok(models)
         }
         Err(err) => {
-            if let Some(cache) = secrets::load_model_cache(app, &provider_id)? {
+            let prefs = ai_prefs::load_preferences(app)?;
+            if let Some(cache) = prefs
+                .providers
+                .get(&provider_id)
+                .and_then(|slot| slot.model_list.clone())
+            {
                 return Ok(cache);
             }
             Err(err)
@@ -438,9 +432,11 @@ fn build_greeting_system_prompt(
 }
 
 fn build_greeting_user_prompt(preference: Option<&str>) -> String {
-    let trimmed = preference.unwrap_or(DEFAULT_GREETING_PROMPT).trim();
+    let trimmed = preference
+        .unwrap_or(ai_prefs::DEFAULT_GREETING_PROMPT)
+        .trim();
     if trimmed.is_empty() {
-        DEFAULT_GREETING_PROMPT.to_string()
+        ai_prefs::DEFAULT_GREETING_PROMPT.to_string()
     } else {
         trimmed.to_string()
     }
@@ -486,7 +482,7 @@ fn extract_greeting_from_response(raw: &str) -> String {
 }
 
 fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<AiMessage> {
-    let user_custom = custom_prompt.unwrap_or(DEFAULT_PROMPT);
+    let user_custom = custom_prompt.unwrap_or(ai_prefs::DEFAULT_PROMPT);
 
     let system_prompt = format!(
         r#"Output only JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.Rules: emoji = 1 symbol; summary must use the diary author's language and writing style; no fabrication; avoid chain-of-thought or explanations; JSON only.Diary: {}"#,
@@ -598,21 +594,7 @@ fn sanitize_ai_payload(mut ai: AiInvokePayload) -> Option<AiInvokePayload> {
 }
 
 fn default_api_base_for(provider_id: &str) -> &'static str {
-    match provider_id {
-        "deepseek" => DEFAULT_API_BASE_DEEPSEEK,
-        "gemini" => DEFAULT_API_BASE_GEMINI,
-        "claude" => DEFAULT_API_BASE_CLAUDE,
-        _ => DEFAULT_API_BASE_OPENAI,
-    }
-}
-
-fn default_model_for(provider_id: &str) -> String {
-    match provider_id {
-        "deepseek" => DEFAULT_MODEL_DEEPSEEK.to_string(),
-        "gemini" => DEFAULT_MODEL_GEMINI.to_string(),
-        "claude" => DEFAULT_MODEL_CLAUDE.to_string(),
-        _ => DEFAULT_MODEL_OPENAI.to_string(),
-    }
+    ai_prefs::default_api_base_for(provider_id)
 }
 
 fn spawn_metadata_refresh(
@@ -714,24 +696,34 @@ async fn request_ai_summary(
         .provider_id
         .as_ref()
         .ok_or_else(|| "AI provider is required".to_string())?;
+    let provider_ctx = ai_prefs::resolve_provider_context(app, provider_id)?;
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?, provider_id)?;
+    let api_base =
+        sanitize_api_base_url(Some(provider_ctx.base_url.clone()), provider_id)?;
 
-    let model = secrets::load_selected_model(app, provider_id)?
-        .unwrap_or_else(|| default_model_for(provider_id));
+    let model = provider_ctx.model.clone();
     let prompt = ai
         .prompt
-        .clone()
-        .unwrap_or_else(|| DEFAULT_PROMPT.to_string());
-    let max_tokens = ai.max_tokens.or(Some(200));
-    let temperature = ai.temperature.unwrap_or(DEFAULT_TEMPERATURE);
+        .as_ref()
+        .map(|text| text.trim())
+        .filter(|text| !text.is_empty())
+        .map(|text| text.to_string())
+        .unwrap_or_else(|| provider_ctx.prompt.clone());
+    let max_tokens = ai
+        .max_tokens
+        .filter(|value| *value > 0)
+        .unwrap_or(provider_ctx.max_tokens);
+    let temperature = ai
+        .temperature
+        .map(|value| value.clamp(0.0, 2.0))
+        .unwrap_or(provider_ctx.temperature);
 
     let request = AiChatRequest {
         provider_id: provider_id.to_string(),
         messages: build_summary_prompt(body, Some(&prompt)),
         temperature: Some(temperature),
-        max_tokens,
+        max_tokens: Some(max_tokens),
     };
 
     let response =

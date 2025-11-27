@@ -7,10 +7,11 @@ import type {
   AiSettingsState,
 } from "../types";
 
-const STORAGE_KEY = "echonote-ai-settings";
-export const DEFAULT_AI_PROMPT =
-  `Provide the summary exactly according to the system rules.`;
+const STORE_FILE = "ai_preferences.json";
+const STORE_KEY = "aiSettings";
 
+export const DEFAULT_AI_PROMPT =
+  "Provide the summary exactly according to the system rules.";
 export const DEFAULT_TEMPERATURE = 1;
 export const DEFAULT_GREETING_PROMPT =
   "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
@@ -49,38 +50,79 @@ const BUILTIN_PROVIDERS: Record<
 
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
   noai: "",
-  chatgpt: "gpt-5-mini",
+  chatgpt: "gpt-5.1",
   deepseek: "deepseek-chat",
   gemini: "gemini-flash-lite-latest",
-  claude: "claude-haiku-4.5",
+  claude: "claude-haiku-4-5",
 };
 
-export function loadAiSettingsState(): AiSettingsState {
-  const fallback = createDefaultState();
-  if (!browser) return fallback;
+let cachedState: AiSettingsState | null = null;
+let storePromise: Promise<import("@tauri-apps/plugin-store").Store> | null = null;
 
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return fallback;
-
+async function getStore(): Promise<import("@tauri-apps/plugin-store").Store | null> {
+  if (!browser) return null;
+  if (!storePromise) {
+    storePromise = import("@tauri-apps/plugin-store").then(async ({ Store }) =>
+      Store.load(STORE_FILE, { defaults: {}, autoSave: true }),
+    );
+  }
   try {
-    const parsed = JSON.parse(raw) as AiSettingsState;
-    return sanitizeState(parsed);
-  } catch (_error) {
-    return fallback;
+    return await storePromise;
+  } catch (error) {
+    console.warn("[EchoNote] Failed to init AI store", error);
+    return null;
   }
 }
 
-export function saveAiSettingsState(state: AiSettingsState): void {
+async function persistState(state: AiSettingsState): Promise<void> {
   if (!browser) return;
+  const store = await getStore();
+  if (!store) return;
+  try {
+    await store.set(STORE_KEY, state);
+    await store.save();
+  } catch (error) {
+    console.error("[EchoNote] Failed to persist AI settings", error);
+  }
+}
+
+export async function loadAiSettingsState(): Promise<AiSettingsState> {
+  if (!browser) return createDefaultState();
+  if (cachedState) return cachedState;
+
+  let snapshot: AiSettingsState | null = null;
+  const store = await getStore();
+  if (store) {
+    try {
+      const stored = await store.get<AiSettingsState>(STORE_KEY);
+      if (stored) {
+        snapshot = stored;
+      }
+    } catch (error) {
+      console.warn("[EchoNote] Failed to read AI settings from store", error);
+    }
+  }
+
+  const sanitized = sanitizeState(snapshot ?? createDefaultState());
+  cachedState = sanitized;
+  if (store && !snapshot) {
+    await persistState(sanitized);
+  }
+  return sanitized;
+}
+
+export async function saveAiSettingsState(state: AiSettingsState): Promise<void> {
   const sanitized = sanitizeState(state);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+  cachedState = sanitized;
+  if (!browser) return;
+  await persistState(sanitized);
 }
 
 export async function getActiveAiInvokePayload(
   state?: AiSettingsState,
 ): Promise<AiInvokePayload | null> {
   if (!browser) return null;
-  const snapshot = sanitizeState(state ?? loadAiSettingsState());
+  const snapshot = sanitizeState(state ?? (await loadAiSettingsState()));
   const providerId = snapshot.activeProviderId ?? "noai";
   const provider = snapshot.providers[providerId];
   if (!provider) {
@@ -115,6 +157,7 @@ export function createCustomProviderConfig(
     temperature: DEFAULT_TEMPERATURE,
     type: "custom",
     suffix: normalizedSuffix || "default",
+    modelList: [],
   };
 }
 
@@ -138,6 +181,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
       maxTokens: normalizeMaxTokens(existing?.maxTokens),
       temperature: normalizeTemperature(existing?.temperature),
       type: "builtin",
+      modelList: sanitizeModelList(existing?.modelList),
     };
   }
 
@@ -161,6 +205,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         label:
           cfg.label ||
           `OpenAI API Custom · ${cfg.suffix ?? cfg.id.replace("openai-custom-", "")}`,
+        modelList: sanitizeModelList(cfg.modelList),
       };
     });
 
@@ -203,6 +248,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
+        modelList: [],
       },
       chatgpt: {
         id: "chatgpt",
@@ -214,6 +260,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
+        modelList: [],
       },
       deepseek: {
         id: "deepseek",
@@ -225,6 +272,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
+        modelList: [],
       },
       gemini: {
         id: "gemini",
@@ -236,6 +284,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
+        modelList: [],
       },
       claude: {
         id: "claude",
@@ -247,6 +296,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
+        modelList: [],
       },
     },
     advanced: {
@@ -317,4 +367,12 @@ function sanitizeApiKeyHints(
     hints[providerId] = trimmed;
   }
   return hints;
+}
+
+function sanitizeModelList(value?: string[] | null): string[] | undefined {
+  if (!value) return [];
+  const cleaned = value
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return cleaned.length > 0 ? cleaned : [];
 }

@@ -1,4 +1,4 @@
-//! Local, device-bound storage for AI provider credentials and preferences.
+//! Local, device-bound storage for AI provider credentials.
 
 use std::collections::HashMap;
 use std::fs;
@@ -12,11 +12,19 @@ use tauri::{AppHandle, Manager};
 use super::crypto::{self, EncryptedBlob};
 use super::device;
 
-const SECRET_FILE_NAME: &str = "ai_config.json";
-const LEGACY_FILE_NAME: &str = "ai_keys.json";
+const SECRET_FILE_NAME: &str = "ai_secrets.dat";
+const LEGACY_KEYS_FILE: &str = "ai_keys.json";
+const LEGACY_COMBINED_FILE: &str = "ai_config.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct ProviderSlot {
+pub struct SecretSlot {
+    pub salt: Option<String>,
+    pub nonce: Option<String>,
+    pub ciphertext: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LegacyProviderSlot {
     pub salt: Option<String>,
     pub nonce: Option<String>,
     pub ciphertext: Option<String>,
@@ -28,26 +36,21 @@ pub struct ProviderSlot {
     pub selected_model: Option<String>,
 }
 
-type SecretStore = HashMap<String, ProviderSlot>;
+type SecretStore = HashMap<String, SecretSlot>;
+pub type LegacyStore = HashMap<String, LegacyProviderSlot>;
 
 pub fn save_api_key(app: &AppHandle, provider_id: &str, api_key: &str) -> Result<(), String> {
     let device_id = device::device_id(app)?;
     let blob = crypto::encrypt(device_id.as_bytes(), api_key.as_bytes())?;
     let mut store = load_store(app)?;
-    let mut slot = ProviderSlot::default();
-    slot.salt = Some(BASE64.encode(blob.salt));
-    slot.nonce = Some(BASE64.encode(blob.nonce));
-    slot.ciphertext = Some(BASE64.encode(blob.ciphertext));
-    slot.model_list = store
-        .get(provider_id)
-        .and_then(|existing| existing.model_list.clone());
-    slot.base_url = store
-        .get(provider_id)
-        .and_then(|existing| existing.base_url.clone());
-    slot.selected_model = store
-        .get(provider_id)
-        .and_then(|existing| existing.selected_model.clone());
-    store.insert(provider_id.to_string(), slot);
+    store.insert(
+        provider_id.to_string(),
+        SecretSlot {
+            salt: Some(BASE64.encode(blob.salt)),
+            nonce: Some(BASE64.encode(blob.nonce)),
+            ciphertext: Some(BASE64.encode(blob.ciphertext)),
+        },
+    );
     persist_store(app, &store)
 }
 
@@ -66,94 +69,72 @@ pub fn load_api_key(app: &AppHandle, provider_id: &str) -> Result<Option<String>
 
 pub fn delete_api_key(app: &AppHandle, provider_id: &str) -> Result<(), String> {
     let mut store = load_store(app)?;
-    if let Some(mut slot) = store.remove(provider_id) {
-        // 保留模型缓存与 Base URL，防止无意丢失已有配置
-        if slot.model_list.is_some() || slot.base_url.is_some() {
-            slot.salt = None;
-            slot.nonce = None;
-            slot.ciphertext = None;
-            store.insert(provider_id.to_string(), slot);
-        }
-    }
+    store.remove(provider_id);
     persist_store(app, &store)?;
     Ok(())
 }
 
-pub fn save_model_cache(
-    app: &AppHandle,
-    provider_id: &str,
-    models: &[String],
-) -> Result<(), String> {
-    let mut store = load_store(app)?;
-    let mut slot = store.remove(provider_id).unwrap_or_default();
-    slot.model_list = Some(models.to_vec());
-    store.insert(provider_id.to_string(), slot);
-    persist_store(app, &store)
+pub fn persist_store_snapshot(app: &AppHandle, store: &SecretStore) -> Result<(), String> {
+    persist_store(app, store)
 }
 
-pub fn load_model_cache(app: &AppHandle, provider_id: &str) -> Result<Option<Vec<String>>, String> {
-    let store = load_store(app)?;
-    Ok(store
-        .get(provider_id)
-        .and_then(|slot| slot.model_list.clone()))
-}
-
-pub fn save_base_url(app: &AppHandle, provider_id: &str, base_url: &str) -> Result<(), String> {
-    let normalized = base_url.trim();
-    let mut store = load_store(app)?;
-    let mut slot = store.remove(provider_id).unwrap_or_default();
-    if normalized.is_empty() {
-        slot.base_url = None;
-    } else {
-        slot.base_url = Some(normalized.to_string());
+pub fn read_legacy_combined(app: &AppHandle) -> Result<Option<LegacyStore>, String> {
+    let path = legacy_combined_path(app)?;
+    if !path.exists() {
+        return Ok(None);
     }
-    store.insert(provider_id.to_string(), slot);
-    persist_store(app, &store)
+    let store = read_legacy_store(&path)?;
+    Ok(Some(store))
 }
 
-pub fn load_base_url(app: &AppHandle, provider_id: &str) -> Result<Option<String>, String> {
-    let store = load_store(app)?;
-    Ok(store
-        .get(provider_id)
-        .and_then(|slot| slot.base_url.clone()))
+pub fn secrets_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
+    Ok(dir.join(SECRET_FILE_NAME))
 }
 
-pub fn delete_provider(app: &AppHandle, provider_id: &str) -> Result<(), String> {
-    let mut store = load_store(app)?;
-    store.remove(provider_id);
-    persist_store(app, &store)
+pub fn legacy_combined_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
+    Ok(dir.join(LEGACY_COMBINED_FILE))
 }
 
-pub fn save_selected_model(app: &AppHandle, provider_id: &str, model: &str) -> Result<(), String> {
-    let mut store = load_store(app)?;
-    let mut slot = store.remove(provider_id).unwrap_or_default();
-    if model.trim().is_empty() {
-        slot.selected_model = None;
-    } else {
-        slot.selected_model = Some(model.trim().to_string());
-    }
-    store.insert(provider_id.to_string(), slot);
-    persist_store(app, &store)
-}
-
-pub fn load_selected_model(app: &AppHandle, provider_id: &str) -> Result<Option<String>, String> {
-    let store = load_store(app)?;
-    Ok(store
-        .get(provider_id)
-        .and_then(|slot| slot.selected_model.clone()))
+fn legacy_keys_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
+    Ok(dir.join(LEGACY_KEYS_FILE))
 }
 
 fn load_store(app: &AppHandle) -> Result<SecretStore, String> {
     let path = secrets_path(app)?;
-    if !path.exists() {
-        // 兼容旧文件名
-        let legacy = legacy_path(app)?;
-        if legacy.exists() {
-            return read_store(&legacy);
-        }
-        return Ok(HashMap::new());
+    if path.exists() {
+        return read_store(&path);
     }
-    read_store(&path)
+
+    // 兼容旧版本：优先尝试 legacy secrets，再尝试组合配置文件。
+    let legacy_keys = legacy_keys_path(app)?;
+    if legacy_keys.exists() {
+        let legacy = read_legacy_store(&legacy_keys)?;
+        let converted = legacy_to_secret_store(legacy);
+        persist_store(app, &converted)?;
+        return Ok(converted);
+    }
+
+    let legacy_combined = legacy_combined_path(app)?;
+    if legacy_combined.exists() {
+        let legacy = read_legacy_store(&legacy_combined)?;
+        let converted = legacy_to_secret_store(legacy);
+        persist_store(app, &converted)?;
+        return Ok(converted);
+    }
+
+    Ok(HashMap::new())
 }
 
 fn read_store(path: &PathBuf) -> Result<SecretStore, String> {
@@ -163,6 +144,16 @@ fn read_store(path: &PathBuf) -> Result<SecretStore, String> {
         return Ok(HashMap::new());
     }
     serde_json::from_str::<SecretStore>(&content)
+        .map_err(|err| format!("failed to parse secret store {}: {err}", path.display()))
+}
+
+fn read_legacy_store(path: &PathBuf) -> Result<LegacyStore, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|err| format!("failed to read secret store {}: {err}", path.display()))?;
+    if content.trim().is_empty() {
+        return Ok(HashMap::new());
+    }
+    serde_json::from_str::<LegacyStore>(&content)
         .map_err(|err| format!("failed to parse secret store {}: {err}", path.display()))
 }
 
@@ -177,23 +168,7 @@ fn persist_store(app: &AppHandle, store: &SecretStore) -> Result<(), String> {
     fs::write(&path, serialized).map_err(|err| format!("failed to write {}: {err}", path.display()))
 }
 
-fn secrets_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
-    Ok(dir.join(SECRET_FILE_NAME))
-}
-
-fn legacy_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
-    Ok(dir.join(LEGACY_FILE_NAME))
-}
-
-fn deserialize_blob(secret: &ProviderSlot) -> Result<EncryptedBlob, String> {
+fn deserialize_blob(secret: &SecretSlot) -> Result<EncryptedBlob, String> {
     let salt_b64 = secret
         .salt
         .as_ref()
@@ -230,4 +205,23 @@ fn deserialize_blob(secret: &ProviderSlot) -> Result<EncryptedBlob, String> {
             .decode(cipher_b64.as_bytes())
             .map_err(|err| format!("invalid ciphertext encoding: {err}"))?,
     })
+}
+
+fn legacy_to_secret_store(legacy: LegacyStore) -> SecretStore {
+    legacy
+        .into_iter()
+        .filter_map(|(key, value)| {
+            if value.salt.is_none() && value.nonce.is_none() && value.ciphertext.is_none() {
+                return None;
+            }
+            Some((
+                key,
+                SecretSlot {
+                    salt: value.salt,
+                    nonce: value.nonce,
+                    ciphertext: value.ciphertext,
+                },
+            ))
+        })
+        .collect()
 }

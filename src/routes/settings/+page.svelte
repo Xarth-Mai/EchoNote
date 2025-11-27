@@ -6,12 +6,6 @@
         listAiModels,
         storeProviderApiKey,
         deleteProviderApiKey,
-        loadProviderModelCache,
-        loadProviderBaseUrl,
-        storeProviderBaseUrl,
-        deleteProviderSlot,
-        loadProviderModel,
-        storeProviderModel,
     } from "$utils/backend";
     import {
         createCustomProviderConfig,
@@ -22,6 +16,7 @@
         DEFAULT_TEMPERATURE,
         DEFAULT_GREETING_PROMPT,
         getDefaultMaxTokens,
+        createDefaultState,
     } from "$utils/ai";
     import type {
         AiProviderConfig,
@@ -52,7 +47,7 @@
     const API_KEY_PLACEHOLDER = "sk-xxxxxxxxxxxxxxxx";
 
     const appVersion: string = __APP_VERSION__ ?? "0.0.0";
-    let aiState: AiSettingsState = sanitizeState(loadAiSettingsState());
+    let aiState: AiSettingsState = sanitizeState(createDefaultState());
     let activeProviderId: AiProviderId = aiState.activeProviderId;
     let providerOptions: AiProviderConfig[] = [];
     let currentProvider: AiProviderConfig = getCurrentProvider();
@@ -152,7 +147,14 @@
         formModel = provider.model ?? "";
         apiKeyDirty = false;
         unsafeConfirmTarget = null;
-        void hydrateProviderFromBackend();
+        providerModels = {
+            ...providerModels,
+            [provider.id]: provider.modelList ?? (formModel ? [formModel] : []),
+        };
+        if (!formModel && provider.modelList && provider.modelList.length > 0) {
+            formModel = provider.modelList[0];
+            provider.model = formModel;
+        }
     }
 
     function hasStoredApiKey(providerId: AiProviderId): boolean {
@@ -174,30 +176,32 @@
         aiState.apiKeyHints[providerId] = API_KEY_PLACEHOLDER;
     }
 
-    async function hydrateProviderFromBackend(): Promise<void> {
-        if (!browser) return;
-        const provider = getCurrentProvider();
-        const baseUrl = await loadProviderBaseUrl(provider.id);
-        if (baseUrl) {
-            formBaseUrl = baseUrl;
-            provider.baseUrl = baseUrl;
-        }
-        const cached = await loadProviderModelCache(provider.id);
-        if (cached && cached.length > 0) {
-            providerModels = { ...providerModels, [provider.id]: cached };
-            const storedModel = await loadProviderModel(provider.id);
-            const pick =
-                storedModel && cached.includes(storedModel)
-                    ? storedModel
-                    : cached[0];
-            formModel = pick;
-            provider.model = formModel;
-        }
-    }
-
     onMount(() => {
-        // syncFormWithProvider is handled by reactive statement
+        if (!browser) return;
+        void hydrateFromStore();
     });
+
+    async function hydrateFromStore(): Promise<void> {
+        const loaded = await loadAiSettingsState();
+        aiState = sanitizeState(loaded);
+        activeProviderId = aiState.activeProviderId;
+        formPrompt = aiState.advanced.prompt;
+        formGreetingPrompt = aiState.advanced.greetingPrompt;
+        formTemperature = String(aiState.advanced.temperature);
+        formMaxTokens = String(aiState.advanced.maxTokens);
+        providerModels = Object.entries(aiState.providers).reduce(
+            (acc, [id, provider]) => {
+                if (!provider) return acc;
+                acc[id as AiProviderId] = provider.modelList ?? [];
+                return acc;
+            },
+            {} as Partial<Record<AiProviderId, string[]>>,
+        );
+        basicDirty = false;
+        advancedDirty = false;
+        apiKeyDirty = false;
+        syncFormWithProvider();
+    }
 
     function normalizedBaseUrl(value: string): string {
         const trimmed = value.trim();
@@ -307,13 +311,10 @@
         try {
             await persistCurrentApiKey(provider);
             provider.baseUrl = baseUrl;
-            saveAiSettingsState(aiState);
-            await storeProviderBaseUrl(provider.id, baseUrl);
-            const models = await listAiModels({
-                baseUrl,
-                providerId: provider.id,
-            });
+            await saveAiSettingsState(aiState);
+            const models = await listAiModels(provider.id);
             provider.baseUrl = baseUrl;
+            provider.modelList = models;
             providerModels = {
                 ...providerModels,
                 [provider.id]: models,
@@ -325,7 +326,7 @@
                     formModel = models[0];
                     provider.model = formModel;
                 }
-                saveAiSettingsState(aiState);
+                await saveAiSettingsState(aiState);
                 statusBanner = {
                     tone: "ok",
                     text: $t("statusModelsFetched", { count: models.length }),
@@ -450,7 +451,6 @@
 
         try {
             await deleteProviderApiKey(activeProviderId);
-            await deleteProviderSlot(activeProviderId);
         } catch (error) {
             console.error("Failed to delete stored secret", error);
         }
@@ -469,7 +469,7 @@
         activeProviderId = aiState.activeProviderId;
         providerModels = {};
         syncFormWithProvider();
-        saveAiSettingsState(aiState);
+        await saveAiSettingsState(aiState);
         statusBanner = { tone: "ok", text: $t("statusCustomDeleted") };
     }
 
@@ -525,7 +525,7 @@
             try {
                 savingBasic = true;
                 aiState.activeProviderId = provider.id;
-                saveAiSettingsState(aiState);
+                await saveAiSettingsState(aiState);
                 basicDirty = false;
                 if (showBanner) {
                     statusBanner = { tone: "ok", text: $t("statusAiOff") };
@@ -580,12 +580,8 @@
         try {
             savingBasic = true;
             statusBanner = null;
-            await storeProviderBaseUrl(provider.id, provider.baseUrl);
-            if (provider.model) {
-                await storeProviderModel(provider.id, provider.model);
-            }
             await persistCurrentApiKey(provider);
-            saveAiSettingsState(aiState);
+            await saveAiSettingsState(aiState);
             basicDirty = false;
             if (showBanner) {
                 statusBanner = { tone: "ok", text: $t("statusBasicSaved") };
@@ -620,7 +616,7 @@
                 Number(formTemperature) || DEFAULT_TEMPERATURE;
             aiState.advanced.maxTokens =
                 Number(formMaxTokens) || resolveDefaultMaxTokens();
-            saveAiSettingsState(aiState);
+            await saveAiSettingsState(aiState);
             advancedDirty = false;
             if (showBanner) {
                 statusBanner = { tone: "ok", text: message };

@@ -34,6 +34,7 @@ export interface AiProviderConfig {
   baseUrl: string;
   editable: boolean;
   model?: string;
+  modelList?: string[];
   prompt?: string;
   maxTokens?: number;
   temperature?: number;
@@ -64,7 +65,6 @@ export interface AiInvokePayload {
 }
 
 export interface AiModelQuery {
-  baseUrl: string;
   providerId: string;
 }
 

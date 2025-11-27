@@ -59,53 +59,6 @@ pub async fn list_ai_models(
 }
 
 #[tauri::command]
-pub async fn load_cached_models(
-    app: AppHandle,
-    provider_id: String,
-) -> Result<Option<Vec<String>>, String> {
-    crate::security::secrets::load_model_cache(&app, &provider_id)
-}
-
-#[tauri::command]
-pub async fn load_provider_base_url(
-    app: AppHandle,
-    provider_id: String,
-) -> Result<Option<String>, String> {
-    crate::security::secrets::load_base_url(&app, &provider_id)
-}
-
-#[tauri::command]
-pub async fn store_provider_base_url(
-    app: AppHandle,
-    provider_id: String,
-    base_url: String,
-) -> Result<(), String> {
-    crate::security::secrets::save_base_url(&app, &provider_id, &base_url)
-}
-
-#[tauri::command]
-pub async fn delete_provider_slot(app: AppHandle, provider_id: String) -> Result<(), String> {
-    crate::security::secrets::delete_provider(&app, &provider_id)
-}
-
-#[tauri::command]
-pub async fn store_provider_model(
-    app: AppHandle,
-    provider_id: String,
-    model: String,
-) -> Result<(), String> {
-    crate::security::secrets::save_selected_model(&app, &provider_id, &model)
-}
-
-#[tauri::command]
-pub async fn load_provider_model(
-    app: AppHandle,
-    provider_id: String,
-) -> Result<Option<String>, String> {
-    crate::security::secrets::load_selected_model(&app, &provider_id)
-}
-
-#[tauri::command]
 pub async fn store_api_secret(
     app: AppHandle,
     provider_id: String,
@@ -116,14 +69,6 @@ pub async fn store_api_secret(
         return delete_api_secret(app, provider_id).await;
     }
     secrets::save_api_key(&app, &provider_id, trimmed)
-}
-
-#[tauri::command]
-pub async fn load_api_secret(
-    app: AppHandle,
-    provider_id: String,
-) -> Result<Option<String>, String> {
-    secrets::load_api_key(&app, &provider_id)
 }
 
 #[tauri::command]

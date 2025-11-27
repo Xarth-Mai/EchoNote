@@ -2,7 +2,6 @@ import { browser } from "$app/environment";
 import type {
   DiaryEntry as EntrySummary,
   AiInvokePayload,
-  AiModelQuery,
   HeroGreetingRequest,
 } from "../types";
 
@@ -78,43 +77,12 @@ export async function invokeGenerateHeroGreeting(
   return safeInvoke<string>("invoke_generate_hero_greeting", { request });
 }
 
-export async function listAiModels(
-  request: AiModelQuery,
-): Promise<string[]> {
-  return safeInvoke<string[]>("list_ai_models", { request });
+export async function listAiModels(providerId: string): Promise<string[]> {
+  return safeInvoke<string[]>("list_ai_models", {
+    request: { providerId },
+  });
 }
 
-export async function loadProviderModelCache(
-  providerId: string,
-): Promise<string[] | null> {
-  return safeInvoke<string[] | null>("load_cached_models", { providerId });
-}
-
-export async function loadProviderBaseUrl(
-  providerId: string,
-): Promise<string | null> {
-  return safeInvoke<string | null>("load_provider_base_url", { providerId });
-}
-
-export async function storeProviderBaseUrl(
-  providerId: string,
-  baseUrl: string,
-): Promise<void> {
-  await safeInvoke<void>("store_provider_base_url", { providerId, baseUrl });
-}
-
-export async function storeProviderModel(
-  providerId: string,
-  model: string,
-): Promise<void> {
-  await safeInvoke<void>("store_provider_model", { providerId, model });
-}
-
-export async function loadProviderModel(
-  providerId: string,
-): Promise<string | null> {
-  return safeInvoke<string | null>("load_provider_model", { providerId });
-}
 export async function storeProviderApiKey(
   providerId: string,
   apiKey: string,
@@ -126,8 +94,4 @@ export async function deleteProviderApiKey(
   providerId: string,
 ): Promise<void> {
   await safeInvoke<void>("delete_api_secret", { providerId });
-}
-
-export async function deleteProviderSlot(providerId: string): Promise<void> {
-  await safeInvoke<void>("delete_provider_slot", { providerId });
 }
