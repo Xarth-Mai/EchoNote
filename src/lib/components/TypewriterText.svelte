@@ -121,7 +121,7 @@
     display: inline-block;
     /* 动画加快到 0.1s，因为 JS 的输入间隔已经有了随机性，
        CSS 动画只需负责“出现”的平滑度，避免闪烁 */
-    animation: typewriterReveal 0.1s ease-out forwards;
+    animation: typewriterReveal 0.1s var(--motion-curve-standard) forwards;
   }
 
   .typewriter__cursor {

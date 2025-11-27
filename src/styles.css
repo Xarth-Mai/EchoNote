@@ -10,6 +10,8 @@
     --color-accent: #2563eb;
     --color-accent-soft: rgba(37, 99, 235, 0.1);
     --color-success: #0fa968;
+    --motion-curve-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-curve-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
     --radius-lg: 20px;
     --radius-md: 12px;
     --radius-sm: 8px;
@@ -92,10 +94,8 @@ a:focus-visible {
 }
 
 .page-shell {
-    width: min(
-        var(--page-shell-width),
-        calc(100% - (var(--page-shell-gap) * 2))
-    );
+    width: min(var(--page-shell-width),
+            calc(100% - (var(--page-shell-gap) * 2)));
     margin: 0 auto;
     min-height: calc(100vh - (var(--page-shell-gap) * 2));
     max-height: calc(100vh - (var(--page-shell-gap) * 2));
@@ -144,9 +144,9 @@ a:focus-visible {
     padding: 0.55rem 1.4rem;
     font-weight: 600;
     transition:
-        background 160ms ease,
-        color 160ms ease,
-        border 160ms ease;
+        background 160ms var(--motion-curve-standard),
+        color 160ms var(--motion-curve-standard),
+        border 160ms var(--motion-curve-standard);
 }
 
 .btn--primary {
@@ -193,20 +193,16 @@ a:focus-visible {
 .scroll-fade {
     --scroll-fade-edge: 24px;
     position: relative;
-    mask-image: linear-gradient(
-        to bottom,
-        transparent,
-        #000 var(--scroll-fade-edge),
-        #000 calc(100% - var(--scroll-fade-edge)),
-        transparent 100%
-    );
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent,
-        #000 var(--scroll-fade-edge),
-        #000 calc(100% - var(--scroll-fade-edge)),
-        transparent 100%
-    );
+    mask-image: linear-gradient(to bottom,
+            transparent,
+            #000 var(--scroll-fade-edge),
+            #000 calc(100% - var(--scroll-fade-edge)),
+            transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom,
+            transparent,
+            #000 var(--scroll-fade-edge),
+            #000 calc(100% - var(--scroll-fade-edge)),
+            transparent 100%);
 }
 
 /* Hover effects applied only when the device actually supports hovering pointers */

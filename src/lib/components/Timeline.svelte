@@ -356,8 +356,8 @@
         transform: translate(-50%, -50%) scale(0.4);
         opacity: 0;
         transition:
-            opacity 150ms ease,
-            transform 150ms ease;
+            opacity 220ms var(--motion-curve-emphasis),
+            transform 220ms var(--motion-curve-emphasis);
     }
 
     .timeline__dot--active::after {
@@ -375,8 +375,8 @@
         position: relative;
         z-index: 1;
         transition:
-            border 150ms ease,
-            transform 150ms ease;
+            border 220ms var(--motion-curve-standard),
+            transform 220ms var(--motion-curve-standard);
     }
 
     .timeline__card--active {

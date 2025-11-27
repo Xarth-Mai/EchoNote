@@ -419,19 +419,21 @@
     }
 
     .calendar-section--collapsible {
-        --calendar-stack-max-duration: 260ms;
-        --calendar-stack-opacity-duration: 200ms;
+        --calendar-stack-max-duration: 550ms;
+        --calendar-stack-opacity-duration: 360ms;
         overflow: hidden;
         transition:
-            max-height var(--calendar-stack-max-duration) ease,
-            opacity var(--calendar-stack-opacity-duration) ease;
+            max-height var(--calendar-stack-max-duration)
+                var(--motion-curve-emphasis),
+            opacity var(--calendar-stack-opacity-duration)
+                var(--motion-curve-standard);
         max-height: 0px;
         opacity: 0;
         pointer-events: none;
     }
 
     .calendar-section--collapsible[data-expanded="true"] {
-        --calendar-stack-max-duration: 520ms;
+        --calendar-stack-max-duration: 550ms;
         --calendar-stack-opacity-duration: 360ms;
         max-height: 520px;
         opacity: 1;
@@ -449,10 +451,10 @@
         min-height: clamp(1.9rem, 6.5vh, 4.8rem);
         background: rgba(0, 0, 0, 0.02);
         transition:
-            background 140ms ease,
-            color 140ms ease,
-            border 140ms ease,
-            transform 140ms ease;
+            background 220ms var(--motion-curve-standard),
+            color 220ms var(--motion-curve-standard),
+            border 220ms var(--motion-curve-standard),
+            transform 220ms var(--motion-curve-standard);
     }
 
     .calendar-cell--muted {
