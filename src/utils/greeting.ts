@@ -5,7 +5,6 @@ import type { AiProviderId } from "../types";
 import type { Locale } from "./i18n";
 
 const GREETING_CACHE_KEY = "echonote-hero-greeting";
-const MAX_TOKENS = 80;
 
 interface CachedGreetingBucket {
   date: string;
@@ -37,7 +36,7 @@ export async function generateHeroGreeting(
   const greetingPrompt = resolveGreetingPrompt(
     aiConfig.greetingPrompt ?? aiConfig.prompt,
   );
-  const maxTokens = clampMaxTokens(aiConfig.maxTokens);
+  const maxTokens = aiConfig.maxTokens;
   const temperature = normalizeTemperatureValue(aiConfig.temperature);
   const timezone = resolveTimezoneLabel();
 
@@ -165,13 +164,6 @@ function hashString(input: string): string {
     hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
   }
   return hash.toString(16);
-}
-
-function clampMaxTokens(value?: number | null): number | undefined {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return undefined;
-  }
-  return Math.min(Math.floor(value), MAX_TOKENS);
 }
 
 function normalizeTemperatureValue(value?: number | null): number | undefined {
