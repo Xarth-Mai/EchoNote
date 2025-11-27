@@ -1,17 +1,18 @@
 import { browser } from "$app/environment";
 import { invokeGenerateHeroGreeting } from "$utils/backend";
 import { DEFAULT_GREETING_PROMPT, getActiveAiInvokePayload } from "$utils/ai";
-import type { AiProviderId, DiaryEntry } from "../types";
+import type { AiProviderId } from "../types";
 import type { Locale } from "./i18n";
 
 const GREETING_CACHE_KEY = "echonote-hero-greeting";
-const MAX_CONTEXT_ENTRIES = 30;
-const MAX_SUMMARY_LENGTH = 180;
 const MAX_TOKENS = 80;
 
-interface CachedHeroGreeting {
+interface CachedGreetingBucket {
   date: string;
-  locale: Locale;
+  locales: Record<string, CachedHeroGreeting>;
+}
+
+interface CachedHeroGreeting {
   signature: string;
   greeting: string;
 }
@@ -19,7 +20,6 @@ interface CachedHeroGreeting {
 interface HeroGreetingOptions {
   today: Date;
   locale: Locale;
-  entries: DiaryEntry[];
 }
 
 export async function generateHeroGreeting(
@@ -27,7 +27,7 @@ export async function generateHeroGreeting(
 ): Promise<string | null> {
   if (!browser) return null;
 
-  const { today, locale, entries } = options;
+  const { today, locale } = options;
   const todayIso = formatIsoDate(today);
 
   const aiConfig = await getActiveAiInvokePayload();
@@ -41,24 +41,9 @@ export async function generateHeroGreeting(
   const temperature = normalizeTemperatureValue(aiConfig.temperature);
   const timezone = resolveTimezoneLabel();
 
-  const signature = buildSignature(
-    entries,
-    providerId,
-    greetingPrompt,
-    temperature,
-    maxTokens,
-    timezone,
-  );
-  const cached = readCachedGreeting();
-
-  if (
-    cached &&
-    cached.date === todayIso &&
-    cached.locale === locale &&
-    cached.signature === signature
-  ) {
-    return cached.greeting;
-  }
+  const signature = buildSignature(providerId, greetingPrompt, temperature, maxTokens, timezone);
+  const cached = readCachedGreeting(todayIso, locale, signature);
+  if (cached) return cached;
 
   const response = await invokeGenerateHeroGreeting({
     providerId,
@@ -73,9 +58,7 @@ export async function generateHeroGreeting(
   const greeting = extractGreetingFromResponse(response);
   if (!greeting) return null;
 
-  persistGreeting({
-    date: todayIso,
-    locale,
+  persistGreeting(todayIso, locale, {
     signature,
     greeting,
   });
@@ -116,18 +99,13 @@ function formatOffsetLabel(offsetMinutes: number): string {
   return `UTC${sign}${hours}:${minutes}`;
 }
 
-function readCachedGreeting(): CachedHeroGreeting | null {
+function readCachedBucket(): CachedGreetingBucket | null {
   if (!browser) return null;
   const raw = localStorage.getItem(GREETING_CACHE_KEY);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as CachedHeroGreeting;
-    if (
-      parsed &&
-      typeof parsed.date === "string" &&
-      typeof parsed.greeting === "string" &&
-      typeof parsed.signature === "string"
-    ) {
+    const parsed = JSON.parse(raw) as CachedGreetingBucket;
+    if (parsed && typeof parsed.date === "string" && parsed.locales && typeof parsed.locales === "object") {
       return parsed;
     }
   } catch (_error) {
@@ -136,26 +114,41 @@ function readCachedGreeting(): CachedHeroGreeting | null {
   return null;
 }
 
-function persistGreeting(payload: CachedHeroGreeting): void {
+function readCachedGreeting(
+  date: string,
+  locale: Locale,
+  signature: string,
+): string | null {
+  const bucket = readCachedBucket();
+  if (!bucket || bucket.date !== date) return null;
+  const cached = bucket.locales?.[locale];
+  if (!cached) return null;
+  if (cached.signature !== signature) return null;
+  return cached.greeting;
+}
+
+function persistGreeting(
+  date: string,
+  locale: Locale,
+  payload: CachedHeroGreeting,
+): void {
   if (!browser) return;
-  localStorage.setItem(GREETING_CACHE_KEY, JSON.stringify(payload));
+  const existing = readCachedBucket();
+  const next: CachedGreetingBucket =
+    existing && existing.date === date
+      ? { date, locales: { ...existing.locales } }
+      : { date, locales: {} };
+  next.locales[locale] = payload;
+  localStorage.setItem(GREETING_CACHE_KEY, JSON.stringify(next));
 }
 
 function buildSignature(
-  entries: DiaryEntry[],
   providerId: AiProviderId,
   prompt: string,
   temperature?: number | null,
   maxTokens?: number | null,
   timezone?: string | null,
 ): string {
-  const entriesFingerprint = entries
-    .filter((entry) => Boolean(entry.aiSummary))
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, MAX_CONTEXT_ENTRIES)
-    .map((entry) => `${entry.date}:${normalizeSummary(entry.aiSummary ?? "")}`)
-    .join("|");
-
   const configFingerprint = JSON.stringify({
     providerId,
     prompt,
@@ -163,8 +156,7 @@ function buildSignature(
     maxTokens: maxTokens ?? null,
     timezone: timezone ?? null,
   });
-
-  return hashString(`${configFingerprint}|${entriesFingerprint}`);
+  return hashString(configFingerprint);
 }
 
 function hashString(input: string): string {
@@ -173,12 +165,6 @@ function hashString(input: string): string {
     hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
   }
   return hash.toString(16);
-}
-
-function normalizeSummary(value: string): string {
-  const compacted = value.replace(/\s+/g, " ").trim();
-  if (compacted.length <= MAX_SUMMARY_LENGTH) return compacted;
-  return `${compacted.slice(0, MAX_SUMMARY_LENGTH)}…`;
 }
 
 function clampMaxTokens(value?: number | null): number | undefined {

@@ -12,7 +12,6 @@
         translator,
         type Locale,
     } from "$utils/i18n";
-    import type { DiaryEntry } from "../types";
 
     const state = appStateStore;
     const localeStore = locale;
@@ -27,11 +26,9 @@
     let localeValue: Locale = "zh-Hans";
     let aiGreeting: string | null = null;
     let greetingRequestId = 0;
-    let monthlyAiSummaries: DiaryEntry[] = [];
     let debounceTimer: ReturnType<typeof setTimeout>;
 
     $: localeValue = $localeStore;
-    $: monthlyAiSummaries = collectMonthlySummaries($state.summaries, today);
     $: fallbackGreeting = buildGreeting(today);
     $: greeting = aiGreeting?.trim() || fallbackGreeting;
     $: subline = $t("homeSubline", {
@@ -42,7 +39,7 @@
     $: if (browser) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            void updateHeroGreeting(localeValue, monthlyAiSummaries);
+            void updateHeroGreeting(localeValue);
         }, 500);
     }
 
@@ -80,47 +77,14 @@
         }
     }
 
-    function collectMonthlySummaries(
-        source: Map<string, DiaryEntry>,
-        reference: Date,
-    ): DiaryEntry[] {
-        const pendingSummary = $t("timelineAiPending");
-        const result: DiaryEntry[] = [];
-
-        // Optimize: Iterate 30 days back instead of filtering all entries
-        for (let i = 0; i < 30; i++) {
-            const d = new Date(reference);
-            d.setDate(reference.getDate() - i);
-            const dateStr = (() => {
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, "0");
-                const day = String(d.getDate()).padStart(2, "0");
-                return `${y}-${m}-${day}`;
-            })();
-
-            const entry = source.get(dateStr);
-            if (
-                entry &&
-                entry.aiSummary &&
-                entry.aiSummary.trim() !== pendingSummary
-            ) {
-                result.push(entry);
-            }
-        }
-
-        return result; // Already sorted by date descending because we iterated backwards
-    }
-
     async function updateHeroGreeting(
         localeSnapshot: Locale,
-        entriesSnapshot: DiaryEntry[],
     ): Promise<void> {
         const requestId = ++greetingRequestId;
         try {
             const generated = await generateHeroGreeting({
                 today,
                 locale: localeSnapshot,
-                entries: entriesSnapshot,
             });
             if (requestId === greetingRequestId) {
                 aiGreeting = generated;
