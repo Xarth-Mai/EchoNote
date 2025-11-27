@@ -197,26 +197,6 @@ pub fn save_entry_by_date(
     Ok(summary)
 }
 
-/// 统一调用各 AI Provider 的聊天接口（凭据和模型从本地配置读取）
-pub async fn invoke_ai_chat(
-    app: &AppHandle,
-    request: AiChatRequest,
-) -> Result<AiChatResult, String> {
-    let provider_id = request.provider_id.trim().to_string();
-    if provider_id.is_empty() || provider_id == "noai" {
-        return Err("AI provider is required".to_string());
-    }
-
-    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
-    let api_key = secrets::load_api_key(app, &provider_id)?
-        .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base =
-        sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
-
-    ai_provider::invoke_ai_chat(&provider_id, request, provider_ctx.model, &api_key, &api_base)
-        .await
-}
-
 /// 生成首页 Hero Greeting，由后端拼接上下文与系统提示词，前端仅传递用户偏好。
 pub async fn generate_hero_greeting(
     app: &AppHandle,
@@ -699,8 +679,7 @@ async fn request_ai_summary(
     let provider_ctx = ai_prefs::resolve_provider_context(app, provider_id)?;
     let api_key = secrets::load_api_key(app, provider_id)?
         .ok_or_else(|| "API Key is required for AI provider".to_string())?;
-    let api_base =
-        sanitize_api_base_url(Some(provider_ctx.base_url.clone()), provider_id)?;
+    let api_base = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), provider_id)?;
 
     let model = provider_ctx.model.clone();
     let prompt = ai
