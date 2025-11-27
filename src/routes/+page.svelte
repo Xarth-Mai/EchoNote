@@ -2,6 +2,7 @@
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import Calendar from "$lib/components/Calendar.svelte";
+    import TypewriterText from "$lib/components/TypewriterText.svelte";
     import Timeline from "$lib/components/Timeline.svelte";
     import { generateHeroGreeting } from "$utils/greeting";
     import { appStateStore, setCurrentDate } from "$utils/state";
@@ -77,9 +78,7 @@
         }
     }
 
-    async function updateHeroGreeting(
-        localeSnapshot: Locale,
-    ): Promise<void> {
+    async function updateHeroGreeting(localeSnapshot: Locale): Promise<void> {
         const requestId = ++greetingRequestId;
         try {
             const generated = await generateHeroGreeting({
@@ -105,7 +104,9 @@
             <p class="muted-text">
                 {subline}
             </p>
-            <h1>{greeting}</h1>
+            <h1>
+                <TypewriterText text={greeting} />
+            </h1>
         </div>
         <div class="home__actions">
             <button
