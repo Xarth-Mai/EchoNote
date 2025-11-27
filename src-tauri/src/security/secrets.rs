@@ -74,6 +74,17 @@ pub fn delete_api_key(app: &AppHandle, provider_id: &str) -> Result<(), String> 
     Ok(())
 }
 
+pub fn has_api_key(app: &AppHandle, provider_id: &str) -> Result<bool, String> {
+    let store = load_store(app)?;
+    let Some(slot) = store.get(provider_id) else {
+        return Ok(false);
+    };
+    Ok(slot
+        .ciphertext
+        .as_ref()
+        .is_some_and(|cipher| !cipher.trim().is_empty()))
+}
+
 pub fn persist_store_snapshot(app: &AppHandle, store: &SecretStore) -> Result<(), String> {
     persist_store(app, store)
 }

@@ -23,6 +23,7 @@ pub fn run() {
             commands::list_ai_models,
             commands::store_api_secret,
             commands::delete_api_secret,
+            commands::has_api_secret,
         ])
         .setup(|app| {
             if let Err(err) = ai_migration::migrate_if_needed(&app.handle()) {

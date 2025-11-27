@@ -6,6 +6,7 @@
         listAiModels,
         storeProviderApiKey,
         deleteProviderApiKey,
+        hasProviderApiKey,
     } from "$utils/backend";
     import {
         createCustomProviderConfig,
@@ -197,10 +198,39 @@
             },
             {} as Partial<Record<AiProviderId, string[]>>,
         );
+        await syncApiKeyHints(Object.keys(aiState.providers) as AiProviderId[]);
         basicDirty = false;
         advancedDirty = false;
         apiKeyDirty = false;
         syncFormWithProvider();
+    }
+
+    async function syncApiKeyHints(targets?: AiProviderId[]): Promise<void> {
+        const ids =
+            targets ??
+            (Object.keys(aiState.providers) as AiProviderId[]);
+        const hints: Partial<Record<AiProviderId, string>> = {
+            ...aiState.apiKeyHints,
+        };
+
+        for (const id of ids) {
+            try {
+                const hasKey = await hasProviderApiKey(id);
+                if (hasKey) {
+                    hints[id] = API_KEY_PLACEHOLDER;
+                } else {
+                    delete hints[id];
+                }
+            } catch (error) {
+                console.error("Failed to check API key presence", error);
+            }
+        }
+
+        aiState.apiKeyHints = hints;
+        if (ids.includes(activeProviderId)) {
+            formApiKey = getStoredApiKeyPlaceholder(activeProviderId);
+            apiKeyDirty = false;
+        }
     }
 
     function normalizedBaseUrl(value: string): string {

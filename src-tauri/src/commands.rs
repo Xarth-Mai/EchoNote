@@ -66,3 +66,8 @@ pub async fn store_api_secret(
 pub async fn delete_api_secret(app: AppHandle, provider_id: String) -> Result<(), String> {
     secrets::delete_api_key(&app, &provider_id)
 }
+
+#[tauri::command]
+pub async fn has_api_secret(app: AppHandle, provider_id: String) -> Result<bool, String> {
+    secrets::has_api_key(&app, &provider_id)
+}

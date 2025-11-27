@@ -64,10 +64,6 @@ export interface AiInvokePayload {
   greetingPrompt?: string | null;
 }
 
-export interface AiModelQuery {
-  providerId: string;
-}
-
 export interface HeroGreetingRequest {
   providerId: AiProviderId;
   userPrompt?: string | null;

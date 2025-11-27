@@ -95,3 +95,7 @@ export async function deleteProviderApiKey(
 ): Promise<void> {
   await safeInvoke<void>("delete_api_secret", { providerId });
 }
+
+export async function hasProviderApiKey(providerId: string): Promise<boolean> {
+  return safeInvoke<boolean>("has_api_secret", { providerId });
+}
