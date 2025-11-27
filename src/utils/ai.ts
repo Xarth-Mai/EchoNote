@@ -11,10 +11,10 @@ const STORE_FILE = "ai_preferences.json";
 const STORE_KEY = "aiSettings";
 
 export const DEFAULT_AI_PROMPT =
-  "Provide the summary exactly according to the system rules.";
+  "Analyze the content and date to provide a summary and seasonal emoji.";
 export const DEFAULT_TEMPERATURE = 1;
 export const DEFAULT_GREETING_PROMPT =
-  "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
+  "Craft a short, warm greeting. Reference the current season or holiday if applicable. Add an emoji.";
 const DEFAULT_MAX_TOKENS = 60;
 
 const BUILTIN_PROVIDERS: Record<

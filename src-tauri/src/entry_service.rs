@@ -404,7 +404,7 @@ fn build_greeting_system_prompt(
     };
 
     format!(
-        "Output only JSON: {{\"greeting\":\"<≤24 chars>\"}}\nRules: greeting must be warm, concise, add emoji, reflect recent diary tone, no chain-of-thought or explanations, JSON only.\nLanguage: {language}\nDate: {}\nTimezone: {}\nRecent summaries:\n{}",
+        "Output JSON: {{\"greeting\":\"<≤24 chars>\"}}\nRules:\n1. Warm, concise, optimistic.\n2. Reflect current season or holiday if applicable (check Date).\n3. Add relevant emoji.\n4. Mirror diary tone using Context; JSON only; no chain-of-thought.\nLanguage: {language}\nDate: {}\nTimezone: {}\nContext:\n{}",
         date.format(DATE_FORMAT),
         timezone,
         context_block
@@ -461,11 +461,22 @@ fn extract_greeting_from_response(raw: &str) -> String {
     trimmed.to_string()
 }
 
-fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<AiMessage> {
+fn build_summary_prompt(
+    date: impl AsRef<str>,
+    body: impl AsRef<str>,
+    custom_prompt: Option<&str>,
+) -> Vec<AiMessage> {
     let user_custom = custom_prompt.unwrap_or(ai_prefs::DEFAULT_PROMPT);
 
     let system_prompt = format!(
-        r#"Output only JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.Rules: emoji = 1 symbol; summary must use the diary author's language and writing style; no fabrication; avoid chain-of-thought or explanations; JSON only.Diary: {}"#,
+        r#"Output JSON: {{"emoji":"<1-symbol>","summary":"<≤60 chars>"}}.
+Rules:
+1. Emoji: Reflect diary content OR current season/holiday (based on Date).
+2. Summary: Use the diary author's language and writing style. No fabrication.
+3. JSON only. No markdown or explanations.
+Date: {}
+Diary: {}"#,
+        date.as_ref(),
         body.as_ref()
     );
 
@@ -608,7 +619,7 @@ async fn regenerate_entry_metadata(
     let mut summary_result = Err("Initial".to_string());
 
     while attempts < max_attempts {
-        summary_result = request_ai_summary(&app, &ai, &body).await;
+        summary_result = request_ai_summary(&app, &date, &ai, &body).await;
         if summary_result.is_ok() {
             break;
         }
@@ -669,6 +680,7 @@ async fn regenerate_entry_metadata(
 
 async fn request_ai_summary(
     app: &AppHandle,
+    date: &str,
     ai: &AiInvokePayload,
     body: &str,
 ) -> Result<AiSummaryResult, String> {
@@ -700,7 +712,7 @@ async fn request_ai_summary(
 
     let request = AiChatRequest {
         provider_id: provider_id.to_string(),
-        messages: build_summary_prompt(body, Some(&prompt)),
+        messages: build_summary_prompt(date, body, Some(&prompt)),
         temperature: Some(temperature),
         max_tokens: Some(max_tokens),
     };

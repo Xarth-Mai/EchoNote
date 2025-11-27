@@ -10,9 +10,9 @@ use tauri::{AppHandle, Manager};
 use crate::security::secrets::LegacyStore;
 
 pub const PREFS_FILE_NAME: &str = "ai_preferences.json";
-pub const DEFAULT_PROMPT: &str = "Provide the summary exactly according to the system rules.";
-pub const DEFAULT_GREETING_PROMPT: &str =
-    "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
+pub const DEFAULT_PROMPT: &str =
+    "Analyze the content and date to provide a summary and seasonal emoji.";
+pub const DEFAULT_GREETING_PROMPT: &str = "Craft a short, warm greeting. Reference the current season or holiday if applicable. Add an emoji.";
 pub const DEFAULT_TEMPERATURE: f32 = 1.0;
 pub const DEFAULT_MAX_TOKENS: u32 = 60;
 
