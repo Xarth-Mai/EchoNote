@@ -157,7 +157,7 @@ export function createCustomProviderConfig(
     temperature: DEFAULT_TEMPERATURE,
     type: "custom",
     suffix: normalizedSuffix || "default",
-    modelList: [],
+    modelList: getDefaultModelList("chatgpt"),
   };
 }
 
@@ -181,7 +181,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
       maxTokens: normalizeMaxTokens(existing?.maxTokens),
       temperature: normalizeTemperature(existing?.temperature),
       type: "builtin",
-      modelList: sanitizeModelList(existing?.modelList),
+      modelList: sanitizeModelList(existing?.modelList, id),
     };
   }
 
@@ -205,7 +205,7 @@ export function sanitizeState(input?: AiSettingsState): AiSettingsState {
         label:
           cfg.label ||
           `OpenAI API Custom · ${cfg.suffix ?? cfg.id.replace("openai-custom-", "")}`,
-        modelList: sanitizeModelList(cfg.modelList),
+        modelList: sanitizeModelList(cfg.modelList, cfg.id),
       };
     });
 
@@ -248,7 +248,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
-        modelList: [],
+        modelList: getDefaultModelList("noai"),
       },
       chatgpt: {
         id: "chatgpt",
@@ -260,7 +260,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
-        modelList: [],
+        modelList: getDefaultModelList("chatgpt"),
       },
       deepseek: {
         id: "deepseek",
@@ -272,7 +272,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
-        modelList: [],
+        modelList: getDefaultModelList("deepseek"),
       },
       gemini: {
         id: "gemini",
@@ -284,7 +284,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
-        modelList: [],
+        modelList: getDefaultModelList("gemini"),
       },
       claude: {
         id: "claude",
@@ -296,7 +296,7 @@ export function createDefaultState(): AiSettingsState {
         maxTokens: DEFAULT_MAX_TOKENS,
         temperature: DEFAULT_TEMPERATURE,
         type: "builtin",
-        modelList: [],
+        modelList: getDefaultModelList("claude"),
       },
     },
     advanced: {
@@ -369,10 +369,26 @@ function sanitizeApiKeyHints(
   return hints;
 }
 
-function sanitizeModelList(value?: string[] | null): string[] | undefined {
-  if (!value) return [];
+function sanitizeModelList(
+  value?: string[] | null,
+  providerId?: AiProviderId,
+): string[] | undefined {
+  if (!value) return getDefaultModelList(providerId);
   const cleaned = value
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
-  return cleaned.length > 0 ? cleaned : [];
+  if (cleaned.length > 0) {
+    return cleaned;
+  }
+  return getDefaultModelList(providerId);
+}
+
+function getDefaultModelList(providerId?: AiProviderId): string[] {
+  const model =
+    providerId && providerId in DEFAULT_MODEL_BY_PROVIDER
+      ? DEFAULT_MODEL_BY_PROVIDER[providerId]
+      : providerId?.startsWith("openai-custom-")
+        ? DEFAULT_MODEL_BY_PROVIDER.chatgpt
+        : undefined;
+  return model ? [model] : [];
 }
