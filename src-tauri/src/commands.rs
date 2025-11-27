@@ -2,7 +2,6 @@
 
 use tauri::AppHandle;
 
-use crate::ai_provider::{AiChatRequest, AiChatResult};
 use crate::entry_service::{self, AiInvokePayload, AiModelListRequest, HeroGreetingRequest};
 use crate::models::DiaryEntry;
 use crate::security::secrets;
@@ -32,14 +31,6 @@ pub async fn save_entry_by_date(
     ai: Option<AiInvokePayload>,
 ) -> Result<DiaryEntry, String> {
     entry_service::save_entry_by_date(app, date, body, ai)
-}
-
-#[tauri::command]
-pub async fn invoke_ai_chat(
-    app: AppHandle,
-    request: AiChatRequest,
-) -> Result<AiChatResult, String> {
-    entry_service::invoke_ai_chat(&app, request).await
 }
 
 #[tauri::command]

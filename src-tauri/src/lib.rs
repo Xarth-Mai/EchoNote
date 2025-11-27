@@ -19,7 +19,6 @@ pub fn run() {
             commands::list_entries_by_month,
             commands::get_entry_body_by_date,
             commands::save_entry_by_date,
-            commands::invoke_ai_chat,
             commands::invoke_generate_hero_greeting,
             commands::list_ai_models,
             commands::store_api_secret,
