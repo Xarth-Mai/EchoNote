@@ -17,6 +17,7 @@ pub fn run() {
             commands::get_entry_body_by_date,
             commands::save_entry_by_date,
             commands::invoke_ai_chat,
+            commands::invoke_generate_hero_greeting,
             commands::list_ai_models,
             commands::store_api_secret,
             commands::load_api_secret,

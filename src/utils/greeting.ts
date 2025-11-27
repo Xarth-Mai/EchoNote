@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import { invokeAiChat } from "$utils/backend";
+import { invokeGenerateHeroGreeting } from "$utils/backend";
 import { DEFAULT_GREETING_PROMPT, getActiveAiInvokePayload } from "$utils/ai";
 import type { AiProviderId, DiaryEntry } from "../types";
 import type { Locale } from "./i18n";
@@ -7,6 +7,7 @@ import type { Locale } from "./i18n";
 const GREETING_CACHE_KEY = "echonote-hero-greeting";
 const MAX_CONTEXT_ENTRIES = 30;
 const MAX_SUMMARY_LENGTH = 180;
+const MAX_TOKENS = 80;
 
 interface CachedHeroGreeting {
   date: string;
@@ -28,7 +29,26 @@ export async function generateHeroGreeting(
 
   const { today, locale, entries } = options;
   const todayIso = formatIsoDate(today);
-  const signature = buildSignature(entries);
+
+  const aiConfig = await getActiveAiInvokePayload();
+  const providerId = aiConfig?.providerId as AiProviderId | undefined;
+  if (!aiConfig || !providerId || providerId === "noai") return null;
+
+  const greetingPrompt = resolveGreetingPrompt(
+    aiConfig.greetingPrompt ?? aiConfig.prompt,
+  );
+  const maxTokens = clampMaxTokens(aiConfig.maxTokens);
+  const temperature = normalizeTemperatureValue(aiConfig.temperature);
+  const timezone = resolveTimezoneLabel();
+
+  const signature = buildSignature(
+    entries,
+    providerId,
+    greetingPrompt,
+    temperature,
+    maxTokens,
+    timezone,
+  );
   const cached = readCachedGreeting();
 
   if (
@@ -40,25 +60,17 @@ export async function generateHeroGreeting(
     return cached.greeting;
   }
 
-  const aiConfig = await getActiveAiInvokePayload();
-  const providerId = aiConfig?.providerId as AiProviderId | undefined;
-  if (!aiConfig || !providerId || providerId === "noai") return null;
-
-  const context = buildContext(entries);
-  const system = buildSystemPrompt(todayIso, locale, context);
-  const user = buildUserPrompt(aiConfig.greetingPrompt ?? aiConfig.prompt);
-
-  const response = await invokeAiChat({
+  const response = await invokeGenerateHeroGreeting({
     providerId,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-    temperature: aiConfig.temperature ?? undefined,
-    maxTokens: Math.min(aiConfig.maxTokens ?? 60, 80),
+    userPrompt: greetingPrompt,
+    locale,
+    date: todayIso,
+    maxTokens,
+    temperature,
+    timezone,
   });
 
-  const greeting = extractGreetingFromResponse(response.content);
+  const greeting = extractGreetingFromResponse(response);
   if (!greeting) return null;
 
   persistGreeting({
@@ -71,38 +83,9 @@ export async function generateHeroGreeting(
   return greeting;
 }
 
-function buildContext(entries: DiaryEntry[]): string {
-  if (!entries.length) return "";
-
-  const recent = [...entries]
-    .filter((entry) => Boolean(entry.aiSummary))
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, MAX_CONTEXT_ENTRIES);
-
-  return recent
-    .map((entry) => {
-      const normalized = normalizeSummary(entry.aiSummary ?? "");
-      return `${entry.date}: ${normalized}`;
-    })
-    .join("\n");
-}
-
-function buildSystemPrompt(todayIso: string, locale: Locale, context: string): string {
-  const language = resolveLanguage(locale);
-  const trimmedContext =
-    context || "No AI summaries were provided in the past month.";
-  return [
-    'Output only JSON: {"greeting":"<≤24 chars>"}',
-    "Rules: greeting must be warm, concise, add emoji, reflect recent diary tone, no chain-of-thought or explanations, JSON only.",
-    `Language: ${language}`,
-    `Date: ${todayIso}`,
-    "Recent summaries:",
-    trimmedContext,
-  ].join("\n");
-}
-
-function buildUserPrompt(preference?: string | null): string {
-  return preference?.trim() || DEFAULT_GREETING_PROMPT;
+function resolveGreetingPrompt(preference?: string | null): string {
+  const trimmed = preference?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : DEFAULT_GREETING_PROMPT;
 }
 
 function formatIsoDate(value: Date): string {
@@ -110,6 +93,27 @@ function formatIsoDate(value: Date): string {
   const month = String(value.getMonth() + 1).padStart(2, "0");
   const day = String(value.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function resolveTimezoneLabel(): string {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const offsetLabel = formatOffsetLabel(offsetMinutes);
+  const tz =
+    typeof Intl !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "";
+  if (tz && tz.trim()) {
+    return `${tz} (${offsetLabel})`;
+  }
+  return offsetLabel;
+}
+
+function formatOffsetLabel(offsetMinutes: number): string {
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const abs = Math.abs(offsetMinutes);
+  const hours = String(Math.floor(abs / 60)).padStart(2, "0");
+  const minutes = String(abs % 60).padStart(2, "0");
+  return `UTC${sign}${hours}:${minutes}`;
 }
 
 function readCachedGreeting(): CachedHeroGreeting | null {
@@ -137,15 +141,30 @@ function persistGreeting(payload: CachedHeroGreeting): void {
   localStorage.setItem(GREETING_CACHE_KEY, JSON.stringify(payload));
 }
 
-function buildSignature(entries: DiaryEntry[]): string {
-  const base = entries
+function buildSignature(
+  entries: DiaryEntry[],
+  providerId: AiProviderId,
+  prompt: string,
+  temperature?: number | null,
+  maxTokens?: number | null,
+  timezone?: string | null,
+): string {
+  const entriesFingerprint = entries
     .filter((entry) => Boolean(entry.aiSummary))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, MAX_CONTEXT_ENTRIES)
-    .map((entry) => `${entry.date}:${entry.aiSummary ?? ""}`)
+    .map((entry) => `${entry.date}:${normalizeSummary(entry.aiSummary ?? "")}`)
     .join("|");
 
-  return hashString(base);
+  const configFingerprint = JSON.stringify({
+    providerId,
+    prompt,
+    temperature: typeof temperature === "number" ? Math.round(temperature * 100) / 100 : null,
+    maxTokens: maxTokens ?? null,
+    timezone: timezone ?? null,
+  });
+
+  return hashString(`${configFingerprint}|${entriesFingerprint}`);
 }
 
 function hashString(input: string): string {
@@ -160,6 +179,18 @@ function normalizeSummary(value: string): string {
   const compacted = value.replace(/\s+/g, " ").trim();
   if (compacted.length <= MAX_SUMMARY_LENGTH) return compacted;
   return `${compacted.slice(0, MAX_SUMMARY_LENGTH)}…`;
+}
+
+function clampMaxTokens(value?: number | null): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return Math.min(Math.floor(value), MAX_TOKENS);
+}
+
+function normalizeTemperatureValue(value?: number | null): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  return Math.max(0, Math.min(value, 2));
 }
 
 function extractGreetingFromResponse(content?: string | null): string | null {
@@ -185,18 +216,4 @@ function extractGreetingFromResponse(content?: string | null): string | null {
     if (match) return match[1].trim();
   }
   return trimmed;
-}
-
-function resolveLanguage(locale: Locale): string {
-  switch (locale) {
-    case "en":
-      return "English";
-    case "ja":
-      return "Japanese";
-    case "zh-Hant":
-      return "Traditional Chinese";
-    case "zh-Hans":
-    default:
-      return "Simplified Chinese";
-  }
 }

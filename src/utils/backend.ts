@@ -1,10 +1,9 @@
 import { browser } from "$app/environment";
 import type {
   DiaryEntry as EntrySummary,
-  AiChatRequest,
-  AiChatResult,
   AiInvokePayload,
   AiModelQuery,
+  HeroGreetingRequest,
 } from "../types";
 
 type Invoke = typeof import("@tauri-apps/api/core").invoke;
@@ -73,10 +72,10 @@ export async function saveEntryByDate(
   });
 }
 
-export async function invokeAiChat(
-  request: AiChatRequest,
-): Promise<AiChatResult> {
-  return safeInvoke<AiChatResult>("invoke_ai_chat", { request });
+export async function invokeGenerateHeroGreeting(
+  request: HeroGreetingRequest,
+): Promise<string> {
+  return safeInvoke<string>("invoke_generate_hero_greeting", { request });
 }
 
 export async function listAiModels(

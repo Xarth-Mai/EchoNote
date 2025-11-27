@@ -24,22 +24,6 @@ export interface AiMessage {
   content: string;
 }
 
-export interface AiChatRequest {
-  providerId: AiProviderId;
-  messages: AiMessage[];
-  temperature?: number;
-  maxTokens?: number;
-}
-
-export interface AiChatResult {
-  content: string;
-  finishReason?: string;
-  model?: string;
-  promptTokens?: number;
-  completionTokens?: number;
-  totalTokens?: number;
-}
-
 export type BuiltinAiProvider = "chatgpt" | "deepseek" | "gemini" | "claude";
 export type CustomAiProvider = `openai-custom-${string}`;
 export type AiProviderId = BuiltinAiProvider | CustomAiProvider | "noai";
@@ -82,4 +66,14 @@ export interface AiInvokePayload {
 export interface AiModelQuery {
   baseUrl: string;
   providerId: string;
+}
+
+export interface HeroGreetingRequest {
+  providerId: AiProviderId;
+  userPrompt?: string | null;
+  locale?: string | null;
+  date?: string | null;
+  maxTokens?: number | null;
+  temperature?: number | null;
+  timezone?: string | null;
 }

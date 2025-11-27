@@ -5,10 +5,11 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
-use chrono::{NaiveDate, Utc};
+use chrono::{Duration, Local, NaiveDate, Utc};
 use once_cell::sync::{Lazy, OnceCell};
 use reqwest::Url;
 use serde::Deserialize;
+use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
 use crate::ai_provider::{self, AiChatRequest, AiChatResult, AiMessage};
@@ -38,6 +39,11 @@ const DEFAULT_API_BASE_OPENAI: &str = "https://api.openai.com/v1";
 const DEFAULT_API_BASE_DEEPSEEK: &str = "https://api.deepseek.com";
 const DEFAULT_API_BASE_GEMINI: &str = "https://generativelanguage.googleapis.com";
 const DEFAULT_API_BASE_CLAUDE: &str = "https://api.anthropic.com";
+const DEFAULT_GREETING_PROMPT: &str =
+    "Please craft a short, warm hero greeting for today's diary. Keep it optimistic, personal, and add an emoji.";
+const GREETING_MAX_CONTEXT_ENTRIES: usize = 30;
+const GREETING_MAX_SUMMARY_LENGTH: usize = 180;
+const GREETING_MAX_TOKENS: u32 = 80;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AiInvokePayload {
@@ -55,6 +61,23 @@ pub struct AiModelListRequest {
     base_url: Option<String>,
     #[serde(rename = "providerId")]
     provider_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HeroGreetingRequest {
+    #[serde(rename = "providerId")]
+    provider_id: String,
+    #[serde(rename = "userPrompt")]
+    user_prompt: Option<String>,
+    #[serde(rename = "locale")]
+    locale: Option<String>,
+    #[serde(rename = "date")]
+    date: Option<String>,
+    #[serde(rename = "maxTokens")]
+    max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+    #[serde(rename = "timezone")]
+    timezone: Option<String>,
 }
 
 /// 列出指定年月的日记条目摘要（仅 frontmatter，不含正文）
@@ -206,6 +229,66 @@ pub async fn invoke_ai_chat(
     ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await
 }
 
+/// 生成首页 Hero Greeting，由后端拼接上下文与系统提示词，前端仅传递用户偏好。
+pub async fn generate_hero_greeting(
+    app: &AppHandle,
+    request: HeroGreetingRequest,
+) -> Result<String, String> {
+    let provider_id = request.provider_id.trim();
+    if provider_id.is_empty() || provider_id == "noai" {
+        return Err("AI provider is required".to_string());
+    }
+
+    let api_key = secrets::load_api_key(app, provider_id)?
+        .ok_or_else(|| "API Key is required for AI provider".to_string())?;
+    let api_base = sanitize_api_base_url(secrets::load_base_url(app, provider_id)?, provider_id)?;
+    let model = secrets::load_selected_model(app, provider_id)?
+        .unwrap_or_else(|| default_model_for(provider_id));
+
+    let target_date = resolve_greeting_date(request.date.as_deref())?;
+    let timezone = resolve_timezone_label(request.timezone.as_deref());
+    let language = resolve_language_label(request.locale.as_deref());
+    let layout = storage_layout(app)?;
+    let context = collect_recent_ai_summaries(&layout, target_date)?;
+
+    let system_prompt =
+        build_greeting_system_prompt(target_date, &timezone, language, context.as_slice());
+    let user_prompt = build_greeting_user_prompt(request.user_prompt.as_deref());
+    let temperature = request
+        .temperature
+        .map(|value| value.clamp(0.0, 2.0))
+        .unwrap_or(DEFAULT_TEMPERATURE);
+    let max_tokens = request
+        .max_tokens
+        .filter(|value| *value > 0)
+        .unwrap_or(60)
+        .min(GREETING_MAX_TOKENS);
+
+    let ai_request = AiChatRequest {
+        provider_id: provider_id.to_string(),
+        messages: vec![
+            AiMessage {
+                role: "system".into(),
+                content: system_prompt,
+            },
+            AiMessage {
+                role: "user".into(),
+                content: user_prompt,
+            },
+        ],
+        temperature: Some(temperature),
+        max_tokens: Some(max_tokens),
+    };
+
+    let response =
+        ai_provider::invoke_ai_chat(provider_id, ai_request, model, &api_key, &api_base).await?;
+    let greeting = extract_greeting_from_response(&response.content);
+    if greeting.is_empty() {
+        return Err("AI greeting response is empty".to_string());
+    }
+    Ok(greeting)
+}
+
 /// 查询指定 Base URL + API Key 的可用模型（API Key 来自本地后端存储）
 pub async fn list_ai_models(
     app: &AppHandle,
@@ -239,6 +322,167 @@ pub async fn list_ai_models(
             Err(err)
         }
     }
+}
+
+fn resolve_greeting_date(raw: Option<&str>) -> Result<NaiveDate, String> {
+    if let Some(date_str) = raw {
+        return parse_date(date_str);
+    }
+    Ok(Local::now().date_naive())
+}
+
+fn resolve_timezone_label(raw: Option<&str>) -> String {
+    let offset_minutes = Local::now().offset().local_minus_utc();
+    let offset_label = format_timezone_offset(offset_minutes);
+    if let Some(value) = raw {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return format!("{trimmed} ({offset_label})");
+        }
+    }
+    offset_label
+}
+
+fn format_timezone_offset(total_minutes: i32) -> String {
+    let sign = if total_minutes >= 0 { '+' } else { '-' };
+    let minutes = total_minutes.abs();
+    let hours = minutes / 60;
+    let mins = minutes % 60;
+    format!("UTC{sign}{hours:02}:{mins:02}")
+}
+
+fn collect_recent_ai_summaries(
+    layout: &StorageLayout,
+    today: NaiveDate,
+) -> Result<Vec<String>, String> {
+    let mut rows = Vec::new();
+    for offset in 0..GREETING_MAX_CONTEXT_ENTRIES {
+        let Some(target_date) = today.checked_sub_signed(Duration::days(offset as i64)) else {
+            break;
+        };
+        let date_str = target_date.format(DATE_FORMAT).to_string();
+        if let Some(entry) = load_entry_summary(layout, &date_str)? {
+            if let Some(ai_summary) = entry.ai_summary {
+                let trimmed = ai_summary.trim();
+                if trimmed.is_empty() || trimmed == AI_PENDING_SUMMARY {
+                    continue;
+                }
+                let normalized = normalize_greeting_summary(trimmed);
+                rows.push(format!("{date_str}: {normalized}"));
+            }
+        }
+    }
+    Ok(rows)
+}
+
+fn load_entry_summary(layout: &StorageLayout, date: &str) -> Result<Option<DiaryEntry>, String> {
+    if let Some(summary) = {
+        let store = STORE
+            .lock()
+            .map_err(|_| "failed to lock in-memory store".to_string())?;
+        store.get(date).map(|record| record.summary().clone())
+    } {
+        return Ok(Some(summary));
+    }
+
+    if let Some(record) = storage::load_entry(layout, date)? {
+        let summary = record.summary().clone();
+        let mut store = STORE
+            .lock()
+            .map_err(|_| "failed to lock in-memory store".to_string())?;
+        store.insert(date.to_string(), record);
+        prune_store_capacity(&mut store);
+        return Ok(Some(summary));
+    }
+
+    Ok(None)
+}
+
+fn normalize_greeting_summary(value: &str) -> String {
+    let compacted = value
+        .split_whitespace()
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut result = String::new();
+    let mut count = 0;
+    for ch in compacted.chars() {
+        if count >= GREETING_MAX_SUMMARY_LENGTH {
+            result.push('…');
+            break;
+        }
+        result.push(ch);
+        count += 1;
+    }
+    result
+}
+
+fn build_greeting_system_prompt(
+    date: NaiveDate,
+    timezone: &str,
+    language: &str,
+    context: &[String],
+) -> String {
+    let context_block = if context.is_empty() {
+        "No AI summaries were provided in the past month.".to_string()
+    } else {
+        context.join("\n")
+    };
+
+    format!(
+        "Output only JSON: {{\"greeting\":\"<≤24 chars>\"}}\nRules: greeting must be warm, concise, add emoji, reflect recent diary tone, no chain-of-thought or explanations, JSON only.\nLanguage: {language}\nDate: {}\nTimezone: {}\nRecent summaries:\n{}",
+        date.format(DATE_FORMAT),
+        timezone,
+        context_block
+    )
+}
+
+fn build_greeting_user_prompt(preference: Option<&str>) -> String {
+    let trimmed = preference.unwrap_or(DEFAULT_GREETING_PROMPT).trim();
+    if trimmed.is_empty() {
+        DEFAULT_GREETING_PROMPT.to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn resolve_language_label(locale: Option<&str>) -> &'static str {
+    match locale.unwrap_or("zh-Hans") {
+        "en" => "English",
+        "ja" => "Japanese",
+        "zh-Hant" => "Traditional Chinese",
+        _ => "Simplified Chinese",
+    }
+}
+
+fn extract_greeting_from_response(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let block = strip_code_fence_block(trimmed);
+    if let Ok(value) = serde_json::from_str::<Value>(block.as_ref()) {
+        if let Some(text) = value.as_str() {
+            let candidate = text.trim();
+            if !candidate.is_empty() {
+                return candidate.to_string();
+            }
+        }
+
+        if let Some(map) = value.as_object() {
+            for key in ["greeting", "message", "text"] {
+                if let Some(text) = map.get(key).and_then(|val| val.as_str()) {
+                    let candidate = text.trim();
+                    if !candidate.is_empty() {
+                        return candidate.to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    trimmed.to_string()
 }
 
 fn build_summary_prompt(body: impl AsRef<str>, custom_prompt: Option<&str>) -> Vec<AiMessage> {

@@ -3,7 +3,7 @@
 use tauri::AppHandle;
 
 use crate::ai_provider::{AiChatRequest, AiChatResult};
-use crate::entry_service::{self, AiInvokePayload, AiModelListRequest};
+use crate::entry_service::{self, AiInvokePayload, AiModelListRequest, HeroGreetingRequest};
 use crate::models::DiaryEntry;
 use crate::security::secrets;
 
@@ -40,6 +40,14 @@ pub async fn invoke_ai_chat(
     request: AiChatRequest,
 ) -> Result<AiChatResult, String> {
     entry_service::invoke_ai_chat(&app, request).await
+}
+
+#[tauri::command]
+pub async fn invoke_generate_hero_greeting(
+    app: AppHandle,
+    request: HeroGreetingRequest,
+) -> Result<String, String> {
+    entry_service::generate_hero_greeting(&app, request).await
 }
 
 #[tauri::command]
