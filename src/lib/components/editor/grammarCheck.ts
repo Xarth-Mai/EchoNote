@@ -69,7 +69,7 @@ export const grammarCheckPlugin = ViewPlugin.fromClass(class {
             for (const err of result) {
                  if (!err.original) continue;
                  let idx = text.indexOf(err.original);
-                 while (idx !== -1) {
+                 while (idx >= 0) {
                      errors.push({ ...err, from: idx, to: idx + err.original.length });
                      idx = text.indexOf(err.original, idx + err.original.length);
                  }
