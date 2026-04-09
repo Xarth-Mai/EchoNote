@@ -2,7 +2,7 @@
 
 use tauri::AppHandle;
 
-use crate::entry_service::{self, AiInvokePayload, AiModelListRequest, HeroGreetingRequest};
+use crate::entry_service::{self, AiInvokePayload, AiModelListRequest, HeroGreetingRequest, GrammarCorrection};
 use crate::models::DiaryEntry;
 use crate::security::secrets;
 
@@ -70,4 +70,33 @@ pub async fn delete_api_secret(app: AppHandle, provider_id: String) -> Result<()
 #[tauri::command]
 pub async fn has_api_secret(app: AppHandle, provider_id: String) -> Result<bool, String> {
     secrets::has_api_key(&app, &provider_id)
+}
+
+#[tauri::command]
+pub async fn invoke_ai_autocomplete(
+    app: AppHandle,
+    ai_payload: AiInvokePayload,
+    prefix: String,
+    suffix: String,
+) -> Result<String, String> {
+    entry_service::invoke_ai_autocomplete(&app, ai_payload, prefix, suffix).await
+}
+
+#[tauri::command]
+pub async fn invoke_ai_grammar_check(
+    app: AppHandle,
+    ai_payload: AiInvokePayload,
+    text: String,
+) -> Result<Vec<GrammarCorrection>, String> {
+    entry_service::invoke_ai_grammar_check(&app, ai_payload, text).await
+}
+
+#[tauri::command]
+pub async fn invoke_ai_rewrite(
+    app: AppHandle,
+    ai_payload: AiInvokePayload,
+    text: String,
+    instruction: String,
+) -> Result<String, String> {
+    entry_service::invoke_ai_rewrite(&app, ai_payload, text, instruction).await
 }

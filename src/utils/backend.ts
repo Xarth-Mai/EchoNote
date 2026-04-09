@@ -3,6 +3,7 @@ import type {
   DiaryEntry as EntrySummary,
   AiInvokePayload,
   HeroGreetingRequest,
+  GrammarCorrection,
 } from "../types";
 
 type Invoke = typeof import("@tauri-apps/api/core").invoke;
@@ -34,7 +35,19 @@ async function safeInvoke<T>(
     console.warn(
       `[EchoNote] Attempted to call "${cmd}" outside the browser; returning fallback result.`,
     );
-    // ... (rest of the fallback logic remains the same)
+
+    const fallbacks: Record<string, any> = {
+      list_entries_by_month: [],
+      get_entry_body_by_date: null,
+      invoke_generate_hero_greeting: "",
+      has_api_secret: false,
+      list_ai_models: [],
+      invoke_ai_grammar_check: [],
+      invoke_ai_autocomplete: "",
+      invoke_ai_rewrite: "",
+    };
+
+    return (fallbacks[cmd] ?? null) as T;
   }
 
   const invoke = await getInvoke();
@@ -98,4 +111,38 @@ export async function deleteProviderApiKey(
 
 export async function hasProviderApiKey(providerId: string): Promise<boolean> {
   return safeInvoke<boolean>("has_api_secret", { providerId });
+}
+
+export async function invokeAiAutocomplete(
+  payload: AiInvokePayload,
+  prefix: string,
+  suffix: string,
+): Promise<string> {
+  return safeInvoke<string>("invoke_ai_autocomplete", {
+    aiPayload: payload,
+    prefix,
+    suffix,
+  });
+}
+
+export async function invokeAiGrammarCheck(
+  payload: AiInvokePayload,
+  text: string,
+): Promise<GrammarCorrection[]> {
+  return safeInvoke<GrammarCorrection[]>("invoke_ai_grammar_check", {
+    aiPayload: payload,
+    text,
+  });
+}
+
+export async function invokeAiRewrite(
+  payload: AiInvokePayload,
+  text: string,
+  instruction: string,
+): Promise<string> {
+  return safeInvoke<string>("invoke_ai_rewrite", {
+    aiPayload: payload,
+    text,
+    instruction,
+  });
 }

@@ -8,6 +8,12 @@ export interface DiaryEntry {
   language?: string; // 创作语言
 }
 
+export interface GrammarCorrection {
+  original: string;
+  suggestion: string;
+  explanation: string;
+}
+
 /** 应用状态 */
 export interface AppState {
   currentDate: string; // 当前选中的日期

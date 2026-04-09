@@ -3,4 +3,4 @@
  * 渲染流程（仅在构建阶段执行），运行时仍由浏览器端接管。
  */
 export const prerender = true;
-export const ssr = true;
+export const ssr = false;

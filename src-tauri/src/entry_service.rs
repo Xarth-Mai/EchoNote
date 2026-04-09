@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use chrono::{Duration, Local, NaiveDate, Utc};
 use once_cell::sync::{Lazy, OnceCell};
 use reqwest::Url;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter};
 
@@ -42,6 +42,13 @@ pub struct AiInvokePayload {
     #[serde(rename = "maxTokens")]
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GrammarCorrection {
+    pub original: String,
+    pub suggestion: String,
+    pub explanation: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -296,6 +303,105 @@ pub async fn list_ai_models(
             Err(err)
         }
     }
+}
+
+pub async fn invoke_ai_autocomplete(
+    app: &AppHandle,
+    ai_payload: AiInvokePayload,
+    prefix: String,
+    suffix: String,
+) -> Result<String, String> {
+    let provider_id = ai_payload
+        .provider_id
+        .clone()
+        .ok_or_else(|| "AI provider is required".to_string())?;
+    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
+    let api_key = secrets::load_api_key(app, &provider_id)?
+        .ok_or_else(|| "API Key is required for AI provider".to_string())?;
+    let api_base = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
+    let model = provider_ctx.model.clone();
+
+    let system_prompt = "You are an intelligent autocomplete engine for a diary. Your task is to predict the exact missing text at the cursor given the prefix and suffix context. Respond ONLY with the suggested completion text in raw format (no quotes, no markdown, no explanation). If you don't know, output nothing.";
+    let user_prompt = format!("<Prefix>\n{}\n</Prefix>\n<Cursor>\n<Suffix>\n{}\n</Suffix>", prefix, suffix);
+
+    let request = AiChatRequest {
+        provider_id: provider_id.to_string(),
+        messages: vec![
+            AiMessage { role: "system".into(), content: system_prompt.into() },
+            AiMessage { role: "user".into(), content: user_prompt },
+        ],
+        temperature: ai_payload.temperature.or(Some(provider_ctx.temperature)),
+        max_tokens: ai_payload.max_tokens.or(Some(provider_ctx.max_tokens.max(40))),
+    };
+
+    let response = ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await?;
+    Ok(response.content.trim().to_string())
+}
+
+pub async fn invoke_ai_grammar_check(
+    app: &AppHandle,
+    ai_payload: AiInvokePayload,
+    text: String,
+) -> Result<Vec<GrammarCorrection>, String> {
+    let provider_id = ai_payload
+        .provider_id
+        .clone()
+        .ok_or_else(|| "AI provider is required".to_string())?;
+    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
+    let api_key = secrets::load_api_key(app, &provider_id)?
+        .ok_or_else(|| "API Key is required".to_string())?;
+    let api_base = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
+    let model = provider_ctx.model.clone();
+
+    let system_prompt = "You are a grammar checking engine. Analyze the provided text and return ONLY a JSON array of objects representing corrections. Each object must have 'original' (the exact substring to replace, context-free, be cautious of duplicates), 'suggestion' (the correct text), and 'explanation' (brief explanation). Example: [{\"original\":\"teh\",\"suggestion\":\"the\",\"explanation\":\"Spelling error\"}]. If no errors, output []. No backticks, no other text.";
+
+    let request = AiChatRequest {
+        provider_id: provider_id.to_string(),
+        messages: vec![
+            AiMessage { role: "system".into(), content: system_prompt.into() },
+            AiMessage { role: "user".into(), content: text },
+        ],
+        temperature: Some(0.1),
+        max_tokens: ai_payload.max_tokens.or(Some(provider_ctx.max_tokens.max(500))),
+    };
+
+    let response = ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await?;
+    let block = strip_code_fence_block(&response.content);
+    let corrections: Vec<GrammarCorrection> = serde_json::from_str(&block)
+        .unwrap_or_else(|_| Vec::new());
+    Ok(corrections)
+}
+
+pub async fn invoke_ai_rewrite(
+    app: &AppHandle,
+    ai_payload: AiInvokePayload,
+    text: String,
+    instruction: String,
+) -> Result<String, String> {
+    let provider_id = ai_payload
+        .provider_id
+        .clone()
+        .ok_or_else(|| "AI provider is required".to_string())?;
+    let provider_ctx = ai_prefs::resolve_provider_context(app, &provider_id)?;
+    let api_key = secrets::load_api_key(app, &provider_id)?
+        .ok_or_else(|| "API Key is required".to_string())?;
+    let api_base = sanitize_api_base_url(Some(provider_ctx.base_url.clone()), &provider_id)?;
+    let model = provider_ctx.model.clone();
+
+    let system_prompt = format!("You are an AI writing assistant. Rewrite the provided text according to the user's instruction: '{}'. Respond ONLY with the rewritten text. Do not provide explanations or wrappers.", instruction);
+
+    let request = AiChatRequest {
+        provider_id: provider_id.to_string(),
+        messages: vec![
+            AiMessage { role: "system".into(), content: system_prompt },
+            AiMessage { role: "user".into(), content: text },
+        ],
+        temperature: ai_payload.temperature.or(Some(provider_ctx.temperature.max(0.7))),
+        max_tokens: ai_payload.max_tokens.or(Some(provider_ctx.max_tokens.max(2000))),
+    };
+
+    let response = ai_provider::invoke_ai_chat(&provider_id, request, model, &api_key, &api_base).await?;
+    Ok(response.content.trim().to_string())
 }
 
 fn resolve_greeting_date(raw: Option<&str>) -> Result<NaiveDate, String> {

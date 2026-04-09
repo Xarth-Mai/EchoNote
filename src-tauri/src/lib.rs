@@ -24,6 +24,9 @@ pub fn run() {
             commands::store_api_secret,
             commands::delete_api_secret,
             commands::has_api_secret,
+            commands::invoke_ai_autocomplete,
+            commands::invoke_ai_grammar_check,
+            commands::invoke_ai_rewrite,
         ])
         .setup(|app| {
             if let Err(err) = ai_migration::migrate_if_needed(&app.handle()) {

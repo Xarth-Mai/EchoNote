@@ -2,12 +2,21 @@
     import { browser } from "$app/environment";
     import { goto } from "$app/navigation";
     import { onDestroy, onMount, tick } from "svelte";
+    import { EditorView, basicSetup } from "codemirror";
+    import { EditorState } from "@codemirror/state";
+    import { markdown } from "@codemirror/lang-markdown";
+    import { keymap } from "@codemirror/view";
+    import { defaultKeymap } from "@codemirror/commands";
     import {
         getEntryBody,
         listEntriesByMonth,
         saveEntryByDate,
     } from "$utils/backend";
     import { getActiveAiInvokePayload } from "$utils/ai";
+    import { ghostTextPlugin, ghostTextState, ghostTextKeymap } from "./editor/ghostText";
+    import { grammarCheckPlugin, grammarState, grammarTooltip } from "./editor/grammarCheck";
+    import AiFloatingMenu from "./editor/AiFloatingMenu.svelte";
+    import { invokeAiRewrite } from "$utils/backend";
     import {
         appStateStore,
         getSummary,
@@ -33,7 +42,9 @@
     let localeValue: Locale = "zh-Hans";
 
     let textareaValue = "";
-    let textareaRef: HTMLTextAreaElement | null = null;
+    let editorContainer: HTMLDivElement | null = null;
+    let editorView: EditorView | null = null;
+    let ignoreNextUpdate = false;
     let shouldFocusEditor = true;
     let initialLoadSettled = false;
     let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -42,6 +53,9 @@
     let loadingDate: string | null = null;
     let loadedDate: string | null = null;
     let hasDirtyEdits = false;
+
+    let aiSelection: { text: string; from: number; to: number } | null = null;
+    let aiSelectionRect: { top: number; left: number; bottom: number; right: number } | null = null;
 
     $: currentDate = $state.currentDate;
     $: currentBody = $state.currentBody;
@@ -64,12 +78,42 @@
         void ensureBodyLoaded(activeDate);
     }
 
-    $: if (shouldFocusEditor && initialLoadSettled && textareaRef) {
+    $: if (shouldFocusEditor && initialLoadSettled && editorView) {
         shouldFocusEditor = false;
         void focusTextarea();
     }
 
     onMount(() => {
+        if (editorContainer) {
+            editorView = new EditorView({
+                parent: editorContainer,
+                state: EditorState.create({
+                    doc: textareaValue,
+                    extensions: [
+                        basicSetup,
+                        markdown(),
+                        EditorView.lineWrapping,
+                        keymap.of(defaultKeymap),
+                        ghostTextState,
+                        ghostTextPlugin,
+                        ghostTextKeymap,
+                        grammarState,
+                        grammarCheckPlugin,
+                        grammarTooltip,
+                        EditorView.updateListener.of((update) => {
+                            if (update.docChanged && !ignoreNextUpdate) {
+                                textareaValue = update.state.doc.toString();
+                                handleInput();
+                            }
+                            if (update.selectionSet) {
+                                handleSelectionUpdate(update.view);
+                            }
+                        }),
+                    ],
+                }),
+            });
+        }
+
         const initialDate = activeDate || currentDate || getState().currentDate;
         if (initialDate) {
             activeDate = initialDate;
@@ -82,6 +126,9 @@
         void flushAutoSave();
         if (pendingStateSync && browser) {
             cancelAnimationFrame(pendingStateSync);
+        }
+        if (editorView) {
+            editorView.destroy();
         }
     });
 
@@ -120,15 +167,69 @@
             void save();
         }, AUTO_SAVE_DELAY);
     }
-
     async function focusTextarea(): Promise<void> {
-        if (!browser || !textareaRef) return;
+        if (!browser || !editorView) return;
         await tick();
-        textareaRef.focus();
-        textareaRef.setSelectionRange(
-            textareaRef.value.length,
-            textareaRef.value.length,
-        );
+        editorView.focus();
+        if (editorView.state.doc.length > 0) {
+            editorView.dispatch({
+                selection: { anchor: editorView.state.doc.length },
+            });
+        }
+    }
+
+    function handleSelectionUpdate(view: EditorView) {
+        const { from, to } = view.state.selection.main;
+        if (from === to) {
+            aiSelection = null;
+            aiSelectionRect = null;
+            return;
+        }
+
+        const text = view.state.doc.sliceString(from, to).trim();
+        if (!text) {
+            aiSelection = null;
+            aiSelectionRect = null;
+            return;
+        }
+
+        aiSelection = { text, from, to };
+        
+        // Calculate position
+        const startCoords = view.coordsAtPos(from);
+        const endCoords = view.coordsAtPos(to);
+
+        if (startCoords && endCoords) {
+            aiSelectionRect = {
+                top: Math.min(startCoords.top, endCoords.top),
+                left: startCoords.left,
+                bottom: Math.max(startCoords.bottom, endCoords.bottom),
+                right: endCoords.right
+            };
+        }
+    }
+
+    async function handleAiAction(event: CustomEvent<{ instruction: string }>) {
+        if (!aiSelection || !editorView) return;
+        const { instruction } = event.detail;
+        const { text, from, to } = aiSelection;
+
+        aiSelection = null; // Hide menu immediately
+
+        try {
+            const payload = await getActiveAiInvokePayload();
+            if (!payload || payload.providerId === "noai") return;
+
+            const result = await invokeAiRewrite(payload, text, instruction);
+            if (result) {
+                editorView.dispatch({
+                    changes: { from, to, insert: result },
+                    selection: { anchor: from + result.length }
+                });
+            }
+        } catch (e) {
+            console.error("AI Rewrite failed", e);
+        }
     }
 
     // 确保切换路由或组件卸载前队列中的自动保存已执行
@@ -242,6 +343,15 @@
     ): void {
         textareaValue = value;
         pushBodyToState(value);
+
+        if (editorView && editorView.state.doc.toString() !== value) {
+            ignoreNextUpdate = true;
+            editorView.dispatch({
+                changes: { from: 0, to: editorView.state.doc.length, insert: value },
+            });
+            ignoreNextUpdate = false;
+        }
+
         if (options.markPristine) {
             hasDirtyEdits = false;
         }
@@ -314,14 +424,17 @@
             {/if}
         </p>
     </div>
-
-    <textarea
+    <div
         class="editor-shell__textarea"
-        placeholder={$t("editorPlaceholder")}
-        bind:this={textareaRef}
-        bind:value={textareaValue}
-        on:input={handleInput}
-    ></textarea>
+        bind:this={editorContainer}
+    ></div>
+
+    <AiFloatingMenu 
+        selection={aiSelection}
+        rect={aiSelectionRect}
+        on:action={handleAiAction}
+        on:close={() => { aiSelection = null; aiSelectionRect = null; }}
+    />
 </div>
 
 <style>
@@ -366,5 +479,43 @@
 
     .editor-shell__textarea:focus {
         outline: none;
+    }
+
+    :global(.cm-ghost-text) {
+        pointer-events: none;
+        user-select: none;
+    }
+
+    :global(.cm-grammar-error) {
+        text-decoration: underline wavy var(--color-error, #f43f5e);
+        text-decoration-skip-ink: none;
+    }
+
+    :global(.cm-grammar-tooltip) {
+        background: var(--color-surface, #ffffff);
+        border: 1px solid var(--color-border, #e5e7eb);
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-width: 280px;
+    }
+
+    :global(.cm-grammar-tooltip strong) {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 1rem;
+    }
+
+    :global(.cm-editor) {
+        height: 100%;
+    }
+
+    :global(.cm-scroller) {
+        font-family: inherit !important;
+    }
+
+    :global(.cm-content) {
+        padding: 0 !important;
     }
 </style>
