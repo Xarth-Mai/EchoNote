@@ -39,11 +39,11 @@
     let localeValue: Locale = "zh-Hans";
 
     const BUILTIN_ORDER: Record<string, number> = {
-        noai: -1,
-        chatgpt: 0,
-        deepseek: 1,
-        gemini: 2,
-        claude: 3,
+        noai: 0,
+        chatgpt: 1,
+        deepseek: 2,
+        gemini: 3,
+        claude: 4,
     };
     const API_KEY_PLACEHOLDER = "sk-xxxxxxxxxxxxxxxx";
 

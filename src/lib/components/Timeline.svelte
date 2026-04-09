@@ -93,7 +93,7 @@
 
     function ensureDateVisible(date: string) {
         const index = fullEntries.findIndex((e) => e.date === date);
-        if (index !== -1 && index >= visibleCount) {
+        if (index >= 0 && index >= visibleCount) {
             visibleCount = index + PAGE_SIZE;
         }
     }
@@ -318,7 +318,7 @@
         content: "";
         position: absolute;
         left: 0.4rem;
-        right: calc(-1 * (var(--timeline-gap) + 0.6rem));
+        right: calc(0px - (var(--timeline-gap) + 0.6rem));
         top: 50%;
         transform: translateY(-50%);
         height: 2px;
@@ -329,7 +329,7 @@
         );
         opacity: 0.9;
         pointer-events: none;
-        z-index: -1;
+        z-index: 0;
     }
 
     .timeline__dot {

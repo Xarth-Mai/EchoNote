@@ -51,12 +51,12 @@
     // 如果当前内容不是目标的前缀，说明有错误或多余字符，需要退格
     if (!targetText.startsWith(currentStr)) {
       // --- 退格模式 ---
-      displayedText = displayedText.slice(0, -1);
+      displayedText = displayedText.slice(0, currentLength - 1);
 
       // 预判下一步：
       // 如果退格后，剩下的字符串变成了目标的前缀（例如删空了，或退到了公共部分），
       // 说明下一步该开始打字了。此时插入等待时间。
-      const nextStr = currentStr.slice(0, -1);
+      const nextStr = currentStr.slice(0, currentLength - 1);
       if (targetText.startsWith(nextStr)) {
         processTimer = setTimeout(() => processStep(targetText), waitDelay);
       } else {

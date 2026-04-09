@@ -64,7 +64,7 @@
 
     function getSelectedWeekIndex(dates: Date[], targetDate: string): number {
         const index = dates.findIndex((d) => formatDate(d) === targetDate);
-        if (index === -1) return 0;
+        if (index < 0) return 0;
         return Math.floor(index / 7);
     }
 

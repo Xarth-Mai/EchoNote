@@ -13,6 +13,9 @@ const config = {
     },
     alias: {
       $utils: 'src/utils'
+    },
+    version: {
+      name: "v0"
     }
   }
 };
